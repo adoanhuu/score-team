@@ -32,9 +32,7 @@ const els = {
   pointsPad: document.getElementById("points-pad"),
   liveVolleyHistoryWrap: document.getElementById("live-volley-history-wrap"),
   liveVolleyHistoryBody: document.getElementById("live-volley-history-body"),
-  showResultsBtn: document.getElementById("show-results-btn"),
-  resultsJsonWrap: document.getElementById("results-json-wrap"),
-  resultsJson: document.getElementById("results-json"),
+  downloadDataBtn: document.getElementById("download-data-btn"),
   finalTotal: document.getElementById("final-total"),
   avgshoot: document.getElementById("avg-volley"),
   avgArrow: document.getElementById("avg-arrow"),
@@ -318,8 +316,6 @@ function startScoring() {
   els.setupCard.classList.add("hidden");
   els.summaryCard.classList.add("hidden");
   els.scoringCard.classList.remove("hidden");
-  els.resultsJsonWrap.classList.add("hidden");
-  els.resultsJson.textContent = "";
 
   refreshScoringView();
 }
@@ -377,21 +373,28 @@ function buildResultsPayload() {
 
 function updateResultsAvailability() {
   const done = state.shoots.length === state.targetCount && state.targetCount > 0;
-  els.showResultsBtn.disabled = !done;
-  if (!done) {
-    els.resultsJsonWrap.classList.add("hidden");
-  }
+  els.downloadDataBtn.disabled = !done;
 }
 
-function showResultsJson() {
+function downloadResultsJson() {
   if (state.shoots.length !== state.targetCount) {
     return;
   }
   if (!state.resultsPayload) {
     state.resultsPayload = buildResultsPayload();
   }
-  els.resultsJson.textContent = JSON.stringify(state.resultsPayload, null, 2);
-  els.resultsJsonWrap.classList.remove("hidden");
+  const json = JSON.stringify(state.resultsPayload, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const now = new Date();
+  const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `score-team-${state.activeRuleset}-${stamp}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 function restart() {
@@ -416,7 +419,7 @@ els.rulesetSelect.addEventListener("change", () => {
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
-els.showResultsBtn.addEventListener("click", showResultsJson);
+els.downloadDataBtn.addEventListener("click", downloadResultsJson);
 els.restartBtn.addEventListener("click", restart);
 
 if ("serviceWorker" in navigator) {

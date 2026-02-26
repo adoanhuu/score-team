@@ -322,26 +322,6 @@ select {
   margin-top: 12px;
 }
 
-.results-json-wrap {
-  margin-top: 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  padding: 10px;
-}
-
-.results-json-wrap h3 {
-  margin: 0 0 8px;
-}
-
-.results-json-wrap pre {
-  margin: 0;
-  white-space: pre;
-  overflow-x: auto;
-  font-size: 0.82rem;
-  line-height: 1.35;
-}
-
 .hidden {
   display: none;
 }
