@@ -1,0 +1,1 @@
+npx wrangler pages deploy . --project-name score-team --branch main --commit-dirty

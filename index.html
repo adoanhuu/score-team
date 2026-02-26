@@ -22,15 +22,16 @@
           <span id="app-version" class="app-version"></span>
         </h1>
       </header>
+      <div id="flash-info" class="flash-info hidden" role="status" aria-live="polite"></div>
 
       <section class="card" id="setup-card">
         <div class="setup-head">
           <h2>Configuration</h2>
-          <a class="btn btn-light btn-icon home-btn" href="help.html" aria-label="Aide">
+          <button id="setup-help-btn" class="btn btn-light btn-icon home-btn" aria-label="Aide">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
             </svg>
-          </a>
+          </button>
         </div>
         <div class="grid-two">
           <label>
@@ -55,14 +56,21 @@
         <label>
           Zone de réussite (pts / volée)
           <div class="slider-row">
-            <input id="success-zone-input" type="range" min="0" max="120" step="1" value="0" />
-            <strong id="success-zone-value">0</strong>
+            <input id="success-zone-input" type="range" min="1" max="120" step="1" value="1" />
+            <strong id="success-zone-value">1</strong>
           </div>
         </label>
         <div class="start-action">
           <button id="start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer la saisie">
+            Démarrer
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+            </svg>
+          </button>
+          <button id="history-btn" class="btn btn-primary start-btn" aria-label="Historique parcours">
+            Historique
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 14.2A6.2 6.2 0 1 1 18.2 14 6.21 6.21 0 0 1 12 20.2Zm.9-9.8v4l3 1.8-.9 1.5-3.9-2.3V10.4h1.8Z" fill="currentColor" />
             </svg>
           </button>
         </div>
@@ -80,31 +88,26 @@
                 <path d="M12 3 3 10h2v10h5v-6h4v6h5V10h2L12 3z" fill="currentColor" />
               </svg>
             </button>
-            <a id="help-btn" class="btn btn-light btn-icon home-btn" href="help.html" aria-label="Aide">
+            <button id="help-btn" class="btn btn-light btn-icon home-btn" aria-label="Aide">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
               </svg>
-            </a>
+            </button>
           </div>
         </div>
 
-        <div class="quick-stats">
+        <div class="quick-stats quick-stats-two">
           <article>
             <span id="team-total-label">Total équipe</span>
             <strong id="team-total">0</strong>
           </article>
           <article>
-            <span>Total volée</span>
-            <strong id="volley-total">0</strong>
-          </article>
-          <article>
-            <span>Flèche en cours</span>
-            <strong id="arrow-step">1 / 6</strong>
+            <span>Zone de réussite</span>
+            <strong id="success-zone-display">0</strong>
           </article>
         </div>
 
-        <div class="score-entry-sticky">
-          <div id="arrow-grid" class="arrow-grid"></div>
+        <div id="score-entry-panel" class="score-entry-sticky">
           <div id="points-pad" class="points-pad"></div>
           <div class="score-actions-row">
             <button id="step-back-btn" class="btn btn-light btn-icon back-btn" aria-label="Retour 1 flèche">
@@ -129,7 +132,7 @@
             <tbody id="live-volley-history-body"></tbody>
           </table>
         </div>
-        <div class="actions action-icons">
+        <div id="results-actions" class="actions action-icons hidden">
           <button id="stats-btn" class="btn btn-primary btn-icon" aria-label="Statistiques" disabled>
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M4 20h16v2H4v-2Zm1-2V9h3v9H5Zm5 0V5h3v13h-3Zm5 0v-7h3v7h-3Z" fill="currentColor" />
@@ -185,7 +188,10 @@
         <div class="modal-overlay" id="stats-modal-overlay"></div>
         <div class="modal-card">
           <div class="modal-head">
-            <h3 id="stats-modal-title">Statistiques</h3>
+            <div class="stats-head-title">
+              <h3 id="stats-modal-title">Statistiques</h3>
+              <strong id="stats-total-points">0 pts</strong>
+            </div>
             <button id="stats-close-btn" class="btn btn-light btn-icon" aria-label="Fermer statistiques">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
@@ -193,15 +199,159 @@
             </button>
           </div>
           <div class="stats-grid-3">
-            <article><span>Moyenne volée</span><strong id="stats-avg-volley">0</strong></article>
+            <article><span>Zone de réussite</span><strong id="stats-success-zone">0</strong></article>
             <article><span>Meilleur score</span><strong id="stats-best-volley">0</strong></article>
             <article><span>Pire score</span><strong id="stats-worst-volley">0</strong></article>
           </div>
-          <div class="stats-grid-3" id="stats-segments-row">
-            <article><span id="stats-seg-1-label">Segment 1</span><strong id="stats-seg-1-value">0</strong></article>
-            <article><span id="stats-seg-2-label">Segment 2</span><strong id="stats-seg-2-value">0</strong></article>
-            <article><span id="stats-seg-3-label">Segment 3</span><strong id="stats-seg-3-value">0</strong></article>
+          <div class="stats-grid-3 stats-dashboard">
+            <article class="stats-histogram-card">
+              <span>Moyennes par partie</span>
+              <div class="stats-histogram" id="stats-histogram">
+                <div class="stats-bar-col">
+                  <div class="stats-bar-track">
+                    <div id="stats-bar-1" class="stats-bar" style="height: 0%"></div>
+                  </div>
+                  <strong id="stats-bar-1-value">0</strong>
+                  <small>Partie 1</small>
+                </div>
+                <div class="stats-bar-col">
+                  <div class="stats-bar-track">
+                    <div id="stats-bar-2" class="stats-bar" style="height: 0%"></div>
+                  </div>
+                  <strong id="stats-bar-2-value">0</strong>
+                  <small>Partie 2</small>
+                </div>
+                <div class="stats-bar-col">
+                  <div class="stats-bar-track">
+                    <div id="stats-bar-3" class="stats-bar" style="height: 0%"></div>
+                  </div>
+                  <strong id="stats-bar-3-value">0</strong>
+                  <small>Partie 3</small>
+                </div>
+              </div>
+            </article>
+            <article>
+              <span>Moyenne globale</span>
+              <div class="stats-histogram stats-histogram-single">
+                <div class="stats-bar-col">
+                  <div class="stats-bar-track">
+                    <div id="stats-global-bar" class="stats-bar" style="height: 0%"></div>
+                  </div>
+                  <strong id="stats-global-avg">0</strong>
+                  <small>Globale</small>
+                </div>
+              </div>
+            </article>
           </div>
+          <div class="stats-grid-3 stats-evolution-row">
+            <article class="stats-evolution-card">
+              <span>Évolution des scores (cibles <span id="stats-evolution-range">1 à 21</span>)</span>
+              <div class="stats-evolution-wrap">
+                <svg id="stats-evolution-chart" viewBox="0 0 100 44" preserveAspectRatio="none" aria-hidden="true">
+                  <line id="stats-evolution-success-line" x1="4" y1="40" x2="96" y2="40"></line>
+                  <polyline id="stats-evolution-path" points=""></polyline>
+                </svg>
+                <div class="stats-evolution-axis" id="stats-evolution-axis"></div>
+              </div>
+            </article>
+          </div>
+          <div class="stats-grid-2 stats-extra-row">
+            <article><span>Pleins</span><strong id="stats-full-count">0</strong></article>
+            <article><span>Double manqué</span><strong id="stats-double-miss-count">0</strong></article>
+          </div>
+          <div class="stats-grid-1 stats-dist-row">
+            <article class="stats-dist-card">
+              <span>Répartition des flèches</span>
+              <div id="stats-score-dist" class="stats-score-dist"></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="help-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+        <div class="modal-overlay" id="help-modal-overlay"></div>
+        <div class="modal-card help-modal-card">
+          <div class="modal-head">
+            <h3 id="help-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
+              </svg>
+              <span>Aide Scoring</span>
+            </h3>
+            <button id="help-close-btn" class="btn btn-light btn-icon" aria-label="Fermer aide">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <section class="help-block">
+            <h4>1. Modes de saisie</h4>
+            <ul>
+              <li>Mode Équipe: 6 flèches par volée.</li>
+              <li>Mode Individuel: 2 flèches par volée.</li>
+            </ul>
+          </section>
+
+          <section class="help-block">
+            <h4>2. Règles des points</h4>
+            <ul>
+              <li>Nature: 20 / 15 / 10 (+ M = 0).</li>
+              <li>3D: 11 / 10 / 8 / 5 (+ M = 0).</li>
+            </ul>
+            <p>En mode individuel + Nature: flèche 1 = 20 ou 15, flèche 2 = 15 ou 10 (M autorisé).</p>
+          </section>
+
+          <section class="help-block">
+            <h4>3. Validation de saisie</h4>
+            <ul>
+              <li>Un score ne peut pas dépasser le précédent (sauf si le précédent vaut M/0).</li>
+              <li>Les boutons non valides sont grisés.</li>
+              <li>Le total d'une volée est borné selon le parcours.</li>
+            </ul>
+          </section>
+
+          <section class="help-block">
+            <h4>4. Indicateurs</h4>
+            <ul>
+              <li>Pastille bleue: volée normale.</li>
+              <li>Pastille verte: score de volée maximum.</li>
+              <li>Pastille rouge: double zéro (0 / 0).</li>
+            </ul>
+          </section>
+
+          <section class="help-block">
+            <h4>5. Export</h4>
+            <p>Le bouton Télécharger données exporte un fichier JSON avec les volées et statistiques.</p>
+          </section>
+        </div>
+      </section>
+
+      <section id="history-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="history-modal-title">
+        <div class="modal-overlay" id="history-modal-overlay"></div>
+        <div class="modal-card help-modal-card">
+          <div class="modal-head">
+            <h3 id="history-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 14.2A6.2 6.2 0 1 1 18.2 14 6.21 6.21 0 0 1 12 20.2Zm.9-9.8v4l3 1.8-.9 1.5-3.9-2.3V10.4h1.8Z" fill="currentColor" />
+              </svg>
+              <span>Historique des parcours</span>
+            </h3>
+            <button id="history-close-btn" class="btn btn-light btn-icon" aria-label="Fermer historique">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div class="history-filter-row">
+            <label for="history-mode-filter">Filtre mode</label>
+            <select id="history-mode-filter">
+              <option value="all">Tous</option>
+              <option value="team">Équipe</option>
+              <option value="individual">Individuel</option>
+            </select>
+          </div>
+          <div id="history-list" class="history-list"></div>
         </div>
       </section>
     </main>

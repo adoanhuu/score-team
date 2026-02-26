@@ -1,5 +1,10 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.1.0";
+const APP_VERSION = "v1.2.0";
+const LAST_SCORE_PREVIEW_MS = 800;
+const AUTO_SAVE_KEY = "score-team-autosave-v1";
+const HISTORY_KEY = "score-team-history-v1";
+const MAX_HISTORY_ITEMS = 50;
+const FLASH_INFO_MS = 2600;
 
 const state = {
   targetCount: 21,
@@ -12,6 +17,8 @@ const state = {
   activeRuleset: "nature",
   allowedPoints: [20, 15, 10, 0],
   resultsPayload: null,
+  inputLocked: false,
+  completionArchived: false,
 };
 
 const els = {
@@ -23,33 +30,54 @@ const els = {
   successZoneValue: document.getElementById("success-zone-value"),
   rulesetSelect: document.getElementById("ruleset-select"),
   scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
+  setupHelpBtn: document.getElementById("setup-help-btn"),
   startBtn: document.getElementById("start-btn"),
   backSetupBtn: document.getElementById("back-setup-btn"),
+  helpBtn: document.getElementById("help-btn"),
   stepBackBtn: document.getElementById("step-back-btn"),
   shootTitle: document.getElementById("volley-title"),
   progressText: document.getElementById("progress-text"),
   teamTotalLabel: document.getElementById("team-total-label"),
   teamTotal: document.getElementById("team-total"),
-  shootTotal: document.getElementById("volley-total"),
-  arrowStep: document.getElementById("arrow-step"),
-  arrowGrid: document.getElementById("arrow-grid"),
+  successZoneDisplay: document.getElementById("success-zone-display"),
+  scoreEntryPanel: document.getElementById("score-entry-panel"),
   pointsPad: document.getElementById("points-pad"),
   liveVolleyHistoryWrap: document.getElementById("live-volley-history-wrap"),
   liveVolleyHistoryBody: document.getElementById("live-volley-history-body"),
+  resultsActions: document.getElementById("results-actions"),
+  historyBtn: document.getElementById("history-btn"),
   statsBtn: document.getElementById("stats-btn"),
   downloadDataBtn: document.getElementById("download-data-btn"),
   statsModal: document.getElementById("stats-modal"),
   statsModalOverlay: document.getElementById("stats-modal-overlay"),
   statsCloseBtn: document.getElementById("stats-close-btn"),
-  statsAvgVolley: document.getElementById("stats-avg-volley"),
+  statsTotalPoints: document.getElementById("stats-total-points"),
+  helpModal: document.getElementById("help-modal"),
+  helpModalOverlay: document.getElementById("help-modal-overlay"),
+  helpCloseBtn: document.getElementById("help-close-btn"),
+  historyModal: document.getElementById("history-modal"),
+  historyModalOverlay: document.getElementById("history-modal-overlay"),
+  historyCloseBtn: document.getElementById("history-close-btn"),
+  historyModeFilter: document.getElementById("history-mode-filter"),
+  historyList: document.getElementById("history-list"),
+  statsSuccessZone: document.getElementById("stats-success-zone"),
   statsBestVolley: document.getElementById("stats-best-volley"),
   statsWorstVolley: document.getElementById("stats-worst-volley"),
-  statsSeg1Label: document.getElementById("stats-seg-1-label"),
-  statsSeg2Label: document.getElementById("stats-seg-2-label"),
-  statsSeg3Label: document.getElementById("stats-seg-3-label"),
-  statsSeg1Value: document.getElementById("stats-seg-1-value"),
-  statsSeg2Value: document.getElementById("stats-seg-2-value"),
-  statsSeg3Value: document.getElementById("stats-seg-3-value"),
+  statsBar1: document.getElementById("stats-bar-1"),
+  statsBar2: document.getElementById("stats-bar-2"),
+  statsBar3: document.getElementById("stats-bar-3"),
+  statsBar1Value: document.getElementById("stats-bar-1-value"),
+  statsBar2Value: document.getElementById("stats-bar-2-value"),
+  statsBar3Value: document.getElementById("stats-bar-3-value"),
+  statsGlobalAvg: document.getElementById("stats-global-avg"),
+  statsGlobalBar: document.getElementById("stats-global-bar"),
+  statsEvolutionPath: document.getElementById("stats-evolution-path"),
+  statsEvolutionSuccessLine: document.getElementById("stats-evolution-success-line"),
+  statsEvolutionRange: document.getElementById("stats-evolution-range"),
+  statsEvolutionAxis: document.getElementById("stats-evolution-axis"),
+  statsFullCount: document.getElementById("stats-full-count"),
+  statsDoubleMissCount: document.getElementById("stats-double-miss-count"),
+  statsScoreDist: document.getElementById("stats-score-dist"),
   finalTotal: document.getElementById("final-total"),
   avgshoot: document.getElementById("avg-volley"),
   avgArrow: document.getElementById("avg-arrow"),
@@ -57,6 +85,7 @@ const els = {
   shootHistoryBody: document.getElementById("volley-history-body"),
   restartBtn: document.getElementById("restart-btn"),
   appVersion: document.getElementById("app-version"),
+  flashInfo: document.getElementById("flash-info"),
 };
 
 const presets = {
@@ -73,6 +102,124 @@ const maxShootTotalByRuleset = {
   nature: 105,
   "3d": 66,
 };
+
+let flashTimerId = null;
+
+function showFlashInfo(message) {
+  els.flashInfo.textContent = message;
+  els.flashInfo.classList.remove("hidden");
+  if (flashTimerId) {
+    window.clearTimeout(flashTimerId);
+  }
+  flashTimerId = window.setTimeout(() => {
+    els.flashInfo.classList.add("hidden");
+    flashTimerId = null;
+  }, FLASH_INFO_MS);
+}
+
+function getSetupSnapshot() {
+  return {
+    ruleset: els.rulesetSelect.value,
+    scoringMode: getSelectedScoringMode(),
+    successZone: Number.parseInt(els.successZoneInput.value, 10) || 1,
+  };
+}
+
+function persistAppState() {
+  try {
+    const isScoringVisible = !els.scoringCard.classList.contains("hidden");
+    const payload = {
+      version: 1,
+      setup: getSetupSnapshot(),
+      screen: isScoringVisible ? "scoring" : "setup",
+      scoring: isScoringVisible
+        ? {
+            targetCount: state.targetCount,
+            successZone: state.successZone,
+            scoringMode: state.scoringMode,
+            arrowsPerVolley: state.arrowsPerVolley,
+            currentArrowIndex: state.currentArrowIndex,
+            shoots: state.shoots.map((shoot) => [...shoot]),
+            currentshoot: [...state.currentshoot],
+            activeRuleset: state.activeRuleset,
+            allowedPoints: [...state.allowedPoints],
+          }
+        : null,
+    };
+    window.localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore storage failures (private mode / quota).
+  }
+}
+
+function clearPersistedState() {
+  try {
+    window.localStorage.removeItem(AUTO_SAVE_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function restorePersistedState() {
+  let payload;
+  try {
+    const raw = window.localStorage.getItem(AUTO_SAVE_KEY);
+    if (!raw) return false;
+    payload = JSON.parse(raw);
+  } catch {
+    return false;
+  }
+
+  const setup = payload?.setup || {};
+  if (setup.ruleset && presets[setup.ruleset]) {
+    els.rulesetSelect.value = setup.ruleset;
+  }
+  if (setup.scoringMode === "team" || setup.scoringMode === "individual") {
+    els.scoringModeInputs.forEach((input) => {
+      input.checked = input.value === setup.scoringMode;
+    });
+  }
+  if (Number.isInteger(setup.successZone)) {
+    els.successZoneInput.value = String(setup.successZone);
+  }
+  syncTargetCountDisplay();
+  updateSuccessZoneSlider();
+
+  if (payload?.screen !== "scoring" || !payload.scoring) {
+    persistAppState();
+    return true;
+  }
+
+  const saved = payload.scoring;
+  if (!presets[saved.activeRuleset]) {
+    return true;
+  }
+
+  state.targetCount = Number.isInteger(saved.targetCount) ? saved.targetCount : getTargetCountForRuleset(saved.activeRuleset);
+  state.successZone = Number.isInteger(saved.successZone) ? saved.successZone : 1;
+  state.scoringMode = saved.scoringMode === "individual" ? "individual" : "team";
+  state.arrowsPerVolley = state.scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
+  state.activeRuleset = saved.activeRuleset;
+  state.allowedPoints = Array.isArray(saved.allowedPoints) && saved.allowedPoints.length ? [...saved.allowedPoints] : [...presets[saved.activeRuleset]];
+  state.shoots = Array.isArray(saved.shoots) ? saved.shoots.map((shoot) => (Array.isArray(shoot) ? [...shoot] : [])).filter((shoot) => shoot.length === state.arrowsPerVolley) : [];
+  state.currentshoot = Array.isArray(saved.currentshoot) ? [...saved.currentshoot].slice(0, state.arrowsPerVolley) : Array(state.arrowsPerVolley).fill(null);
+  while (state.currentshoot.length < state.arrowsPerVolley) state.currentshoot.push(null);
+  state.currentArrowIndex = Number.isInteger(saved.currentArrowIndex) ? Math.max(0, Math.min(saved.currentArrowIndex, state.arrowsPerVolley)) : state.currentshoot.findIndex((value) => value === null);
+  if (state.currentArrowIndex < 0) state.currentArrowIndex = state.arrowsPerVolley;
+  state.inputLocked = false;
+  state.completionArchived = state.shoots.length === state.targetCount;
+  state.resultsPayload = state.shoots.length === state.targetCount ? buildResultsPayload() : null;
+
+  els.setupCard.classList.add("hidden");
+  els.summaryCard.classList.add("hidden");
+  els.scoringCard.classList.remove("hidden");
+  closeStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  refreshScoringView();
+  persistAppState();
+  return true;
+}
 
 function resetRoundBuffer() {
   state.currentshoot = Array(state.arrowsPerVolley).fill(null);
@@ -98,27 +245,9 @@ function isSuccessfulVolley(total) {
   return total >= state.successZone;
 }
 
-function renderArrowGrid() {
-  els.arrowGrid.innerHTML = "";
-  els.arrowGrid.style.gridTemplateColumns = `repeat(${state.arrowsPerVolley}, minmax(42px, 1fr))`;
-  state.currentshoot.forEach((value, index) => {
-    const item = document.createElement("article");
-    item.className = "arrow-cell";
-    if (value !== null) {
-      item.classList.add(value === 0 ? "score-miss" : "score-hit");
-    }
-    if (index === state.currentArrowIndex) {
-      item.classList.add("current");
-    }
-
-    item.innerHTML = `<strong>${formatScore(value)}</strong>`;
-
-    els.arrowGrid.appendChild(item);
-  });
-}
-
 function renderPad() {
   els.pointsPad.innerHTML = "";
+  const locked = state.inputLocked;
   getSelectablePointsForCurrentArrow().forEach((score) => {
     const button = document.createElement("button");
     button.className = "point-btn";
@@ -126,12 +255,17 @@ function renderPad() {
       button.classList.add("zero");
     }
     const isValidForSequence = isScoreAllowedForCurrentArrow(score);
-    if (!isValidForSequence) {
-      button.classList.add("disabled-score");
+    if (locked) {
+      button.classList.add("lock-disabled");
       button.disabled = true;
+    } else if (!isValidForSequence) {
+      button.disabled = true;
+      if (state.scoringMode === "team") {
+        button.classList.add("disabled-score");
+      }
     }
     button.textContent = score === 0 ? "M" : score;
-    if (isValidForSequence) {
+    if (!locked && isValidForSequence) {
       button.addEventListener("click", () => registerScore(score));
     }
     els.pointsPad.appendChild(button);
@@ -144,19 +278,16 @@ function updateScoringHeader() {
   els.progressText.textContent = "";
   els.teamTotalLabel.textContent = state.scoringMode === "individual" ? "Total individuel" : "Total équipe";
   els.teamTotal.textContent = globalTotal();
-
-  const partial = state.currentshoot.filter((v) => v !== null);
-  els.shootTotal.textContent = partial.reduce((sum, value) => sum + value, 0);
-  els.arrowStep.textContent = `${Math.min(state.currentArrowIndex + 1, state.arrowsPerVolley)} / ${state.arrowsPerVolley}`;
+  els.successZoneDisplay.textContent = String(state.successZone);
 }
 
 function refreshScoringView(options = {}) {
   const { scrollHistory = false } = options;
   renderPad();
-  renderArrowGrid();
   updateScoringHeader();
   renderLiveVolleyHistory();
   updateResultsAvailability();
+  persistAppState();
   if (scrollHistory) {
     scrollLiveVolleyHistoryToBottom();
   }
@@ -197,17 +328,27 @@ function renderLiveVolleyHistory() {
     row.querySelector(".row-delete-btn").addEventListener("click", () => deleteVolleyAt(idx));
     els.liveVolleyHistoryBody.appendChild(row);
   });
+
+  const partial = state.currentshoot.some((value) => value !== null);
+  if (partial && state.shoots.length < state.targetCount) {
+    const idx = state.shoots.length;
+    const partialTotal = state.currentshoot.reduce((sum, value) => sum + (value ?? 0), 0);
+    const previewRow = document.createElement("tr");
+    previewRow.innerHTML = `
+      <td><span class="volley-pill is-blue">${idx + 1}</span></td>
+      <td>${state.currentshoot.map((value) => formatScore(value)).join(" / ")}</td>
+      <td class="history-total">${partialTotal}</td>
+      <td>-</td>
+    `;
+    els.liveVolleyHistoryBody.appendChild(previewRow);
+  }
 }
 
 function getSelectablePointsForCurrentArrow() {
   if (state.activeRuleset === "nature" && state.scoringMode === "individual") {
-    const miss = state.allowedPoints.includes(0) ? [0] : [];
-    if (state.currentArrowIndex === 0) {
-      return [20, 15, ...miss].filter((score) => state.allowedPoints.includes(score));
-    }
-    if (state.currentArrowIndex === 1) {
-      return [15, 10, ...miss].filter((score) => state.allowedPoints.includes(score));
-    }
+    const isFirstArrowOfPair = state.currentArrowIndex % 2 === 0;
+    const candidateScores = isFirstArrowOfPair ? [20, 15, 0] : [15, 10, 0];
+    return candidateScores.filter((score) => state.allowedPoints.includes(score));
   }
   return state.allowedPoints;
 }
@@ -243,9 +384,11 @@ function isScoreAllowedForCurrentArrow(score) {
     const maxShootTotal = getMaxShootTotalForRuleset();
     return maxShootTotal === null || score <= maxShootTotal;
   }
-  const previousScore = state.currentshoot[state.currentArrowIndex - 1];
-  if (previousScore !== null && previousScore !== 0 && score > previousScore) {
-    return false;
+  if (state.activeRuleset === "nature" && state.scoringMode === "team") {
+    const previousScore = state.currentshoot[state.currentArrowIndex - 1];
+    if (previousScore !== null && previousScore !== 0 && score > previousScore) {
+      return false;
+    }
   }
 
   const maxShootTotal = getMaxShootTotalForRuleset();
@@ -257,6 +400,10 @@ function isScoreAllowedForCurrentArrow(score) {
 }
 
 function registerScore(score) {
+  if (state.inputLocked) {
+    return;
+  }
+
   if (state.shoots.length >= state.targetCount) {
     return;
   }
@@ -276,34 +423,57 @@ function registerScore(score) {
   state.currentshoot[state.currentArrowIndex] = score;
   state.currentArrowIndex += 1;
   state.resultsPayload = null;
+  state.completionArchived = false;
 
   if (state.currentArrowIndex === state.arrowsPerVolley) {
-    state.shoots.push([...state.currentshoot]);
-    if (state.shoots.length === state.targetCount) {
-      state.resultsPayload = buildResultsPayload();
+    state.inputLocked = true;
+    refreshScoringView();
+    window.setTimeout(() => {
+      state.shoots.push([...state.currentshoot]);
+      state.inputLocked = false;
+      if (state.shoots.length === state.targetCount) {
+        state.resultsPayload = buildResultsPayload();
+        if (state.resultsPayload && !state.completionArchived) {
+          addHistoryEntry(state.resultsPayload);
+          state.completionArchived = true;
+          showFlashInfo("Parcours enregistré dans l'historique.");
+        }
+        refreshScoringView({ scrollHistory: true });
+        return;
+      }
+      resetRoundBuffer();
       refreshScoringView({ scrollHistory: true });
-      return;
-    }
-    resetRoundBuffer();
+    }, LAST_SCORE_PREVIEW_MS);
+    return;
   }
 
   refreshScoringView({ scrollHistory: true });
 }
 
 function deleteVolleyAt(index) {
+  if (state.inputLocked) {
+    return;
+  }
+
   if (!Number.isInteger(index) || index < 0 || index >= state.shoots.length) {
     return;
   }
   state.shoots.splice(index, 1);
   state.resultsPayload = null;
+  state.completionArchived = false;
   refreshScoringView();
 }
 
 function stepBackOneArrow() {
+  if (state.inputLocked) {
+    return;
+  }
+
   if (state.currentArrowIndex > 0) {
     state.currentArrowIndex -= 1;
     state.currentshoot[state.currentArrowIndex] = null;
     state.resultsPayload = null;
+    state.completionArchived = false;
     refreshScoringView();
     return;
   }
@@ -317,6 +487,7 @@ function stepBackOneArrow() {
   state.currentArrowIndex = state.arrowsPerVolley - 1;
   state.currentshoot[state.currentArrowIndex] = null;
   state.resultsPayload = null;
+  state.completionArchived = false;
   refreshScoringView();
 }
 
@@ -361,18 +532,16 @@ function getMaxSuccessZoneForSetup() {
 function getSuccessZoneColor(value, ruleset, scoringMode) {
   const multiplier = scoringMode === "team" ? 3 : 1;
   const thresholdsByRuleset = {
-    nature: { orange: 25, yellow: 30, redOver: 30 },
-    "3d": { orange: 13, yellow: 20, redOver: 20 },
+    nature: { orange: 25, redOver: 30 },
+    "3d": { orange: 13, redOver: 20 },
   };
   const thresholds = thresholdsByRuleset[ruleset];
   if (!thresholds) return "#2d6a4f";
 
   const orangeAt = thresholds.orange * multiplier;
-  const yellowAt = thresholds.yellow * multiplier;
   const redOver = thresholds.redOver * multiplier;
 
   if (value > redOver) return "#9b2226";
-  if (value >= yellowAt) return "#f2c94c";
   if (value >= orangeAt) return "#d68c45";
   return "#2d6a4f";
 }
@@ -381,21 +550,23 @@ function updateSuccessZoneSlider() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
   const max = getMaxSuccessZoneForSetup();
+  els.successZoneInput.min = "1";
   els.successZoneInput.max = String(max);
   let value = Number.parseInt(els.successZoneInput.value, 10);
-  if (!Number.isInteger(value) || value < 0) value = 0;
+  if (!Number.isInteger(value) || value < 1) value = 1;
   if (value > max) value = max;
   els.successZoneInput.value = String(value);
   els.successZoneValue.textContent = String(value);
   const zoneColor = getSuccessZoneColor(value, ruleset, scoringMode);
   els.successZoneInput.style.setProperty("--zone-color", zoneColor);
   els.successZoneValue.style.color = zoneColor;
+  persistAppState();
 }
 
 function startScoring() {
   const parsedSuccessZone = Number.parseInt(els.successZoneInput.value, 10);
-  if (!Number.isInteger(parsedSuccessZone) || parsedSuccessZone < 0) {
-    window.alert("Entrez une zone de réussite valide (minimum 0).");
+  if (!Number.isInteger(parsedSuccessZone) || parsedSuccessZone < 1) {
+    window.alert("Entrez une zone de réussite valide (minimum 1).");
     return;
   }
 
@@ -409,12 +580,14 @@ function startScoring() {
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.shoots = [];
   state.resultsPayload = null;
+  state.completionArchived = false;
   resetRoundBuffer();
 
   els.setupCard.classList.add("hidden");
   els.summaryCard.classList.add("hidden");
   els.scoringCard.classList.remove("hidden");
   closeStatsModal();
+  closeHelpModal();
 
   refreshScoringView();
 }
@@ -473,6 +646,8 @@ function buildResultsPayload() {
 
 function updateResultsAvailability() {
   const done = state.shoots.length === state.targetCount && state.targetCount > 0;
+  els.scoreEntryPanel.classList.toggle("hidden", done);
+  els.resultsActions.classList.toggle("hidden", !done);
   els.statsBtn.disabled = !done;
   els.downloadDataBtn.disabled = !done;
 }
@@ -489,43 +664,142 @@ function getSegmentAverages(totals, segmentCount) {
   return segments;
 }
 
+function getMaxVolleyFromPayload(payload) {
+  const byRuleset = maxShootTotalByRuleset[payload.ruleset];
+  if (byRuleset !== undefined) {
+    return payload.scoringMode === "individual" ? Math.floor(byRuleset / 3) : byRuleset;
+  }
+  const sourcePoints = Array.isArray(payload.allowedPoints) && payload.allowedPoints.length ? payload.allowedPoints : [0];
+  const maxPoint = Math.max(...sourcePoints);
+  return (payload.arrowsPerVolley || 0) * Math.max(0, maxPoint);
+}
+
+function renderEvolutionChart(totals, maxVolley, successZone, targetCount) {
+  const left = 4;
+  const right = 96;
+  const top = 4;
+  const bottom = 40;
+  const rangeY = bottom - top;
+  const maxObserved = Math.max(...totals, successZone, maxVolley, 1);
+  const toY = (value) => bottom - (Math.max(0, value) / maxObserved) * rangeY;
+
+  const points = totals
+    .map((value, index) => {
+      const x = totals.length === 1 ? (left + right) / 2 : left + (index * (right - left)) / (totals.length - 1);
+      return `${x.toFixed(2)},${toY(value).toFixed(2)}`;
+    })
+    .join(" ");
+
+  const successY = toY(successZone).toFixed(2);
+  els.statsEvolutionPath.setAttribute("points", points);
+  els.statsEvolutionSuccessLine.setAttribute("y1", successY);
+  els.statsEvolutionSuccessLine.setAttribute("y2", successY);
+  els.statsEvolutionRange.textContent = `1 à ${targetCount}`;
+  const n = totals.length;
+  const axisLabels = [1, Math.round(n * 0.25), Math.round(n * 0.5), Math.round(n * 0.75), n]
+    .filter((value) => value >= 1 && value <= n)
+    .filter((value, index, arr) => arr.indexOf(value) === index)
+    .sort((a, b) => a - b);
+  els.statsEvolutionAxis.innerHTML = axisLabels.map((value) => `<small>${value}</small>`).join("");
+}
+
+function renderScoreDistribution(allowedPoints, volleys) {
+  const counts = new Map();
+  allowedPoints.forEach((score) => counts.set(score, 0));
+  volleys.flatMap((volley) => volley.arrows || []).forEach((score) => {
+    counts.set(score, (counts.get(score) || 0) + 1);
+  });
+
+  const orderedScores = [...allowedPoints].sort((a, b) => b - a);
+  const maxCount = Math.max(1, ...orderedScores.map((score) => counts.get(score) || 0));
+
+  els.statsScoreDist.innerHTML = orderedScores
+    .map((score) => {
+      const count = counts.get(score) || 0;
+      const width = (count / maxCount) * 100;
+      const label = score === 0 ? "M" : String(score);
+      return `
+        <div class="stats-dist-row-item">
+          <span class="stats-dist-label">${label}</span>
+          <div class="stats-dist-track">
+            <div class="stats-dist-fill" style="width: ${width.toFixed(2)}%"></div>
+          </div>
+          <strong class="stats-dist-value">${count}</strong>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function openStatsModalFromPayload(payload) {
+  const volleys = Array.isArray(payload?.volleys) ? payload.volleys : [];
+  if (volleys.length === 0) return;
+  const totals = volleys.map((volley) => volley.total ?? roundTotal(volley.arrows || []));
+  const totalPoints = totals.reduce((sum, value) => sum + value, 0);
+  const avgVolley = totals.reduce((sum, value) => sum + value, 0) / totals.length;
+  const best = Math.max(...totals);
+  const worst = Math.min(...totals);
+  const partAverages = getSegmentAverages(totals, 3);
+  const maxVolley = getMaxVolleyFromPayload(payload);
+  const successZone = Number.isInteger(payload.successZone) ? payload.successZone : 0;
+  const ratioFor = (value) => {
+    if (maxVolley <= 0) return 0;
+    return Math.max(0, Math.min(100, (value / maxVolley) * 100));
+  };
+
+  els.statsSuccessZone.textContent = String(successZone);
+  els.statsTotalPoints.textContent = `${totalPoints} pts`;
+  els.statsBestVolley.textContent = best;
+  els.statsWorstVolley.textContent = worst;
+  els.statsBar1.style.height = `${ratioFor(partAverages[0])}%`;
+  els.statsBar2.style.height = `${ratioFor(partAverages[1])}%`;
+  els.statsBar3.style.height = `${ratioFor(partAverages[2])}%`;
+  els.statsBar1.classList.toggle("success", partAverages[0] >= successZone);
+  els.statsBar2.classList.toggle("success", partAverages[1] >= successZone);
+  els.statsBar3.classList.toggle("success", partAverages[2] >= successZone);
+  els.statsBar1Value.textContent = partAverages[0].toFixed(2);
+  els.statsBar2Value.textContent = partAverages[1].toFixed(2);
+  els.statsBar3Value.textContent = partAverages[2].toFixed(2);
+  els.statsGlobalAvg.textContent = avgVolley.toFixed(2);
+  els.statsGlobalBar.style.height = `${ratioFor(avgVolley)}%`;
+  els.statsGlobalBar.classList.toggle("success", avgVolley >= successZone);
+  renderEvolutionChart(totals, maxVolley, successZone, payload.targetCount || totals.length);
+  const fullCount = totals.filter((total) => total === maxVolley).length;
+  const doubleMissCount = volleys.filter((volley) => isDoubleZeroVolley(volley.arrows || [])).length;
+  els.statsFullCount.textContent = String(fullCount);
+  els.statsDoubleMissCount.textContent = String(doubleMissCount);
+  const allowedPoints =
+    Array.isArray(payload.allowedPoints) && payload.allowedPoints.length
+      ? payload.allowedPoints
+      : [...new Set(volleys.flatMap((volley) => volley.arrows || []))].sort((a, b) => b - a);
+  renderScoreDistribution(allowedPoints, volleys);
+
+  closeHelpModal();
+  closeHistoryModal();
+  els.statsModal.classList.remove("hidden");
+}
+
 function openStatsModal() {
   if (state.shoots.length !== state.targetCount || state.shoots.length === 0) {
     return;
   }
-
-  const totals = state.shoots.map((shoot) => roundTotal(shoot));
-  const avgVolley = totals.reduce((sum, value) => sum + value, 0) / totals.length;
-  const best = Math.max(...totals);
-  const worst = Math.min(...totals);
-
-  els.statsAvgVolley.textContent = avgVolley.toFixed(2);
-  els.statsBestVolley.textContent = best;
-  els.statsWorstVolley.textContent = worst;
-
-  if (state.activeRuleset === "nature") {
-    const segments = getSegmentAverages(totals, 3);
-    els.statsSeg1Label.textContent = "Tiers 1";
-    els.statsSeg2Label.textContent = "Tiers 2";
-    els.statsSeg3Label.textContent = "Tiers 3";
-    els.statsSeg1Value.textContent = segments[0].toFixed(2);
-    els.statsSeg2Value.textContent = segments[1].toFixed(2);
-    els.statsSeg3Value.textContent = segments[2].toFixed(2);
-  } else {
-    const halves = getSegmentAverages(totals, 2);
-    els.statsSeg1Label.textContent = "Moitié 1";
-    els.statsSeg2Label.textContent = "Moitié 2";
-    els.statsSeg3Label.textContent = "-";
-    els.statsSeg1Value.textContent = halves[0].toFixed(2);
-    els.statsSeg2Value.textContent = halves[1].toFixed(2);
-    els.statsSeg3Value.textContent = "-";
-  }
-
-  els.statsModal.classList.remove("hidden");
+  const payload = state.resultsPayload || buildResultsPayload();
+  if (!payload) return;
+  openStatsModalFromPayload(payload);
 }
 
 function closeStatsModal() {
   els.statsModal.classList.add("hidden");
+}
+
+function openHelpModal() {
+  closeStatsModal();
+  closeHistoryModal();
+  els.helpModal.classList.remove("hidden");
+}
+
+function closeHelpModal() {
+  els.helpModal.classList.add("hidden");
 }
 
 function downloadResultsJson() {
@@ -535,28 +809,151 @@ function downloadResultsJson() {
   if (!state.resultsPayload) {
     state.resultsPayload = buildResultsPayload();
   }
-  const json = JSON.stringify(state.resultsPayload, null, 2);
+  downloadPayloadAsJson(state.resultsPayload, `score-team-${state.activeRuleset}`);
+}
+
+function downloadPayloadAsJson(payload, prefix = "score-team") {
+  const json = JSON.stringify(payload, null, 2);
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const now = new Date();
   const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
   const link = document.createElement("a");
   link.href = url;
-  link.download = `score-team-${state.activeRuleset}-${stamp}.json`;
+  link.download = `${prefix}-${stamp}.json`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
 
+function loadHistoryEntries() {
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item) => item && typeof item === "object" && item.generatedAt);
+  } catch {
+    return [];
+  }
+}
+
+function saveHistoryEntries(entries) {
+  try {
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY_ITEMS)));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function addHistoryEntry(payload) {
+  const entries = loadHistoryEntries();
+  const entry = { ...payload, archivedAt: new Date().toISOString() };
+  saveHistoryEntries([entry, ...entries]);
+}
+
+function removeHistoryEntry(archivedAt) {
+  const entries = loadHistoryEntries().filter((entry) => entry.archivedAt !== archivedAt);
+  saveHistoryEntries(entries);
+  renderHistoryList();
+}
+
+function renderHistoryList() {
+  const selectedMode = els.historyModeFilter.value;
+  const entries = loadHistoryEntries().filter((entry) => selectedMode === "all" || entry.scoringMode === selectedMode);
+  if (entries.length === 0) {
+    els.historyList.innerHTML = '<div class="history-empty">Aucun parcours sauvegardé.</div>';
+    return;
+  }
+
+  const formatParcoursLabel = (value) => {
+    if (value === "nature") return "Nature";
+    if (value === "3d") return "3D";
+    return "-";
+  };
+  const formatModeLabel = (value) => {
+    if (value === "team") return "Équipe";
+    if (value === "individual") return "Individuel";
+    return "-";
+  };
+
+  els.historyList.innerHTML = "";
+  entries.forEach((entry) => {
+    const date = new Date(entry.generatedAt || entry.archivedAt);
+    const isValidDate = !Number.isNaN(date.getTime());
+    const dateLabel = isValidDate
+      ? date
+          .toLocaleDateString("fr-FR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })
+          .replace(/^\p{L}/u, (letter) => letter.toUpperCase())
+      : "Date inconnue";
+    const timeLabel = isValidDate
+      ? `${date.toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).replace(":", "h")}`
+      : "--h--";
+    const row = document.createElement("article");
+    row.className = "history-item";
+    row.innerHTML = `
+      <div class="history-item-head">
+        <span class="history-date">${dateLabel}</span>
+        <span class="history-time">${timeLabel}</span>
+      </div>
+      <div class="history-mode">${formatParcoursLabel(entry.ruleset)} ${formatModeLabel(entry.scoringMode)}</div>
+      <div class="history-bottom-row">
+        <strong class="history-total-score">${entry.total ?? 0} pts</strong>
+        <div class="history-item-actions">
+          <button class="btn btn-primary btn-icon" aria-label="Visualiser">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 5c5.8 0 9.8 5.8 9.9 6-.1.2-4.1 6-9.9 6S2.2 11.2 2.1 11c.1-.2 4.1-6 9.9-6Zm0 2c-3.9 0-6.9 3.3-7.8 4 .9.7 3.9 4 7.8 4s6.9-3.3 7.8-4c-.9-.7-3.9-4-7.8-4Zm0 1.7A2.3 2.3 0 1 1 9.7 11 2.3 2.3 0 0 1 12 8.7Z" fill="currentColor"/>
+            </svg>
+          </button>
+          <button class="btn btn-light btn-icon history-delete-btn" aria-label="Supprimer">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h2v9H7V9Zm4 0h2v9h-2V9Zm4 0h2v9h-2V9ZM6 7h12l-1 14H7L6 7Z" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+    const [viewBtn, deleteBtn] = row.querySelectorAll("button");
+    viewBtn.addEventListener("click", () => openStatsModalFromPayload(entry));
+    deleteBtn.addEventListener("click", () => removeHistoryEntry(entry.archivedAt));
+    els.historyList.appendChild(row);
+  });
+}
+
+function openHistoryModal() {
+  closeStatsModal();
+  closeHelpModal();
+  renderHistoryList();
+  els.historyModal.classList.remove("hidden");
+}
+
+function closeHistoryModal() {
+  els.historyModal.classList.add("hidden");
+}
+
 function restart() {
   state.shoots = [];
   state.resultsPayload = null;
+  state.inputLocked = false;
   resetRoundBuffer();
   closeStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
   els.scoringCard.classList.add("hidden");
   els.summaryCard.classList.add("hidden");
   els.setupCard.classList.remove("hidden");
+  clearPersistedState();
+  persistAppState();
 }
 
 els.rulesetSelect.addEventListener("change", () => {
@@ -569,15 +966,26 @@ els.scoringModeInputs.forEach((input) => input.addEventListener("change", update
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
+els.historyBtn.addEventListener("click", openHistoryModal);
+els.setupHelpBtn.addEventListener("click", openHelpModal);
+els.helpBtn.addEventListener("click", openHelpModal);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
 els.statsBtn.addEventListener("click", openStatsModal);
 els.downloadDataBtn.addEventListener("click", downloadResultsJson);
 els.restartBtn.addEventListener("click", restart);
 els.statsModalOverlay.addEventListener("click", closeStatsModal);
 els.statsCloseBtn.addEventListener("click", closeStatsModal);
+els.helpModalOverlay.addEventListener("click", closeHelpModal);
+els.helpCloseBtn.addEventListener("click", closeHelpModal);
+els.historyModalOverlay.addEventListener("click", closeHistoryModal);
+els.historyCloseBtn.addEventListener("click", closeHistoryModal);
+els.historyModeFilter.addEventListener("change", renderHistoryList);
 els.appVersion.textContent = APP_VERSION;
-syncTargetCountDisplay();
-updateSuccessZoneSlider();
+if (!restorePersistedState()) {
+  syncTargetCountDisplay();
+  updateSuccessZoneSlider();
+  persistAppState();
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
