@@ -4,6 +4,7 @@ const LAST_SCORE_PREVIEW_MS = 800;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
 const MAX_HISTORY_ITEMS = 50;
+const FLASH_INFO_MS = 2600;
 
 const state = {
   targetCount: 21,
@@ -57,6 +58,7 @@ const els = {
   historyModal: document.getElementById("history-modal"),
   historyModalOverlay: document.getElementById("history-modal-overlay"),
   historyCloseBtn: document.getElementById("history-close-btn"),
+  historyModeFilter: document.getElementById("history-mode-filter"),
   historyList: document.getElementById("history-list"),
   statsSuccessZone: document.getElementById("stats-success-zone"),
   statsBestVolley: document.getElementById("stats-best-volley"),
@@ -83,6 +85,7 @@ const els = {
   shootHistoryBody: document.getElementById("volley-history-body"),
   restartBtn: document.getElementById("restart-btn"),
   appVersion: document.getElementById("app-version"),
+  flashInfo: document.getElementById("flash-info"),
 };
 
 const presets = {
@@ -99,6 +102,20 @@ const maxShootTotalByRuleset = {
   nature: 105,
   "3d": 66,
 };
+
+let flashTimerId = null;
+
+function showFlashInfo(message) {
+  els.flashInfo.textContent = message;
+  els.flashInfo.classList.remove("hidden");
+  if (flashTimerId) {
+    window.clearTimeout(flashTimerId);
+  }
+  flashTimerId = window.setTimeout(() => {
+    els.flashInfo.classList.add("hidden");
+    flashTimerId = null;
+  }, FLASH_INFO_MS);
+}
 
 function getSetupSnapshot() {
   return {
@@ -242,8 +259,10 @@ function renderPad() {
       button.classList.add("lock-disabled");
       button.disabled = true;
     } else if (!isValidForSequence) {
-      button.classList.add("disabled-score");
       button.disabled = true;
+      if (state.scoringMode === "team") {
+        button.classList.add("disabled-score");
+      }
     }
     button.textContent = score === 0 ? "M" : score;
     if (!locked && isValidForSequence) {
@@ -326,7 +345,7 @@ function renderLiveVolleyHistory() {
 }
 
 function getSelectablePointsForCurrentArrow() {
-  if (state.activeRuleset === "nature") {
+  if (state.activeRuleset === "nature" && state.scoringMode === "individual") {
     const isFirstArrowOfPair = state.currentArrowIndex % 2 === 0;
     const candidateScores = isFirstArrowOfPair ? [20, 15, 0] : [15, 10, 0];
     return candidateScores.filter((score) => state.allowedPoints.includes(score));
@@ -365,7 +384,7 @@ function isScoreAllowedForCurrentArrow(score) {
     const maxShootTotal = getMaxShootTotalForRuleset();
     return maxShootTotal === null || score <= maxShootTotal;
   }
-  if (state.activeRuleset === "nature") {
+  if (state.activeRuleset === "nature" && state.scoringMode === "team") {
     const previousScore = state.currentshoot[state.currentArrowIndex - 1];
     if (previousScore !== null && previousScore !== 0 && score > previousScore) {
       return false;
@@ -417,6 +436,7 @@ function registerScore(score) {
         if (state.resultsPayload && !state.completionArchived) {
           addHistoryEntry(state.resultsPayload);
           state.completionArchived = true;
+          showFlashInfo("Parcours enregistré dans l'historique.");
         }
         refreshScoringView({ scrollHistory: true });
         return;
@@ -644,13 +664,23 @@ function getSegmentAverages(totals, segmentCount) {
   return segments;
 }
 
-function renderEvolutionChart(totals, maxVolley) {
+function getMaxVolleyFromPayload(payload) {
+  const byRuleset = maxShootTotalByRuleset[payload.ruleset];
+  if (byRuleset !== undefined) {
+    return payload.scoringMode === "individual" ? Math.floor(byRuleset / 3) : byRuleset;
+  }
+  const sourcePoints = Array.isArray(payload.allowedPoints) && payload.allowedPoints.length ? payload.allowedPoints : [0];
+  const maxPoint = Math.max(...sourcePoints);
+  return (payload.arrowsPerVolley || 0) * Math.max(0, maxPoint);
+}
+
+function renderEvolutionChart(totals, maxVolley, successZone, targetCount) {
   const left = 4;
   const right = 96;
   const top = 4;
   const bottom = 40;
   const rangeY = bottom - top;
-  const maxObserved = Math.max(...totals, state.successZone, maxVolley, 1);
+  const maxObserved = Math.max(...totals, successZone, maxVolley, 1);
   const toY = (value) => bottom - (Math.max(0, value) / maxObserved) * rangeY;
 
   const points = totals
@@ -660,11 +690,11 @@ function renderEvolutionChart(totals, maxVolley) {
     })
     .join(" ");
 
-  const successY = toY(state.successZone).toFixed(2);
+  const successY = toY(successZone).toFixed(2);
   els.statsEvolutionPath.setAttribute("points", points);
   els.statsEvolutionSuccessLine.setAttribute("y1", successY);
   els.statsEvolutionSuccessLine.setAttribute("y2", successY);
-  els.statsEvolutionRange.textContent = `1 à ${state.targetCount}`;
+  els.statsEvolutionRange.textContent = `1 à ${targetCount}`;
   const n = totals.length;
   const axisLabels = [1, Math.round(n * 0.25), Math.round(n * 0.5), Math.round(n * 0.75), n]
     .filter((value) => value >= 1 && value <= n)
@@ -673,14 +703,14 @@ function renderEvolutionChart(totals, maxVolley) {
   els.statsEvolutionAxis.innerHTML = axisLabels.map((value) => `<small>${value}</small>`).join("");
 }
 
-function renderScoreDistribution() {
+function renderScoreDistribution(allowedPoints, volleys) {
   const counts = new Map();
-  state.allowedPoints.forEach((score) => counts.set(score, 0));
-  state.shoots.flat().forEach((score) => {
+  allowedPoints.forEach((score) => counts.set(score, 0));
+  volleys.flatMap((volley) => volley.arrows || []).forEach((score) => {
     counts.set(score, (counts.get(score) || 0) + 1);
   });
 
-  const orderedScores = [...state.allowedPoints].sort((a, b) => b - a);
+  const orderedScores = [...allowedPoints].sort((a, b) => b - a);
   const maxCount = Math.max(1, ...orderedScores.map((score) => counts.get(score) || 0));
 
   els.statsScoreDist.innerHTML = orderedScores
@@ -701,49 +731,61 @@ function renderScoreDistribution() {
     .join("");
 }
 
-function openStatsModal() {
-  if (state.shoots.length !== state.targetCount || state.shoots.length === 0) {
-    return;
-  }
-
-  const totals = state.shoots.map((shoot) => roundTotal(shoot));
+function openStatsModalFromPayload(payload) {
+  const volleys = Array.isArray(payload?.volleys) ? payload.volleys : [];
+  if (volleys.length === 0) return;
+  const totals = volleys.map((volley) => volley.total ?? roundTotal(volley.arrows || []));
   const totalPoints = totals.reduce((sum, value) => sum + value, 0);
   const avgVolley = totals.reduce((sum, value) => sum + value, 0) / totals.length;
   const best = Math.max(...totals);
   const worst = Math.min(...totals);
   const partAverages = getSegmentAverages(totals, 3);
-  const maxVolley = getMaxVolleyForCurrentConfig();
+  const maxVolley = getMaxVolleyFromPayload(payload);
+  const successZone = Number.isInteger(payload.successZone) ? payload.successZone : 0;
   const ratioFor = (value) => {
     if (maxVolley <= 0) return 0;
     return Math.max(0, Math.min(100, (value / maxVolley) * 100));
   };
 
-  els.statsSuccessZone.textContent = String(state.successZone);
+  els.statsSuccessZone.textContent = String(successZone);
   els.statsTotalPoints.textContent = `${totalPoints} pts`;
   els.statsBestVolley.textContent = best;
   els.statsWorstVolley.textContent = worst;
   els.statsBar1.style.height = `${ratioFor(partAverages[0])}%`;
   els.statsBar2.style.height = `${ratioFor(partAverages[1])}%`;
   els.statsBar3.style.height = `${ratioFor(partAverages[2])}%`;
-  els.statsBar1.classList.toggle("success", partAverages[0] >= state.successZone);
-  els.statsBar2.classList.toggle("success", partAverages[1] >= state.successZone);
-  els.statsBar3.classList.toggle("success", partAverages[2] >= state.successZone);
+  els.statsBar1.classList.toggle("success", partAverages[0] >= successZone);
+  els.statsBar2.classList.toggle("success", partAverages[1] >= successZone);
+  els.statsBar3.classList.toggle("success", partAverages[2] >= successZone);
   els.statsBar1Value.textContent = partAverages[0].toFixed(2);
   els.statsBar2Value.textContent = partAverages[1].toFixed(2);
   els.statsBar3Value.textContent = partAverages[2].toFixed(2);
   els.statsGlobalAvg.textContent = avgVolley.toFixed(2);
   els.statsGlobalBar.style.height = `${ratioFor(avgVolley)}%`;
-  els.statsGlobalBar.classList.toggle("success", avgVolley >= state.successZone);
-  renderEvolutionChart(totals, maxVolley);
+  els.statsGlobalBar.classList.toggle("success", avgVolley >= successZone);
+  renderEvolutionChart(totals, maxVolley, successZone, payload.targetCount || totals.length);
   const fullCount = totals.filter((total) => total === maxVolley).length;
-  const doubleMissCount = state.shoots.filter((shoot) => isDoubleZeroVolley(shoot)).length;
+  const doubleMissCount = volleys.filter((volley) => isDoubleZeroVolley(volley.arrows || [])).length;
   els.statsFullCount.textContent = String(fullCount);
   els.statsDoubleMissCount.textContent = String(doubleMissCount);
-  renderScoreDistribution();
+  const allowedPoints =
+    Array.isArray(payload.allowedPoints) && payload.allowedPoints.length
+      ? payload.allowedPoints
+      : [...new Set(volleys.flatMap((volley) => volley.arrows || []))].sort((a, b) => b - a);
+  renderScoreDistribution(allowedPoints, volleys);
 
   closeHelpModal();
   closeHistoryModal();
   els.statsModal.classList.remove("hidden");
+}
+
+function openStatsModal() {
+  if (state.shoots.length !== state.targetCount || state.shoots.length === 0) {
+    return;
+  }
+  const payload = state.resultsPayload || buildResultsPayload();
+  if (!payload) return;
+  openStatsModalFromPayload(payload);
 }
 
 function closeStatsModal() {
@@ -818,35 +860,71 @@ function removeHistoryEntry(archivedAt) {
 }
 
 function renderHistoryList() {
-  const entries = loadHistoryEntries();
+  const selectedMode = els.historyModeFilter.value;
+  const entries = loadHistoryEntries().filter((entry) => selectedMode === "all" || entry.scoringMode === selectedMode);
   if (entries.length === 0) {
     els.historyList.innerHTML = '<div class="history-empty">Aucun parcours sauvegardé.</div>';
     return;
   }
 
+  const formatParcoursLabel = (value) => {
+    if (value === "nature") return "Nature";
+    if (value === "3d") return "3D";
+    return "-";
+  };
+  const formatModeLabel = (value) => {
+    if (value === "team") return "Équipe";
+    if (value === "individual") return "Individuel";
+    return "-";
+  };
+
   els.historyList.innerHTML = "";
   entries.forEach((entry) => {
     const date = new Date(entry.generatedAt || entry.archivedAt);
-    const label = Number.isNaN(date.getTime()) ? "Date inconnue" : date.toLocaleString("fr-FR");
+    const isValidDate = !Number.isNaN(date.getTime());
+    const dateLabel = isValidDate
+      ? date
+          .toLocaleDateString("fr-FR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })
+          .replace(/^\p{L}/u, (letter) => letter.toUpperCase())
+      : "Date inconnue";
+    const timeLabel = isValidDate
+      ? `${date.toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).replace(":", "h")}`
+      : "--h--";
     const row = document.createElement("article");
     row.className = "history-item";
     row.innerHTML = `
       <div class="history-item-head">
-        <span>${label}</span>
-        <span>${(entry.ruleset || "-").toUpperCase()} • ${(entry.scoringMode || "-")}</span>
+        <span class="history-date">${dateLabel}</span>
+        <span class="history-time">${timeLabel}</span>
       </div>
-      <strong>${entry.total ?? 0} pts</strong>
-      <div class="history-item-head">
-        <span>${entry.targetCount ?? 0} cibles</span>
-        <span>Zone ${entry.successZone ?? "-"}</span>
-      </div>
-      <div class="actions action-icons">
-        <button class="btn btn-primary">Télécharger</button>
-        <button class="btn btn-light">Supprimer</button>
+      <div class="history-mode">${formatParcoursLabel(entry.ruleset)} ${formatModeLabel(entry.scoringMode)}</div>
+      <div class="history-bottom-row">
+        <strong class="history-total-score">${entry.total ?? 0} pts</strong>
+        <div class="history-item-actions">
+          <button class="btn btn-primary btn-icon" aria-label="Visualiser">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 5c5.8 0 9.8 5.8 9.9 6-.1.2-4.1 6-9.9 6S2.2 11.2 2.1 11c.1-.2 4.1-6 9.9-6Zm0 2c-3.9 0-6.9 3.3-7.8 4 .9.7 3.9 4 7.8 4s6.9-3.3 7.8-4c-.9-.7-3.9-4-7.8-4Zm0 1.7A2.3 2.3 0 1 1 9.7 11 2.3 2.3 0 0 1 12 8.7Z" fill="currentColor"/>
+            </svg>
+          </button>
+          <button class="btn btn-light btn-icon history-delete-btn" aria-label="Supprimer">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h2v9H7V9Zm4 0h2v9h-2V9Zm4 0h2v9h-2V9ZM6 7h12l-1 14H7L6 7Z" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
       </div>
     `;
-    const [downloadBtn, deleteBtn] = row.querySelectorAll("button");
-    downloadBtn.addEventListener("click", () => downloadPayloadAsJson(entry, `score-team-${entry.ruleset || "run"}`));
+    const [viewBtn, deleteBtn] = row.querySelectorAll("button");
+    viewBtn.addEventListener("click", () => openStatsModalFromPayload(entry));
     deleteBtn.addEventListener("click", () => removeHistoryEntry(entry.archivedAt));
     els.historyList.appendChild(row);
   });
@@ -901,6 +979,7 @@ els.helpModalOverlay.addEventListener("click", closeHelpModal);
 els.helpCloseBtn.addEventListener("click", closeHelpModal);
 els.historyModalOverlay.addEventListener("click", closeHistoryModal);
 els.historyCloseBtn.addEventListener("click", closeHistoryModal);
+els.historyModeFilter.addEventListener("change", renderHistoryList);
 els.appVersion.textContent = APP_VERSION;
 if (!restorePersistedState()) {
   syncTargetCountDisplay();
