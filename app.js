@@ -1,8 +1,11 @@
 const ARROWS_PER_shoot = 6;
+const APP_VERSION = "v1.1.0";
 
 const state = {
   targetCount: 21,
   successZone: 0,
+  scoringMode: "team",
+  arrowsPerVolley: ARROWS_PER_shoot,
   currentshoot: Array(ARROWS_PER_shoot).fill(null),
   currentArrowIndex: 0,
   shoots: [],
@@ -15,16 +18,17 @@ const els = {
   setupCard: document.getElementById("setup-card"),
   scoringCard: document.getElementById("scoring-card"),
   summaryCard: document.getElementById("summary-card"),
-  targetsInput: document.getElementById("targets-input"),
+  targetsCountText: document.getElementById("targets-count-text"),
   successZoneInput: document.getElementById("success-zone-input"),
+  successZoneValue: document.getElementById("success-zone-value"),
   rulesetSelect: document.getElementById("ruleset-select"),
-  customPointsWrap: document.getElementById("custom-points-wrap"),
-  customPointsInput: document.getElementById("custom-points-input"),
+  scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
   startBtn: document.getElementById("start-btn"),
   backSetupBtn: document.getElementById("back-setup-btn"),
   stepBackBtn: document.getElementById("step-back-btn"),
   shootTitle: document.getElementById("volley-title"),
   progressText: document.getElementById("progress-text"),
+  teamTotalLabel: document.getElementById("team-total-label"),
   teamTotal: document.getElementById("team-total"),
   shootTotal: document.getElementById("volley-total"),
   arrowStep: document.getElementById("arrow-step"),
@@ -32,13 +36,27 @@ const els = {
   pointsPad: document.getElementById("points-pad"),
   liveVolleyHistoryWrap: document.getElementById("live-volley-history-wrap"),
   liveVolleyHistoryBody: document.getElementById("live-volley-history-body"),
+  statsBtn: document.getElementById("stats-btn"),
   downloadDataBtn: document.getElementById("download-data-btn"),
+  statsModal: document.getElementById("stats-modal"),
+  statsModalOverlay: document.getElementById("stats-modal-overlay"),
+  statsCloseBtn: document.getElementById("stats-close-btn"),
+  statsAvgVolley: document.getElementById("stats-avg-volley"),
+  statsBestVolley: document.getElementById("stats-best-volley"),
+  statsWorstVolley: document.getElementById("stats-worst-volley"),
+  statsSeg1Label: document.getElementById("stats-seg-1-label"),
+  statsSeg2Label: document.getElementById("stats-seg-2-label"),
+  statsSeg3Label: document.getElementById("stats-seg-3-label"),
+  statsSeg1Value: document.getElementById("stats-seg-1-value"),
+  statsSeg2Value: document.getElementById("stats-seg-2-value"),
+  statsSeg3Value: document.getElementById("stats-seg-3-value"),
   finalTotal: document.getElementById("final-total"),
   avgshoot: document.getElementById("avg-volley"),
   avgArrow: document.getElementById("avg-arrow"),
   statsList: document.getElementById("stats-list"),
   shootHistoryBody: document.getElementById("volley-history-body"),
   restartBtn: document.getElementById("restart-btn"),
+  appVersion: document.getElementById("app-version"),
 };
 
 const presets = {
@@ -57,7 +75,7 @@ const maxShootTotalByRuleset = {
 };
 
 function resetRoundBuffer() {
-  state.currentshoot = Array(ARROWS_PER_shoot).fill(null);
+  state.currentshoot = Array(state.arrowsPerVolley).fill(null);
   state.currentArrowIndex = 0;
 }
 
@@ -82,6 +100,7 @@ function isSuccessfulVolley(total) {
 
 function renderArrowGrid() {
   els.arrowGrid.innerHTML = "";
+  els.arrowGrid.style.gridTemplateColumns = `repeat(${state.arrowsPerVolley}, minmax(42px, 1fr))`;
   state.currentshoot.forEach((value, index) => {
     const item = document.createElement("article");
     item.className = "arrow-cell";
@@ -121,13 +140,14 @@ function renderPad() {
 
 function updateScoringHeader() {
   const shootNumber = state.shoots.length + 1;
-  els.shootTitle.textContent = `Volée ${shootNumber}`;
-  els.progressText.textContent = `Cible ${Math.min(shootNumber, state.targetCount)} / ${state.targetCount}`;
+  els.shootTitle.textContent = `Volée ${Math.min(shootNumber, state.targetCount)} sur ${state.targetCount}`;
+  els.progressText.textContent = "";
+  els.teamTotalLabel.textContent = state.scoringMode === "individual" ? "Total individuel" : "Total équipe";
   els.teamTotal.textContent = globalTotal();
 
   const partial = state.currentshoot.filter((v) => v !== null);
   els.shootTotal.textContent = partial.reduce((sum, value) => sum + value, 0);
-  els.arrowStep.textContent = `${Math.min(state.currentArrowIndex + 1, ARROWS_PER_shoot)} / ${ARROWS_PER_shoot}`;
+  els.arrowStep.textContent = `${Math.min(state.currentArrowIndex + 1, state.arrowsPerVolley)} / ${state.arrowsPerVolley}`;
 }
 
 function refreshScoringView(options = {}) {
@@ -153,12 +173,14 @@ function scrollLiveVolleyHistoryToBottom() {
 
 function renderLiveVolleyHistory() {
   els.liveVolleyHistoryBody.innerHTML = "";
+  const maxVolley = getMaxVolleyForCurrentConfig();
   state.shoots.forEach((shoot, idx) => {
     const total = roundTotal(shoot);
     const successful = isSuccessfulVolley(total);
+    const pillClass = getVolleyPillClass(shoot, total, maxVolley);
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${idx + 1}</td>
+      <td><span class="volley-pill ${pillClass}">${idx + 1}</span></td>
       <td>${shoot.map((value) => formatScore(value)).join(" / ")}</td>
       <td class="history-total ${successful ? "success" : ""}">${total}</td>
       <td>
@@ -178,6 +200,15 @@ function renderLiveVolleyHistory() {
 }
 
 function getSelectablePointsForCurrentArrow() {
+  if (state.activeRuleset === "nature" && state.scoringMode === "individual") {
+    const miss = state.allowedPoints.includes(0) ? [0] : [];
+    if (state.currentArrowIndex === 0) {
+      return [20, 15, ...miss].filter((score) => state.allowedPoints.includes(score));
+    }
+    if (state.currentArrowIndex === 1) {
+      return [15, 10, ...miss].filter((score) => state.allowedPoints.includes(score));
+    }
+  }
   return state.allowedPoints;
 }
 
@@ -189,13 +220,31 @@ function getMaxShootTotalForRuleset() {
   return maxShootTotalByRuleset[state.activeRuleset] ?? null;
 }
 
+function getMaxVolleyForCurrentConfig() {
+  const byRuleset = getMaxShootTotalForRuleset();
+  if (byRuleset !== null) {
+    return state.scoringMode === "individual" ? Math.floor(byRuleset / 3) : byRuleset;
+  }
+  return state.arrowsPerVolley * Math.max(...state.allowedPoints, 0);
+}
+
+function isDoubleZeroVolley(shoot) {
+  return shoot.length >= 2 && shoot[0] === 0 && shoot[1] === 0;
+}
+
+function getVolleyPillClass(shoot, total, maxVolley) {
+  if (isDoubleZeroVolley(shoot)) return "is-red";
+  if (total === maxVolley) return "is-green";
+  return "is-blue";
+}
+
 function isScoreAllowedForCurrentArrow(score) {
   if (state.currentArrowIndex === 0) {
     const maxShootTotal = getMaxShootTotalForRuleset();
     return maxShootTotal === null || score <= maxShootTotal;
   }
   const previousScore = state.currentshoot[state.currentArrowIndex - 1];
-  if (previousScore !== null && score > previousScore) {
+  if (previousScore !== null && previousScore !== 0 && score > previousScore) {
     return false;
   }
 
@@ -212,7 +261,7 @@ function registerScore(score) {
     return;
   }
 
-  if (state.currentArrowIndex >= ARROWS_PER_shoot) {
+  if (state.currentArrowIndex >= state.arrowsPerVolley) {
     return;
   }
 
@@ -228,7 +277,7 @@ function registerScore(score) {
   state.currentArrowIndex += 1;
   state.resultsPayload = null;
 
-  if (state.currentArrowIndex === ARROWS_PER_shoot) {
+  if (state.currentArrowIndex === state.arrowsPerVolley) {
     state.shoots.push([...state.currentshoot]);
     if (state.shoots.length === state.targetCount) {
       state.resultsPayload = buildResultsPayload();
@@ -265,49 +314,98 @@ function stepBackOneArrow() {
 
   const previous = state.shoots.pop();
   state.currentshoot = [...previous];
-  state.currentArrowIndex = ARROWS_PER_shoot - 1;
+  state.currentArrowIndex = state.arrowsPerVolley - 1;
   state.currentshoot[state.currentArrowIndex] = null;
   state.resultsPayload = null;
   refreshScoringView();
 }
 
-function parseCustomPoints() {
-  return els.customPointsInput.value
-    .split(",")
-    .map((v) => Number.parseInt(v.trim(), 10))
-    .filter((v) => Number.isInteger(v) && v >= 0)
-    .sort((a, b) => b - a);
+function getSelectedScoringMode() {
+  const checked = [...els.scoringModeInputs].find((input) => input.checked);
+  return checked ? checked.value : "team";
+}
+
+function getCurrentConfigForSetup() {
+  const ruleset = els.rulesetSelect.value;
+  const scoringMode = getSelectedScoringMode();
+  const arrowsPerVolley = scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
+
+  const points = presets[ruleset];
+
+  const maxPoint = Math.max(...points.filter((p) => Number.isFinite(p)), 0);
+  return { arrowsPerVolley, maxPoint };
+}
+
+function getTargetCountForRuleset(ruleset) {
+  return defaultTargetsByRuleset[ruleset] ?? 21;
+}
+
+function syncTargetCountDisplay() {
+  const targets = getTargetCountForRuleset(els.rulesetSelect.value);
+  els.targetsCountText.textContent = `${targets} cibles`;
+}
+
+function getMaxSuccessZoneForSetup() {
+  const ruleset = els.rulesetSelect.value;
+  const scoringMode = getSelectedScoringMode();
+
+  if (maxShootTotalByRuleset[ruleset]) {
+    const teamMax = maxShootTotalByRuleset[ruleset];
+    return scoringMode === "individual" ? Math.floor(teamMax / 3) : teamMax;
+  }
+
+  const { arrowsPerVolley, maxPoint } = getCurrentConfigForSetup();
+  return Math.max(0, arrowsPerVolley * maxPoint);
+}
+
+function getSuccessZoneColor(value, ruleset, scoringMode) {
+  const multiplier = scoringMode === "team" ? 3 : 1;
+  const thresholdsByRuleset = {
+    nature: { orange: 25, yellow: 30, redOver: 30 },
+    "3d": { orange: 13, yellow: 20, redOver: 20 },
+  };
+  const thresholds = thresholdsByRuleset[ruleset];
+  if (!thresholds) return "#2d6a4f";
+
+  const orangeAt = thresholds.orange * multiplier;
+  const yellowAt = thresholds.yellow * multiplier;
+  const redOver = thresholds.redOver * multiplier;
+
+  if (value > redOver) return "#9b2226";
+  if (value >= yellowAt) return "#f2c94c";
+  if (value >= orangeAt) return "#d68c45";
+  return "#2d6a4f";
+}
+
+function updateSuccessZoneSlider() {
+  const ruleset = els.rulesetSelect.value;
+  const scoringMode = getSelectedScoringMode();
+  const max = getMaxSuccessZoneForSetup();
+  els.successZoneInput.max = String(max);
+  let value = Number.parseInt(els.successZoneInput.value, 10);
+  if (!Number.isInteger(value) || value < 0) value = 0;
+  if (value > max) value = max;
+  els.successZoneInput.value = String(value);
+  els.successZoneValue.textContent = String(value);
+  const zoneColor = getSuccessZoneColor(value, ruleset, scoringMode);
+  els.successZoneInput.style.setProperty("--zone-color", zoneColor);
+  els.successZoneValue.style.color = zoneColor;
 }
 
 function startScoring() {
-  const parsedTargets = Number.parseInt(els.targetsInput.value, 10);
-  if (!Number.isInteger(parsedTargets) || parsedTargets < 1) {
-    window.alert("Entrez un nombre de cibles valide (minimum 1).");
-    return;
-  }
   const parsedSuccessZone = Number.parseInt(els.successZoneInput.value, 10);
   if (!Number.isInteger(parsedSuccessZone) || parsedSuccessZone < 0) {
     window.alert("Entrez une zone de réussite valide (minimum 0).");
     return;
   }
 
-  let points;
-  if (els.rulesetSelect.value === "custom") {
-    points = parseCustomPoints();
-    if (points.length === 0) {
-      window.alert("Entrez au moins une valeur de points pour le barème personnalisé.");
-      return;
-    }
-    if (!points.includes(0)) {
-      points.push(0);
-    }
-  } else {
-    points = presets[els.rulesetSelect.value];
-  }
+  const points = presets[els.rulesetSelect.value];
 
-  state.targetCount = parsedTargets;
+  state.targetCount = getTargetCountForRuleset(els.rulesetSelect.value);
   state.successZone = parsedSuccessZone;
   state.activeRuleset = els.rulesetSelect.value;
+  state.scoringMode = getSelectedScoringMode();
+  state.arrowsPerVolley = state.scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.shoots = [];
   state.resultsPayload = null;
@@ -316,6 +414,7 @@ function startScoring() {
   els.setupCard.classList.add("hidden");
   els.summaryCard.classList.add("hidden");
   els.scoringCard.classList.remove("hidden");
+  closeStatsModal();
 
   refreshScoringView();
 }
@@ -328,7 +427,7 @@ function buildResultsPayload() {
   const totals = state.shoots.map((shoot) => roundTotal(shoot));
   const total = totals.reduce((sum, value) => sum + value, 0);
   const avgshoot = total / state.shoots.length;
-  const avgArrow = total / (state.shoots.length * ARROWS_PER_shoot);
+  const avgArrow = total / (state.shoots.length * state.arrowsPerVolley);
 
   let bestshoot = 0;
   let worstshoot = 0;
@@ -346,8 +445,9 @@ function buildResultsPayload() {
   return {
     generatedAt: new Date().toISOString(),
     ruleset: state.activeRuleset,
+    scoringMode: state.scoringMode,
     targetCount: state.targetCount,
-    arrowsPerVolley: ARROWS_PER_shoot,
+    arrowsPerVolley: state.arrowsPerVolley,
     successZone: state.successZone,
     total,
     avgVolley: Number(avgshoot.toFixed(2)),
@@ -373,7 +473,59 @@ function buildResultsPayload() {
 
 function updateResultsAvailability() {
   const done = state.shoots.length === state.targetCount && state.targetCount > 0;
+  els.statsBtn.disabled = !done;
   els.downloadDataBtn.disabled = !done;
+}
+
+function getSegmentAverages(totals, segmentCount) {
+  const segments = [];
+  for (let i = 0; i < segmentCount; i += 1) {
+    const start = Math.floor((i * totals.length) / segmentCount);
+    const end = Math.floor(((i + 1) * totals.length) / segmentCount);
+    const part = totals.slice(start, end);
+    const avg = part.length ? part.reduce((sum, value) => sum + value, 0) / part.length : 0;
+    segments.push(Number(avg.toFixed(2)));
+  }
+  return segments;
+}
+
+function openStatsModal() {
+  if (state.shoots.length !== state.targetCount || state.shoots.length === 0) {
+    return;
+  }
+
+  const totals = state.shoots.map((shoot) => roundTotal(shoot));
+  const avgVolley = totals.reduce((sum, value) => sum + value, 0) / totals.length;
+  const best = Math.max(...totals);
+  const worst = Math.min(...totals);
+
+  els.statsAvgVolley.textContent = avgVolley.toFixed(2);
+  els.statsBestVolley.textContent = best;
+  els.statsWorstVolley.textContent = worst;
+
+  if (state.activeRuleset === "nature") {
+    const segments = getSegmentAverages(totals, 3);
+    els.statsSeg1Label.textContent = "Tiers 1";
+    els.statsSeg2Label.textContent = "Tiers 2";
+    els.statsSeg3Label.textContent = "Tiers 3";
+    els.statsSeg1Value.textContent = segments[0].toFixed(2);
+    els.statsSeg2Value.textContent = segments[1].toFixed(2);
+    els.statsSeg3Value.textContent = segments[2].toFixed(2);
+  } else {
+    const halves = getSegmentAverages(totals, 2);
+    els.statsSeg1Label.textContent = "Moitié 1";
+    els.statsSeg2Label.textContent = "Moitié 2";
+    els.statsSeg3Label.textContent = "-";
+    els.statsSeg1Value.textContent = halves[0].toFixed(2);
+    els.statsSeg2Value.textContent = halves[1].toFixed(2);
+    els.statsSeg3Value.textContent = "-";
+  }
+
+  els.statsModal.classList.remove("hidden");
+}
+
+function closeStatsModal() {
+  els.statsModal.classList.add("hidden");
 }
 
 function downloadResultsJson() {
@@ -401,6 +553,7 @@ function restart() {
   state.shoots = [];
   state.resultsPayload = null;
   resetRoundBuffer();
+  closeStatsModal();
   els.scoringCard.classList.add("hidden");
   els.summaryCard.classList.add("hidden");
   els.setupCard.classList.remove("hidden");
@@ -408,19 +561,23 @@ function restart() {
 
 els.rulesetSelect.addEventListener("change", () => {
   const ruleset = els.rulesetSelect.value;
-  const isCustom = ruleset === "custom";
-  els.customPointsWrap.classList.toggle("hidden", !isCustom);
-
-  if (defaultTargetsByRuleset[ruleset]) {
-    els.targetsInput.value = defaultTargetsByRuleset[ruleset];
-  }
+  syncTargetCountDisplay();
+  updateSuccessZoneSlider();
 });
 
+els.scoringModeInputs.forEach((input) => input.addEventListener("change", updateSuccessZoneSlider));
+els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
+els.statsBtn.addEventListener("click", openStatsModal);
 els.downloadDataBtn.addEventListener("click", downloadResultsJson);
 els.restartBtn.addEventListener("click", restart);
+els.statsModalOverlay.addEventListener("click", closeStatsModal);
+els.statsCloseBtn.addEventListener("click", closeStatsModal);
+els.appVersion.textContent = APP_VERSION;
+syncTargetCountDisplay();
+updateSuccessZoneSlider();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
