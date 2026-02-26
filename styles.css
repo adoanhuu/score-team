@@ -28,11 +28,13 @@ body {
 .app-header h1 {
   margin: 0;
   font-size: 1.6rem;
+  text-align: center;
 }
 
 .title-with-icon {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
 }
 
@@ -40,6 +42,14 @@ body {
   width: 30px;
   height: 30px;
   display: block;
+}
+
+.app-version {
+  font-size: 0.52rem;
+  font-weight: 700;
+  color: #6a776f;
+  align-self: flex-end;
+  margin-bottom: 3px;
 }
 
 .app-header p {

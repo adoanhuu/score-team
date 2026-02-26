@@ -1,4 +1,5 @@
 const ARROWS_PER_shoot = 6;
+const APP_VERSION = "v1.0.0";
 
 const state = {
   targetCount: 21,
@@ -39,6 +40,7 @@ const els = {
   statsList: document.getElementById("stats-list"),
   shootHistoryBody: document.getElementById("volley-history-body"),
   restartBtn: document.getElementById("restart-btn"),
+  appVersion: document.getElementById("app-version"),
 };
 
 const presets = {
@@ -121,8 +123,8 @@ function renderPad() {
 
 function updateScoringHeader() {
   const shootNumber = state.shoots.length + 1;
-  els.shootTitle.textContent = `Volée ${shootNumber}`;
-  els.progressText.textContent = `Cible ${Math.min(shootNumber, state.targetCount)} / ${state.targetCount}`;
+  els.shootTitle.textContent = `Volée ${Math.min(shootNumber, state.targetCount)} sur ${state.targetCount}`;
+  els.progressText.textContent = "";
   els.teamTotal.textContent = globalTotal();
 
   const partial = state.currentshoot.filter((v) => v !== null);
@@ -421,6 +423,7 @@ els.backSetupBtn.addEventListener("click", restart);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
 els.downloadDataBtn.addEventListener("click", downloadResultsJson);
 els.restartBtn.addEventListener("click", restart);
+els.appVersion.textContent = APP_VERSION;
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
