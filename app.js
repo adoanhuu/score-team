@@ -1,5 +1,5 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.0.0";
+const APP_VERSION = "v1.1.0";
 
 const state = {
   targetCount: 21,
