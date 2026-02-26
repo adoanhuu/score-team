@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#2d6a4f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Score Team" />
+    <title>Score Team</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app-header">
+        <h1 class="title-with-icon">
+          <img src="icons/icon.svg" alt="" class="app-title-icon" />
+          <span>Score Team</span>
+        </h1>
+        <p>Parcours Nature / 3D - Équipe de 3 archers (2 flèches par archer)</p>
+      </header>
+
+      <section class="card" id="setup-card">
+        <h2>Configuration du parcours</h2>
+        <div class="grid-two">
+          <label>
+            Nombre de cibles
+            <input id="targets-input" type="number" min="1" max="100" value="21" />
+          </label>
+          <label>
+            Zone de réussite (pts / volée)
+            <input id="success-zone-input" type="number" min="0" value="0" />
+          </label>
+        </div>
+        <div class="grid-two">
+          <label>
+            Barème
+            <select id="ruleset-select">
+              <option value="nature">Nature (20 / 15 / 10)</option>
+              <option value="3d">3D (11 / 10 / 8 / 5)</option>
+              <option value="custom">Personnalisé</option>
+            </select>
+          </label>
+        </div>
+        <label id="custom-points-wrap" class="hidden">
+          Points autorisés (séparés par des virgules)
+          <input id="custom-points-input" type="text" placeholder="ex: 11,10,8,5,0" />
+        </label>
+        <button id="start-btn" class="btn btn-primary">Démarrer la saisie</button>
+      </section>
+
+      <section class="card hidden" id="scoring-card">
+        <button id="back-setup-btn" class="btn btn-light btn-top-nav">Retour au choix du parcours</button>
+        <div class="scoring-head">
+          <div>
+            <h2 id="volley-title">Volée 1</h2>
+            <p id="progress-text"></p>
+          </div>
+        </div>
+
+        <div class="quick-stats">
+          <article>
+            <span>Total équipe</span>
+            <strong id="team-total">0</strong>
+          </article>
+          <article>
+            <span>Total volée</span>
+            <strong id="volley-total">0</strong>
+          </article>
+          <article>
+            <span>Flèche en cours</span>
+            <strong id="arrow-step">1 / 6</strong>
+          </article>
+        </div>
+
+        <div class="score-entry-sticky">
+          <div id="arrow-grid" class="arrow-grid"></div>
+          <div id="points-pad" class="points-pad"></div>
+          <div class="score-actions-row">
+            <button id="step-back-btn" class="btn btn-light">Retour 1 flèche</button>
+          </div>
+        </div>
+
+        <h3>Historique des volées</h3>
+        <div class="table-wrap" id="live-volley-history-wrap">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Volée</th>
+                <th>Flèches</th>
+                <th>Total</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="live-volley-history-body"></tbody>
+          </table>
+        </div>
+        <div class="actions">
+          <button id="show-results-btn" class="btn btn-primary" disabled>Résultats (JSON)</button>
+        </div>
+        <div id="results-json-wrap" class="results-json-wrap hidden">
+          <h3>Statistiques (JSON)</h3>
+          <pre id="results-json"></pre>
+        </div>
+      </section>
+
+      <section class="card hidden" id="summary-card">
+        <h2>Bilan du parcours</h2>
+        <div class="quick-stats">
+          <article>
+            <span>Total final</span>
+            <strong id="final-total">0</strong>
+          </article>
+          <article>
+            <span>Moyenne / volée</span>
+            <strong id="avg-volley">0</strong>
+          </article>
+          <article>
+            <span>Moyenne / flèche</span>
+            <strong id="avg-arrow">0</strong>
+          </article>
+        </div>
+
+        <div class="stats-list" id="stats-list"></div>
+
+        <h3>Détail par volée</h3>
+        <div class="table-wrap">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Volée</th>
+                <th>Flèches</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="volley-history-body"></tbody>
+          </table>
+        </div>
+
+        <div class="actions">
+          <button id="restart-btn" class="btn btn-primary">Nouveau parcours</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
