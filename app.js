@@ -207,7 +207,7 @@ const maxShootTotalByRuleset = {
 
 const targetGroupsByRuleset = {
   nature: ["PA", "PG", "MG", "GG"],
-  "3d": ["GI", "GII", "GIII", "GIV"],
+  "3d": ["G1", "G2", "G3", "G4"],
   "3d2": ["G1", "G2", "G3", "G4"],
   "3dh": ["G1", "G2", "G3", "G4"],
   ar: ["G1", "G2", "G3", "G4"],
@@ -244,10 +244,6 @@ function getGroupLabel(group) {
   if (group === "PG") return "Petit gibier";
   if (group === "MG") return "Moyen gibier";
   if (group === "GG") return "Grand gibier";
-  if (group === "GI") return "Groupe I";
-  if (group === "GII") return "Groupe II";
-  if (group === "GIII") return "Groupe III";
-  if (group === "GIV") return "Groupe IV";
   if (group === "G1") return "Groupe 1";
   if (group === "G2") return "Groupe 2";
   if (group === "G3") return "Groupe 3";
@@ -255,14 +251,26 @@ function getGroupLabel(group) {
   return group;
 }
 
+function getSelectedTargetGroup() {
+  const checked = els.targetGroupSelect.querySelector('input[name="target-group"]:checked');
+  return checked ? checked.value : "";
+}
+
 function syncTargetGroupSelect(selectedValue = null) {
   const groups = getGroupsForRuleset(state.activeRuleset || els.rulesetSelect.value);
-  els.targetGroupSelect.innerHTML = groups.map((group) => `<option value="${group}">${getGroupLabel(group)}</option>`).join("");
-  if (selectedValue && groups.includes(selectedValue)) {
-    els.targetGroupSelect.value = selectedValue;
-  } else if (groups.length > 0) {
-    els.targetGroupSelect.value = groups[0];
-  }
+  els.targetGroupSelect.innerHTML = groups.map((group) => {
+    const checked = selectedValue ? group === selectedValue : group === groups[0];
+    return `<label class="target-group-radio${checked ? " active" : ""}">
+      <input type="radio" name="target-group" value="${group}" ${checked ? "checked" : ""} />
+      <span>${group}</span>
+    </label>`;
+  }).join("");
+  els.targetGroupSelect.querySelectorAll('input[name="target-group"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      els.targetGroupSelect.querySelectorAll(".target-group-radio").forEach((l) => l.classList.toggle("active", l.querySelector("input").checked));
+      persistAppState();
+    });
+  });
 }
 
 function persistAppState() {
@@ -284,7 +292,7 @@ function persistAppState() {
             activeRuleset: state.activeRuleset,
             allowedPoints: [...state.allowedPoints],
             shootGroups: [...state.shootGroups],
-            currentGroup: els.targetGroupSelect.value || "",
+            currentGroup: getSelectedTargetGroup(),
           }
         : null,
     };
@@ -482,7 +490,7 @@ function renderLiveVolleyHistory() {
     previewRow.innerHTML = `
       <td><span class="volley-pill is-blue">${idx + 1}</span></td>
       <td>${state.currentshoot.map((value) => formatScore(value)).join(" / ")}</td>
-      <td>${els.targetGroupSelect.value || "-"}</td>
+      <td>${getSelectedTargetGroup() || "-"}</td>
       <td class="history-total">${partialTotal}</td>
       <td>-</td>
     `;
@@ -581,7 +589,7 @@ function registerScore(score) {
     refreshScoringView();
     window.setTimeout(() => {
       state.shoots.push([...state.currentshoot]);
-      state.shootGroups.push(els.targetGroupSelect.value || "");
+      state.shootGroups.push(getSelectedTargetGroup());
       state.inputLocked = false;
       if (state.shoots.length === state.targetCount) {
         state.resultsPayload = buildResultsPayload();
