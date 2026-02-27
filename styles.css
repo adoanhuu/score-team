@@ -112,8 +112,13 @@ body {
 }
 
 .setup-head .home-btn {
-  margin-left: auto;
   flex: 0 0 auto;
+}
+
+.setup-head-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .grid-two {
@@ -1097,6 +1102,50 @@ select {
   text-align: center;
   font-size: 0.82rem;
   color: #888;
+}
+
+.config-form {
+  display: grid;
+  gap: 14px;
+}
+
+.config-field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 0.92rem;
+}
+
+.config-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.config-input-row input[type="range"] {
+  flex: 1;
+}
+
+.config-input-row strong {
+  min-width: 40px;
+  text-align: right;
+  font-size: 0.95rem;
+}
+
+.config-section {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.config-section-legend {
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0 6px;
+  color: var(--accent);
 }
 
 .hidden {

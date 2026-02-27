@@ -27,11 +27,18 @@
       <section class="card" id="setup-card">
         <div class="setup-head">
           <h2>Configuration</h2>
-          <button id="setup-help-btn" class="btn btn-light btn-icon home-btn" aria-label="Aide">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
-            </svg>
-          </button>
+          <div class="setup-head-actions">
+            <button id="config-btn" class="btn btn-light btn-icon home-btn" aria-label="Réglages">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94 7.07 7.07 0 0 0-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54a7.04 7.04 0 0 0-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0-.06.94c0 .32.02.64.06.94L2.86 14.5a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54a7.04 7.04 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.56ZM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6Z" fill="currentColor" />
+              </svg>
+            </button>
+            <button id="setup-help-btn" class="btn btn-light btn-icon home-btn" aria-label="Aide">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="grid-two">
           <label>
@@ -354,6 +361,61 @@
           </section>
 
           <p class="help-credit">Team Score &copy; 2026 Alain DOAN-HUU</p>
+        </div>
+      </section>
+
+      <section id="config-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="config-modal-title">
+        <div class="modal-overlay" id="config-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="config-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94 7.07 7.07 0 0 0-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54a7.04 7.04 0 0 0-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0-.06.94c0 .32.02.64.06.94L2.86 14.5a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54a7.04 7.04 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.56ZM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6Z" fill="currentColor" />
+              </svg>
+              <span>Configuration</span>
+            </h3>
+            <button id="config-close-btn" class="btn btn-light btn-icon" aria-label="Fermer configuration">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div class="config-form">
+            <fieldset class="config-section">
+              <legend class="config-section-legend">Équipe</legend>
+              <div class="config-field">
+                <label for="config-full-target-team">Objectif de pleins</label>
+                <div class="config-input-row">
+                  <input type="range" id="config-full-target-team" min="0" max="21" step="1" value="7">
+                  <strong id="config-full-target-team-value">7</strong>
+                </div>
+              </div>
+              <div class="config-field">
+                <label for="config-miss-limit-team">Limite de double pailles</label>
+                <div class="config-input-row">
+                  <input type="range" id="config-miss-limit-team" min="0" max="21" step="1" value="5">
+                  <strong id="config-miss-limit-team-value">5</strong>
+                </div>
+              </div>
+            </fieldset>
+            <fieldset class="config-section">
+              <legend class="config-section-legend">Individuel</legend>
+              <div class="config-field">
+                <label for="config-full-target-indiv">Objectif de pleins</label>
+                <div class="config-input-row">
+                  <input type="range" id="config-full-target-indiv" min="0" max="21" step="1" value="5">
+                  <strong id="config-full-target-indiv-value">5</strong>
+                </div>
+              </div>
+              <div class="config-field">
+                <label for="config-miss-limit-indiv">Limite de double pailles</label>
+                <div class="config-input-row">
+                  <input type="range" id="config-miss-limit-indiv" min="0" max="21" step="1" value="3">
+                  <strong id="config-miss-limit-indiv-value">3</strong>
+                </div>
+              </div>
+            </fieldset>
+          </div>
         </div>
       </section>
 

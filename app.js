@@ -3,6 +3,7 @@ const APP_VERSION = "v1.2.1";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
+const CONFIG_KEY = "score-team-config-v1";
 const MAX_HISTORY_ITEMS = 50;
 const FLASH_INFO_MS = 2600;
 
@@ -93,6 +94,18 @@ const els = {
   restartBtn: document.getElementById("restart-btn"),
   appVersion: document.getElementById("app-version"),
   flashInfo: document.getElementById("flash-info"),
+  configBtn: document.getElementById("config-btn"),
+  configModal: document.getElementById("config-modal"),
+  configModalOverlay: document.getElementById("config-modal-overlay"),
+  configCloseBtn: document.getElementById("config-close-btn"),
+  configFullTargetTeam: document.getElementById("config-full-target-team"),
+  configFullTargetTeamValue: document.getElementById("config-full-target-team-value"),
+  configFullTargetIndiv: document.getElementById("config-full-target-indiv"),
+  configFullTargetIndivValue: document.getElementById("config-full-target-indiv-value"),
+  configMissLimitTeam: document.getElementById("config-miss-limit-team"),
+  configMissLimitTeamValue: document.getElementById("config-miss-limit-team-value"),
+  configMissLimitIndiv: document.getElementById("config-miss-limit-indiv"),
+  configMissLimitIndivValue: document.getElementById("config-miss-limit-indiv-value"),
 };
 
 const presets = {
@@ -104,6 +117,75 @@ const defaultTargetsByRuleset = {
   nature: 21,
   "3d": 24,
 };
+
+const appConfig = {
+  fullTarget_team: 7,
+  fullTarget_individual: 5,
+  missLimit_team: 5,
+  missLimit_individual: 3,
+};
+
+function loadConfig() {
+  try {
+    const raw = window.localStorage.getItem(CONFIG_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      // Migrate legacy single-value config
+      if (Number.isFinite(saved.fullTarget) && saved.fullTarget_team === undefined) {
+        appConfig.fullTarget_team = saved.fullTarget;
+        appConfig.fullTarget_individual = saved.fullTarget;
+      }
+      if (Number.isFinite(saved.missLimit) && saved.missLimit_team === undefined) {
+        appConfig.missLimit_team = saved.missLimit;
+        appConfig.missLimit_individual = saved.missLimit;
+      }
+      if (Number.isFinite(saved.fullTarget_team)) appConfig.fullTarget_team = saved.fullTarget_team;
+      if (Number.isFinite(saved.fullTarget_individual)) appConfig.fullTarget_individual = saved.fullTarget_individual;
+      if (Number.isFinite(saved.missLimit_team)) appConfig.missLimit_team = saved.missLimit_team;
+      if (Number.isFinite(saved.missLimit_individual)) appConfig.missLimit_individual = saved.missLimit_individual;
+    }
+  } catch { /* ignore */ }
+}
+
+function saveConfig() {
+  try {
+    window.localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
+  } catch { /* ignore */ }
+}
+
+function syncConfigSliderMax() {
+  const max = getTargetCountForRuleset(els.rulesetSelect.value);
+  els.configFullTargetTeam.max = String(max);
+  els.configFullTargetIndiv.max = String(max);
+  els.configMissLimitTeam.max = String(max);
+  els.configMissLimitIndiv.max = String(max);
+  let changed = false;
+  if (appConfig.fullTarget_team > max) { appConfig.fullTarget_team = max; changed = true; }
+  if (appConfig.fullTarget_individual > max) { appConfig.fullTarget_individual = max; changed = true; }
+  if (appConfig.missLimit_team > max) { appConfig.missLimit_team = max; changed = true; }
+  if (appConfig.missLimit_individual > max) { appConfig.missLimit_individual = max; changed = true; }
+  if (changed) saveConfig();
+}
+
+function openConfigModal() {
+  closeStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  syncConfigSliderMax();
+  els.configFullTargetTeam.value = String(appConfig.fullTarget_team);
+  els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
+  els.configFullTargetIndiv.value = String(appConfig.fullTarget_individual);
+  els.configFullTargetIndivValue.textContent = String(appConfig.fullTarget_individual);
+  els.configMissLimitTeam.value = String(appConfig.missLimit_team);
+  els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
+  els.configMissLimitIndiv.value = String(appConfig.missLimit_individual);
+  els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
+  els.configModal.classList.remove("hidden");
+}
+
+function closeConfigModal() {
+  els.configModal.classList.add("hidden");
+}
 
 const maxShootTotalByRuleset = {
   nature: 105,
@@ -919,8 +1001,11 @@ function openStatsModalFromPayload(payload) {
   els.statsDoubleMissCount.textContent = String(doubleMissCount);
   const fullCard = els.statsFullCount.closest("article");
   const missCard = els.statsDoubleMissCount.closest("article");
-  fullCard.classList.toggle("stats-highlight-green", totalArrows > 0 && fullCount / totalArrows > 0.33);
-  missCard.classList.toggle("stats-highlight-red", totalArrows > 0 && doubleMissCount / volleys.length > 0.25);
+  const modeSuffix = (payload.scoringMode || state.scoringMode) === "individual" ? "individual" : "team";
+  const cfgFull = appConfig[`fullTarget_${modeSuffix}`];
+  const cfgMiss = appConfig[`missLimit_${modeSuffix}`];
+  fullCard.classList.toggle("stats-highlight-green", cfgFull > 0 && fullCount >= cfgFull);
+  missCard.classList.toggle("stats-highlight-red", cfgMiss > 0 && doubleMissCount >= cfgMiss);
   const allowedPoints =
     Array.isArray(payload.allowedPoints) && payload.allowedPoints.length
       ? payload.allowedPoints
@@ -1153,6 +1238,31 @@ els.historyModalOverlay.addEventListener("click", closeHistoryModal);
 els.historyCloseBtn.addEventListener("click", closeHistoryModal);
 els.historyModeFilter.addEventListener("change", renderHistoryList);
 els.historyRulesetFilter.addEventListener("change", renderHistoryList);
+els.configBtn.addEventListener("click", openConfigModal);
+els.configModalOverlay.addEventListener("click", closeConfigModal);
+els.configCloseBtn.addEventListener("click", closeConfigModal);
+els.configFullTargetTeam.addEventListener("input", () => {
+  appConfig.fullTarget_team = Number(els.configFullTargetTeam.value);
+  els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
+  saveConfig();
+});
+els.configFullTargetIndiv.addEventListener("input", () => {
+  appConfig.fullTarget_individual = Number(els.configFullTargetIndiv.value);
+  els.configFullTargetIndivValue.textContent = String(appConfig.fullTarget_individual);
+  saveConfig();
+});
+els.configMissLimitTeam.addEventListener("input", () => {
+  appConfig.missLimit_team = Number(els.configMissLimitTeam.value);
+  els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
+  saveConfig();
+});
+els.configMissLimitIndiv.addEventListener("input", () => {
+  appConfig.missLimit_individual = Number(els.configMissLimitIndiv.value);
+  els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
+  saveConfig();
+});
+els.rulesetSelect.addEventListener("change", () => syncConfigSliderMax());
+loadConfig();
 els.appVersion.textContent = APP_VERSION;
 if (!restorePersistedState()) {
   syncTargetCountDisplay();
