@@ -1,8 +1,9 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.2.1";
-const LAST_SCORE_PREVIEW_MS = 800;
+const APP_VERSION = "v1.2.2";
+const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
+const CONFIG_KEY = "score-team-config-v1";
 const MAX_HISTORY_ITEMS = 50;
 const FLASH_INFO_MS = 2600;
 
@@ -20,6 +21,7 @@ const state = {
   resultsPayload: null,
   inputLocked: false,
   completionArchived: false,
+  statsOpenedFromHistory: false,
 };
 
 const els = {
@@ -61,6 +63,7 @@ const els = {
   historyModalOverlay: document.getElementById("history-modal-overlay"),
   historyCloseBtn: document.getElementById("history-close-btn"),
   historyModeFilter: document.getElementById("history-mode-filter"),
+  historyRulesetFilter: document.getElementById("history-ruleset-filter"),
   historyList: document.getElementById("history-list"),
   statsSuccessZone: document.getElementById("stats-success-zone"),
   statsBestVolley: document.getElementById("stats-best-volley"),
@@ -80,6 +83,9 @@ const els = {
   statsFullCount: document.getElementById("stats-full-count"),
   statsDoubleMissCount: document.getElementById("stats-double-miss-count"),
   statsScoreDist: document.getElementById("stats-score-dist"),
+  statsTabSummary: document.getElementById("stats-tab-summary"),
+  statsTabGroups: document.getElementById("stats-tab-groups"),
+  statsGroupDist: document.getElementById("stats-group-dist"),
   finalTotal: document.getElementById("final-total"),
   avgshoot: document.getElementById("avg-volley"),
   avgArrow: document.getElementById("avg-arrow"),
@@ -88,6 +94,18 @@ const els = {
   restartBtn: document.getElementById("restart-btn"),
   appVersion: document.getElementById("app-version"),
   flashInfo: document.getElementById("flash-info"),
+  configBtn: document.getElementById("config-btn"),
+  configModal: document.getElementById("config-modal"),
+  configModalOverlay: document.getElementById("config-modal-overlay"),
+  configCloseBtn: document.getElementById("config-close-btn"),
+  configFullTargetTeam: document.getElementById("config-full-target-team"),
+  configFullTargetTeamValue: document.getElementById("config-full-target-team-value"),
+  configFullTargetIndiv: document.getElementById("config-full-target-indiv"),
+  configFullTargetIndivValue: document.getElementById("config-full-target-indiv-value"),
+  configMissLimitTeam: document.getElementById("config-miss-limit-team"),
+  configMissLimitTeamValue: document.getElementById("config-miss-limit-team-value"),
+  configMissLimitIndiv: document.getElementById("config-miss-limit-indiv"),
+  configMissLimitIndivValue: document.getElementById("config-miss-limit-indiv-value"),
 };
 
 const presets = {
@@ -99,6 +117,75 @@ const defaultTargetsByRuleset = {
   nature: 21,
   "3d": 24,
 };
+
+const appConfig = {
+  fullTarget_team: 7,
+  fullTarget_individual: 5,
+  missLimit_team: 5,
+  missLimit_individual: 3,
+};
+
+function loadConfig() {
+  try {
+    const raw = window.localStorage.getItem(CONFIG_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      // Migrate legacy single-value config
+      if (Number.isFinite(saved.fullTarget) && saved.fullTarget_team === undefined) {
+        appConfig.fullTarget_team = saved.fullTarget;
+        appConfig.fullTarget_individual = saved.fullTarget;
+      }
+      if (Number.isFinite(saved.missLimit) && saved.missLimit_team === undefined) {
+        appConfig.missLimit_team = saved.missLimit;
+        appConfig.missLimit_individual = saved.missLimit;
+      }
+      if (Number.isFinite(saved.fullTarget_team)) appConfig.fullTarget_team = saved.fullTarget_team;
+      if (Number.isFinite(saved.fullTarget_individual)) appConfig.fullTarget_individual = saved.fullTarget_individual;
+      if (Number.isFinite(saved.missLimit_team)) appConfig.missLimit_team = saved.missLimit_team;
+      if (Number.isFinite(saved.missLimit_individual)) appConfig.missLimit_individual = saved.missLimit_individual;
+    }
+  } catch { /* ignore */ }
+}
+
+function saveConfig() {
+  try {
+    window.localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
+  } catch { /* ignore */ }
+}
+
+function syncConfigSliderMax() {
+  const max = getTargetCountForRuleset(els.rulesetSelect.value);
+  els.configFullTargetTeam.max = String(max);
+  els.configFullTargetIndiv.max = String(max);
+  els.configMissLimitTeam.max = String(max);
+  els.configMissLimitIndiv.max = String(max);
+  let changed = false;
+  if (appConfig.fullTarget_team > max) { appConfig.fullTarget_team = max; changed = true; }
+  if (appConfig.fullTarget_individual > max) { appConfig.fullTarget_individual = max; changed = true; }
+  if (appConfig.missLimit_team > max) { appConfig.missLimit_team = max; changed = true; }
+  if (appConfig.missLimit_individual > max) { appConfig.missLimit_individual = max; changed = true; }
+  if (changed) saveConfig();
+}
+
+function openConfigModal() {
+  closeStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  syncConfigSliderMax();
+  els.configFullTargetTeam.value = String(appConfig.fullTarget_team);
+  els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
+  els.configFullTargetIndiv.value = String(appConfig.fullTarget_individual);
+  els.configFullTargetIndivValue.textContent = String(appConfig.fullTarget_individual);
+  els.configMissLimitTeam.value = String(appConfig.missLimit_team);
+  els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
+  els.configMissLimitIndiv.value = String(appConfig.missLimit_individual);
+  els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
+  els.configModal.classList.remove("hidden");
+}
+
+function closeConfigModal() {
+  els.configModal.classList.add("hidden");
+}
 
 const maxShootTotalByRuleset = {
   nature: 105,
@@ -136,20 +223,21 @@ function getGroupsForRuleset(ruleset) {
   return targetGroupsByRuleset[ruleset] || [];
 }
 
+function getGroupLabel(group) {
+  if (group === "PA") return "Petit animal";
+  if (group === "PG") return "Petit gibier";
+  if (group === "MG") return "Moyen gibier";
+  if (group === "GG") return "Grand gibier";
+  if (group === "GI") return "Groupe I";
+  if (group === "GII") return "Groupe II";
+  if (group === "GIII") return "Groupe III";
+  if (group === "GIV") return "Groupe IV";
+  return group;
+}
+
 function syncTargetGroupSelect(selectedValue = null) {
   const groups = getGroupsForRuleset(state.activeRuleset || els.rulesetSelect.value);
-  const groupLabel = (group) => {
-    if (group === "PA") return "PA - Petit animal";
-    if (group === "PG") return "PG - Petit gibier";
-    if (group === "MG") return "MG - Moyen gibier";
-    if (group === "GG") return "GG - Grand gibier";
-    if (group === "GI") return "Groupe I";
-    if (group === "GII") return "Groupe II";
-    if (group === "GIII") return "Groupe III";
-    if (group === "GIV") return "Groupe IV";
-    return group;
-  };
-  els.targetGroupSelect.innerHTML = groups.map((group) => `<option value="${group}">${groupLabel(group)}</option>`).join("");
+  els.targetGroupSelect.innerHTML = groups.map((group) => `<option value="${group}">${getGroupLabel(group)}</option>`).join("");
   if (selectedValue && groups.includes(selectedValue)) {
     els.targetGroupSelect.value = selectedValue;
   } else if (groups.length > 0) {
@@ -776,6 +864,103 @@ function renderScoreDistribution(allowedPoints, volleys) {
     .join("");
 }
 
+function switchStatsTab(tabName) {
+  document.querySelectorAll(".stats-tab").forEach((btn) => {
+    const isActive = btn.dataset.statsTab === tabName;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", String(isActive));
+  });
+  els.statsTabSummary.classList.toggle("hidden", tabName !== "summary");
+  els.statsTabGroups.classList.toggle("hidden", tabName !== "groups");
+}
+
+function getPieColors(ruleset) {
+  if (ruleset === '3d') {
+    return { 11: '#2563eb', 10: '#10b981', 8: '#eab308', 5: '#f97316', 0: '#ef4444' };
+  }
+  return { 20: '#2563eb', 15: '#10b981', 10: '#eab308', 0: '#ef4444' };
+}
+
+function buildPieSvg(counts, orderedScores, colors, size) {
+  const total = orderedScores.reduce((sum, s) => sum + (counts.get(s) || 0), 0);
+  if (total === 0) return '';
+  const r = size / 2;
+  const cx = r;
+  const cy = r;
+  const sliceR = r - 2;
+  let startAngle = -Math.PI / 2;
+  let paths = '';
+
+  orderedScores.forEach((score) => {
+    const count = counts.get(score) || 0;
+    if (count === 0) return;
+    const sliceAngle = (count / total) * 2 * Math.PI;
+    const endAngle = startAngle + sliceAngle;
+    const largeArc = sliceAngle > Math.PI ? 1 : 0;
+    const x1 = cx + sliceR * Math.cos(startAngle);
+    const y1 = cy + sliceR * Math.sin(startAngle);
+    const x2 = cx + sliceR * Math.cos(endAngle);
+    const y2 = cy + sliceR * Math.sin(endAngle);
+    const color = colors[score] || '#8c929a';
+    if (count === total) {
+      paths += `<circle cx="${cx}" cy="${cy}" r="${sliceR}" fill="${color}"/>`;
+    } else {
+      paths += `<path d="M${cx},${cy} L${x1.toFixed(3)},${y1.toFixed(3)} A${sliceR},${sliceR} 0 ${largeArc} 1 ${x2.toFixed(3)},${y2.toFixed(3)} Z" fill="${color}"/>`;
+    }
+    startAngle = endAngle;
+  });
+
+  return `<svg viewBox="0 0 ${size} ${size}" class="stats-pie-svg" aria-hidden="true">${paths}</svg>`;
+}
+
+function renderGroupDistribution(payload) {
+  const volleys = Array.isArray(payload?.volleys) ? payload.volleys : [];
+  const groups = getGroupsForRuleset(payload.ruleset || state.activeRuleset);
+  if (groups.length === 0 || volleys.length === 0) {
+    els.statsGroupDist.innerHTML = '<div style="text-align:center;color:#888;padding:12px;">Aucune donn\u00e9e de groupe.</div>';
+    return;
+  }
+
+  const allowedPoints = Array.isArray(payload.allowedPoints) && payload.allowedPoints.length
+    ? payload.allowedPoints
+    : [...new Set(volleys.flatMap((v) => v.arrows || []))].sort((a, b) => b - a);
+  const orderedScores = [...allowedPoints].sort((a, b) => b - a);
+  const colors = getPieColors(payload.ruleset || state.activeRuleset);
+
+  let piesHtml = '';
+  groups.forEach((group) => {
+    const groupVolleys = volleys.filter((v) => v.group === group);
+    if (groupVolleys.length === 0) return;
+
+    const counts = new Map();
+    orderedScores.forEach((s) => counts.set(s, 0));
+    groupVolleys.flatMap((v) => v.arrows || []).forEach((s) => {
+      counts.set(s, (counts.get(s) || 0) + 1);
+    });
+    const groupTotal = groupVolleys.reduce((sum, v) => sum + (v.total ?? 0), 0);
+    const groupAvg = (groupTotal / groupVolleys.length).toFixed(2);
+
+    const pie = buildPieSvg(counts, orderedScores, colors, 120);
+
+    piesHtml += `<div class="stats-pie-cell">`;
+    piesHtml += pie;
+    piesHtml += `<strong class="stats-pie-cell-title">${getGroupLabel(group)}</strong>`;
+    piesHtml += `<span class="stats-pie-cell-sub">${groupVolleys.length} cible${groupVolleys.length > 1 ? 's' : ''} \u2022 Moy. ${groupAvg}</span>`;
+    piesHtml += `</div>`;
+  });
+
+  const legendItems = orderedScores.map((score) => {
+    const label = score === 0 ? 'M' : String(score);
+    const color = colors[score] || '#8c929a';
+    return `<div class="stats-pie-legend-item"><span class="stats-pie-swatch" style="background:${color}"></span><span>${label}</span></div>`;
+  }).join('');
+
+  let html = `<div class="stats-pie-grid">${piesHtml}</div>`;
+  html += `<div class="stats-pie-legend-shared">${legendItems}</div>`;
+
+  els.statsGroupDist.innerHTML = html;
+}
+
 function openStatsModalFromPayload(payload) {
   const volleys = Array.isArray(payload?.volleys) ? payload.volleys : [];
   if (volleys.length === 0) return;
@@ -811,13 +996,23 @@ function openStatsModalFromPayload(payload) {
   renderEvolutionChart(totals, maxVolley, successZone, payload.targetCount || totals.length);
   const fullCount = totals.filter((total) => total === maxVolley).length;
   const doubleMissCount = volleys.filter((volley) => isDoubleZeroVolley(volley.arrows || [])).length;
+  const totalArrows = volleys.length * (payload.arrowsPerVolley || state.arrowsPerVolley);
   els.statsFullCount.textContent = String(fullCount);
   els.statsDoubleMissCount.textContent = String(doubleMissCount);
+  const fullCard = els.statsFullCount.closest("article");
+  const missCard = els.statsDoubleMissCount.closest("article");
+  const modeSuffix = (payload.scoringMode || state.scoringMode) === "individual" ? "individual" : "team";
+  const cfgFull = appConfig[`fullTarget_${modeSuffix}`];
+  const cfgMiss = appConfig[`missLimit_${modeSuffix}`];
+  fullCard.classList.toggle("stats-highlight-green", cfgFull > 0 && fullCount >= cfgFull);
+  missCard.classList.toggle("stats-highlight-red", cfgMiss > 0 && doubleMissCount >= cfgMiss);
   const allowedPoints =
     Array.isArray(payload.allowedPoints) && payload.allowedPoints.length
       ? payload.allowedPoints
       : [...new Set(volleys.flatMap((volley) => volley.arrows || []))].sort((a, b) => b - a);
   renderScoreDistribution(allowedPoints, volleys);
+  renderGroupDistribution(payload);
+  switchStatsTab("summary");
 
   closeHelpModal();
   closeHistoryModal();
@@ -830,11 +1025,16 @@ function openStatsModal() {
   }
   const payload = state.resultsPayload || buildResultsPayload();
   if (!payload) return;
+  state.statsOpenedFromHistory = false;
   openStatsModalFromPayload(payload);
 }
 
 function closeStatsModal() {
   els.statsModal.classList.add("hidden");
+  if (state.statsOpenedFromHistory) {
+    state.statsOpenedFromHistory = false;
+    openHistoryModal();
+  }
 }
 
 function openHelpModal() {
@@ -906,7 +1106,12 @@ function removeHistoryEntry(archivedAt) {
 
 function renderHistoryList() {
   const selectedMode = els.historyModeFilter.value;
-  const entries = loadHistoryEntries().filter((entry) => selectedMode === "all" || entry.scoringMode === selectedMode);
+  const selectedRuleset = els.historyRulesetFilter.value;
+  const entries = loadHistoryEntries().filter((entry) => {
+    if (selectedMode !== "all" && entry.scoringMode !== selectedMode) return false;
+    if (selectedRuleset !== "all" && entry.ruleset !== selectedRuleset) return false;
+    return true;
+  });
   if (entries.length === 0) {
     els.historyList.innerHTML = '<div class="history-empty">Aucun parcours sauvegardé.</div>';
     return;
@@ -969,7 +1174,10 @@ function renderHistoryList() {
       </div>
     `;
     const [viewBtn, deleteBtn] = row.querySelectorAll("button");
-    viewBtn.addEventListener("click", () => openStatsModalFromPayload(entry));
+    viewBtn.addEventListener("click", () => {
+      state.statsOpenedFromHistory = true;
+      openStatsModalFromPayload(entry);
+    });
     deleteBtn.addEventListener("click", () => removeHistoryEntry(entry.archivedAt));
     els.historyList.appendChild(row);
   });
@@ -1021,11 +1229,40 @@ els.downloadDataBtn.addEventListener("click", downloadResultsJson);
 els.restartBtn.addEventListener("click", restart);
 els.statsModalOverlay.addEventListener("click", closeStatsModal);
 els.statsCloseBtn.addEventListener("click", closeStatsModal);
+document.querySelectorAll(".stats-tab").forEach((btn) => {
+  btn.addEventListener("click", () => switchStatsTab(btn.dataset.statsTab));
+});
 els.helpModalOverlay.addEventListener("click", closeHelpModal);
 els.helpCloseBtn.addEventListener("click", closeHelpModal);
 els.historyModalOverlay.addEventListener("click", closeHistoryModal);
 els.historyCloseBtn.addEventListener("click", closeHistoryModal);
 els.historyModeFilter.addEventListener("change", renderHistoryList);
+els.historyRulesetFilter.addEventListener("change", renderHistoryList);
+els.configBtn.addEventListener("click", openConfigModal);
+els.configModalOverlay.addEventListener("click", closeConfigModal);
+els.configCloseBtn.addEventListener("click", closeConfigModal);
+els.configFullTargetTeam.addEventListener("input", () => {
+  appConfig.fullTarget_team = Number(els.configFullTargetTeam.value);
+  els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
+  saveConfig();
+});
+els.configFullTargetIndiv.addEventListener("input", () => {
+  appConfig.fullTarget_individual = Number(els.configFullTargetIndiv.value);
+  els.configFullTargetIndivValue.textContent = String(appConfig.fullTarget_individual);
+  saveConfig();
+});
+els.configMissLimitTeam.addEventListener("input", () => {
+  appConfig.missLimit_team = Number(els.configMissLimitTeam.value);
+  els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
+  saveConfig();
+});
+els.configMissLimitIndiv.addEventListener("input", () => {
+  appConfig.missLimit_individual = Number(els.configMissLimitIndiv.value);
+  els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
+  saveConfig();
+});
+els.rulesetSelect.addEventListener("change", () => syncConfigSliderMax());
+loadConfig();
 els.appVersion.textContent = APP_VERSION;
 if (!restorePersistedState()) {
   syncTargetCountDisplay();

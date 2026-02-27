@@ -27,11 +27,18 @@
       <section class="card" id="setup-card">
         <div class="setup-head">
           <h2>Configuration</h2>
-          <button id="setup-help-btn" class="btn btn-light btn-icon home-btn" aria-label="Aide">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
-            </svg>
-          </button>
+          <div class="setup-head-actions">
+            <button id="config-btn" class="btn btn-light btn-icon home-btn" aria-label="Réglages">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94 7.07 7.07 0 0 0-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54a7.04 7.04 0 0 0-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0-.06.94c0 .32.02.64.06.94L2.86 14.5a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54a7.04 7.04 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.56ZM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6Z" fill="currentColor" />
+              </svg>
+            </button>
+            <button id="setup-help-btn" class="btn btn-light btn-icon home-btn" aria-label="Aide">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="grid-two">
           <label>
@@ -200,6 +207,11 @@
               </svg>
             </button>
           </div>
+          <nav class="stats-tabs" role="tablist">
+            <button class="stats-tab active" role="tab" aria-selected="true" data-stats-tab="summary">Résumé</button>
+            <button class="stats-tab" role="tab" aria-selected="false" data-stats-tab="groups">Par groupe</button>
+          </nav>
+          <div id="stats-tab-summary" class="stats-tab-panel">
           <div class="stats-grid-3">
             <article><span>Zone de réussite</span><strong id="stats-success-zone">0</strong></article>
             <article><span>Meilleur score</span><strong id="stats-best-volley">0</strong></article>
@@ -259,13 +271,22 @@
           </div>
           <div class="stats-grid-2 stats-extra-row">
             <article><span>Pleins</span><strong id="stats-full-count">0</strong></article>
-            <article><span>Double manqué</span><strong id="stats-double-miss-count">0</strong></article>
+            <article><span>Double pailles</span><strong id="stats-double-miss-count">0</strong></article>
           </div>
-          <div class="stats-grid-1 stats-dist-row">
-            <article class="stats-dist-card">
-              <span>Répartition des flèches</span>
-              <div id="stats-score-dist" class="stats-score-dist"></div>
-            </article>
+          </div>
+          <div id="stats-tab-groups" class="stats-tab-panel hidden">
+            <div class="stats-grid-1">
+              <article class="stats-dist-card">
+                <span>Répartition des scores par groupe</span>
+                <div id="stats-group-dist" class="stats-group-dist"></div>
+              </article>
+            </div>
+            <div class="stats-grid-1 stats-dist-row">
+              <article class="stats-dist-card">
+                <span>Répartition des flèches</span>
+                <div id="stats-score-dist" class="stats-score-dist"></div>
+              </article>
+            </div>
           </div>
         </div>
       </section>
@@ -278,7 +299,7 @@
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
               </svg>
-              <span>Aide Scoring</span>
+              <span>Comment ça fonctionne</span>
             </h3>
             <button id="help-close-btn" class="btn btn-light btn-icon" aria-label="Fermer aide">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -288,44 +309,113 @@
           </div>
 
           <section class="help-block">
-            <h4>1. Modes de saisie</h4>
+            <h4>Création d'une session</h4>
             <ul>
-              <li>Mode Équipe: 6 flèches par volée.</li>
-              <li>Mode Individuel: 2 flèches par volée.</li>
+              <li>Sélection du type de parcours (nature/3D).</li>
+              <li>Mode de parcours (équipe/individuel).</li>
+              <li>Définition de la zone de réussite</li>
             </ul>
           </section>
 
           <section class="help-block">
-            <h4>2. Règles des points</h4>
+            <h4>Historique de parcours</h4>
             <ul>
-              <li>Nature: 20 / 15 / 10 (+ M = 0).</li>
-              <li>3D: 11 / 10 / 8 / 5 (+ M = 0).</li>
-            </ul>
-            <p>En mode individuel + Nature: flèche 1 = 20 ou 15, flèche 2 = 15 ou 10 (M autorisé).</p>
-          </section>
-
-          <section class="help-block">
-            <h4>3. Validation de saisie</h4>
-            <ul>
-              <li>Un score ne peut pas dépasser le précédent (sauf si le précédent vaut M/0).</li>
-              <li>Les boutons non valides sont grisés.</li>
-              <li>Le total d'une volée est borné selon le parcours.</li>
+              <li>Filtrage par mode de parcours.</li>
+              <li>Affichage des détails de chaque parcours enregistré.</li>
+              <li>Suppression des parcours enregistrés.</li>
             </ul>
           </section>
 
           <section class="help-block">
-            <h4>4. Indicateurs</h4>
+            <h4>Règles des points</h4>
             <ul>
-              <li>Pastille bleue: volée normale.</li>
-              <li>Pastille verte: score de volée maximum.</li>
-              <li>Pastille rouge: double zéro (0 / 0).</li>
+              <li>Nature: 20 / 15 / 10 / M.</li>
+              <li>3D: 11 / 10 / 8 / 5 / M.</li>
             </ul>
           </section>
 
           <section class="help-block">
-            <h4>5. Export</h4>
-            <p>Le bouton Télécharger données exporte un fichier JSON avec les volées et statistiques.</p>
+            <h4>Validation de saisie</h4>
+            <ul>
+              <li>Saisie dans l'ordre décroissant des points.</li>
+              <li>Scores non valides grisés.</li>
+              <li>Sauvegarde automatique de la session.</li>
+            </ul>
           </section>
+
+          <section class="help-block">
+            <h4>Indicateurs de volée</h4>
+            <ul class="zone-indicators">
+              <li><span class="zone-normal"></span> volée normale.</li>
+              <li><span class="zone-success"></span> plein.</li>
+              <li><span class="zone-danger"></span> double pailles.</li>
+            </ul>
+          </section>
+
+          <section class="help-block">
+            <h4>Les actions possibles</h4>
+            <ul>
+              <li>Affichage les statistiques de la session en cours.</li>
+              <li>Téléchargement des données au format JSON.</li>
+            </ul>
+          </section>
+
+          <p class="help-credit">Team Score &copy; 2026 Alain DOAN-HUU</p>
+        </div>
+      </section>
+
+      <section id="config-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="config-modal-title">
+        <div class="modal-overlay" id="config-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="config-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94 7.07 7.07 0 0 0-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54a7.04 7.04 0 0 0-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0-.06.94c0 .32.02.64.06.94L2.86 14.5a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54a7.04 7.04 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.56ZM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6Z" fill="currentColor" />
+              </svg>
+              <span>Configuration</span>
+            </h3>
+            <button id="config-close-btn" class="btn btn-light btn-icon" aria-label="Fermer configuration">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div class="config-form">
+            <fieldset class="config-section">
+              <legend class="config-section-legend">Équipe</legend>
+              <div class="config-field">
+                <label for="config-full-target-team">Objectif de pleins</label>
+                <div class="config-input-row">
+                  <input type="range" id="config-full-target-team" min="0" max="21" step="1" value="7">
+                  <strong id="config-full-target-team-value">7</strong>
+                </div>
+              </div>
+              <div class="config-field">
+                <label for="config-miss-limit-team">Limite de double pailles</label>
+                <div class="config-input-row">
+                  <input type="range" id="config-miss-limit-team" min="0" max="21" step="1" value="5">
+                  <strong id="config-miss-limit-team-value">5</strong>
+                </div>
+              </div>
+            </fieldset>
+            <fieldset class="config-section">
+              <legend class="config-section-legend">Individuel</legend>
+              <div class="config-field">
+                <label for="config-full-target-indiv">Objectif de pleins</label>
+                <div class="config-input-row">
+                  <input type="range" id="config-full-target-indiv" min="0" max="21" step="1" value="5">
+                  <strong id="config-full-target-indiv-value">5</strong>
+                </div>
+              </div>
+              <div class="config-field">
+                <label for="config-miss-limit-indiv">Limite de double pailles</label>
+                <div class="config-input-row">
+                  <input type="range" id="config-miss-limit-indiv" min="0" max="21" step="1" value="3">
+                  <strong id="config-miss-limit-indiv-value">3</strong>
+                </div>
+              </div>
+            </fieldset>
+          </div>
         </div>
       </section>
 
@@ -346,9 +436,13 @@
             </button>
           </div>
           <div class="history-filter-row">
-            <label for="history-mode-filter">Filtre mode</label>
-            <select id="history-mode-filter">
-              <option value="all">Tous</option>
+            <select id="history-ruleset-filter" aria-label="Filtre parcours">
+              <option value="all">Tous parcours</option>
+              <option value="nature">Nature</option>
+              <option value="3d">3D</option>
+            </select>
+            <select id="history-mode-filter" aria-label="Filtre mode">
+              <option value="all">Tous modes</option>
               <option value="team">Équipe</option>
               <option value="individual">Individuel</option>
             </select>
