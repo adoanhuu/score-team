@@ -6,7 +6,7 @@
   --accent-2: #d68c45;
   --line: #d6c8b8;
   --danger: #9b2226;
-  --bottom-dock-space: 200px;
+  --bottom-dock-space: 250px;
 }
 
 * {
@@ -415,21 +415,54 @@ select {
 
 .score-actions-row {
   margin-top: 8px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 8px;
+  align-items: stretch;
 }
 
 .back-btn {
   background: #d3d6da;
   color: #1f2a24;
   margin-top: 0;
-  width: 100%;
-  min-height: 54px;
+  min-height: 42px;
+  min-width: 42px;
+  padding: 0 10px;
+  flex-shrink: 0;
 }
 
-#target-group-select {
-  min-height: 54px;
+.target-group-radios {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.target-group-radio {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 4px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms;
+  user-select: none;
+}
+
+.target-group-radio input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.target-group-radio.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 
 .point-btn.zero {
@@ -894,6 +927,17 @@ select {
   text-align: center;
   display: grid;
   gap: 4px;
+}
+
+.stats-grid-3 article.zone-achieved {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.stats-grid-3 article.zone-achieved span,
+.stats-grid-3 article.zone-achieved strong {
+  color: #fff;
 }
 
 .stats-grid-3 span {

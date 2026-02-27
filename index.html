@@ -124,7 +124,7 @@
         <div id="score-entry-panel" class="score-entry-sticky">
           <div id="points-pad" class="points-pad"></div>
           <div class="score-actions-row">
-            <select id="target-group-select" aria-label="Groupe de cible"></select>
+            <div id="target-group-select" class="target-group-radios" role="radiogroup" aria-label="Groupe de cible"></div>
             <button id="step-back-btn" class="btn btn-light btn-icon back-btn" aria-label="Retour 1 flèche">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M14.5 6 8.5 12l6 6 1.5-1.5L11.5 12 16 7.5 14.5 6Z" fill="currentColor" />
@@ -327,7 +327,7 @@
           <section class="help-block">
             <h4>Historique de parcours</h4>
             <ul>
-              <li>Filtrage par mode de parcours.</li>
+              <li>Filtrage par type et mode de parcours.</li>
               <li>Affichage des détails de chaque parcours enregistré.</li>
               <li>Suppression des parcours enregistrés.</li>
             </ul>
@@ -336,11 +336,21 @@
           <section class="help-block">
             <h4>Règles des points</h4>
             <ul>
-              <li>Nature: 20 / 15 / 10 / M.</li>
-              <li>3D: 11 / 10 / 8 / 5 / M.</li>
-              <li>3D Two Shoots: 10 / 8 / 5 / M (14 cibles, 4 groupes).</li>
-              <li>3D Hunting: 20 / 16 / 10 / M (14 cibles, 1 flèche).</li>
-              <li>Animal Rounds: 1re flèche 20/18/M, 2e 16/14/M, 3e 12/10/M (14 cibles).</li>
+              <li>
+                FFTA
+                <ul>
+                  <li>Nature: 20 / 15 / 10 / M.</li>
+                  <li>3D: 11 / 10 / 8 / 5 / M.</li>
+                </ul>
+              </li>
+              <li>
+                FFTL
+                <ul>
+                  <li>3D Two Shoots: 10 / 8 / 5 / M.</li>
+                  <li>3D Hunting: 20 / 16 / 10 / M.</li>
+                  <li>Animal Rounds: 20/18/M, 16/14/M, 12/10/M.</li>
+                </ul>
+              </li>
             </ul>
           </section>
 
@@ -356,18 +366,18 @@
           <section class="help-block">
             <h4>Indicateurs de volée</h4>
             <ul class="zone-indicators">
-              <li><span class="zone-normal"></span> volée normale.</li>
-              <li><span class="zone-success"></span> plein.</li>
-              <li><span class="zone-danger"></span> double pailles.</li>
+              <li><span class="zone-normal"></span> Volée normale.</li>
+              <li><span class="zone-success"></span> Volée de plein.</li>
+              <li><span class="zone-danger"></span> Volée de double pailles.</li>
             </ul>
           </section>
 
           <section class="help-block">
             <h4>Répartition des scores</h4>
             <ul class="zone-indicators">
-              <li><span class="zone-normal"></span> Moins de 20% des flèches.</li>
-              <li><span class="zone-danger"></span> Entre 20% et 29% des flèches.</li>
-              <li><span class="zone-warning"></span> Entre 30% et 39% des flèches.</li>
+              <li><span class="zone-danger"></span> Moins de 20% des flèches.</li>
+              <li><span class="zone-warning"></span> Entre 20% et 29% des flèches.</li>
+              <li><span class="zone-alert"></span> Entre 30% et 39% des flèches.</li>
               <li><span class="zone-success"></span> Plus de 40% des flèches.</li>
             </ul>
           </section>
