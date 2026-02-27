@@ -1,5 +1,5 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.2.0";
+const APP_VERSION = "v1.2.1";
 const LAST_SCORE_PREVIEW_MS = 800;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -16,6 +16,7 @@ const state = {
   shoots: [],
   activeRuleset: "nature",
   allowedPoints: [20, 15, 10, 0],
+  shootGroups: [],
   resultsPayload: null,
   inputLocked: false,
   completionArchived: false,
@@ -41,6 +42,7 @@ const els = {
   teamTotal: document.getElementById("team-total"),
   successZoneDisplay: document.getElementById("success-zone-display"),
   scoreEntryPanel: document.getElementById("score-entry-panel"),
+  targetGroupSelect: document.getElementById("target-group-select"),
   pointsPad: document.getElementById("points-pad"),
   liveVolleyHistoryWrap: document.getElementById("live-volley-history-wrap"),
   liveVolleyHistoryBody: document.getElementById("live-volley-history-body"),
@@ -103,6 +105,11 @@ const maxShootTotalByRuleset = {
   "3d": 66,
 };
 
+const targetGroupsByRuleset = {
+  nature: ["PA", "PG", "MG", "GG"],
+  "3d": ["GI", "GII", "GIII", "GIV"],
+};
+
 let flashTimerId = null;
 
 function showFlashInfo(message) {
@@ -125,6 +132,31 @@ function getSetupSnapshot() {
   };
 }
 
+function getGroupsForRuleset(ruleset) {
+  return targetGroupsByRuleset[ruleset] || [];
+}
+
+function syncTargetGroupSelect(selectedValue = null) {
+  const groups = getGroupsForRuleset(state.activeRuleset || els.rulesetSelect.value);
+  const groupLabel = (group) => {
+    if (group === "PA") return "PA - Petit animal";
+    if (group === "PG") return "PG - Petit gibier";
+    if (group === "MG") return "MG - Moyen gibier";
+    if (group === "GG") return "GG - Grand gibier";
+    if (group === "GI") return "Groupe I";
+    if (group === "GII") return "Groupe II";
+    if (group === "GIII") return "Groupe III";
+    if (group === "GIV") return "Groupe IV";
+    return group;
+  };
+  els.targetGroupSelect.innerHTML = groups.map((group) => `<option value="${group}">${groupLabel(group)}</option>`).join("");
+  if (selectedValue && groups.includes(selectedValue)) {
+    els.targetGroupSelect.value = selectedValue;
+  } else if (groups.length > 0) {
+    els.targetGroupSelect.value = groups[0];
+  }
+}
+
 function persistAppState() {
   try {
     const isScoringVisible = !els.scoringCard.classList.contains("hidden");
@@ -143,6 +175,8 @@ function persistAppState() {
             currentshoot: [...state.currentshoot],
             activeRuleset: state.activeRuleset,
             allowedPoints: [...state.allowedPoints],
+            shootGroups: [...state.shootGroups],
+            currentGroup: els.targetGroupSelect.value || "",
           }
         : null,
     };
@@ -201,6 +235,7 @@ function restorePersistedState() {
   state.arrowsPerVolley = state.scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
   state.activeRuleset = saved.activeRuleset;
   state.allowedPoints = Array.isArray(saved.allowedPoints) && saved.allowedPoints.length ? [...saved.allowedPoints] : [...presets[saved.activeRuleset]];
+  state.shootGroups = Array.isArray(saved.shootGroups) ? [...saved.shootGroups] : [];
   state.shoots = Array.isArray(saved.shoots) ? saved.shoots.map((shoot) => (Array.isArray(shoot) ? [...shoot] : [])).filter((shoot) => shoot.length === state.arrowsPerVolley) : [];
   state.currentshoot = Array.isArray(saved.currentshoot) ? [...saved.currentshoot].slice(0, state.arrowsPerVolley) : Array(state.arrowsPerVolley).fill(null);
   while (state.currentshoot.length < state.arrowsPerVolley) state.currentshoot.push(null);
@@ -209,6 +244,7 @@ function restorePersistedState() {
   state.inputLocked = false;
   state.completionArchived = state.shoots.length === state.targetCount;
   state.resultsPayload = state.shoots.length === state.targetCount ? buildResultsPayload() : null;
+  syncTargetGroupSelect(saved.currentGroup);
 
   els.setupCard.classList.add("hidden");
   els.summaryCard.classList.add("hidden");
@@ -313,6 +349,7 @@ function renderLiveVolleyHistory() {
     row.innerHTML = `
       <td><span class="volley-pill ${pillClass}">${idx + 1}</span></td>
       <td>${shoot.map((value) => formatScore(value)).join(" / ")}</td>
+      <td>${state.shootGroups[idx] || "-"}</td>
       <td class="history-total ${successful ? "success" : ""}">${total}</td>
       <td>
         <button class="btn btn-danger btn-icon row-delete-btn" aria-label="Supprimer la volée ${idx + 1}">
@@ -337,6 +374,7 @@ function renderLiveVolleyHistory() {
     previewRow.innerHTML = `
       <td><span class="volley-pill is-blue">${idx + 1}</span></td>
       <td>${state.currentshoot.map((value) => formatScore(value)).join(" / ")}</td>
+      <td>${els.targetGroupSelect.value || "-"}</td>
       <td class="history-total">${partialTotal}</td>
       <td>-</td>
     `;
@@ -430,6 +468,7 @@ function registerScore(score) {
     refreshScoringView();
     window.setTimeout(() => {
       state.shoots.push([...state.currentshoot]);
+      state.shootGroups.push(els.targetGroupSelect.value || "");
       state.inputLocked = false;
       if (state.shoots.length === state.targetCount) {
         state.resultsPayload = buildResultsPayload();
@@ -459,6 +498,7 @@ function deleteVolleyAt(index) {
     return;
   }
   state.shoots.splice(index, 1);
+  state.shootGroups.splice(index, 1);
   state.resultsPayload = null;
   state.completionArchived = false;
   refreshScoringView();
@@ -483,9 +523,11 @@ function stepBackOneArrow() {
   }
 
   const previous = state.shoots.pop();
+  const previousGroup = state.shootGroups.pop();
   state.currentshoot = [...previous];
   state.currentArrowIndex = state.arrowsPerVolley - 1;
   state.currentshoot[state.currentArrowIndex] = null;
+  syncTargetGroupSelect(previousGroup);
   state.resultsPayload = null;
   state.completionArchived = false;
   refreshScoringView();
@@ -579,9 +621,11 @@ function startScoring() {
   state.arrowsPerVolley = state.scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.shoots = [];
+  state.shootGroups = [];
   state.resultsPayload = null;
   state.completionArchived = false;
   resetRoundBuffer();
+  syncTargetGroupSelect();
 
   els.setupCard.classList.add("hidden");
   els.summaryCard.classList.add("hidden");
@@ -638,6 +682,7 @@ function buildResultsPayload() {
     volleys: state.shoots.map((shoot, idx) => ({
       index: idx + 1,
       arrows: shoot,
+      group: state.shootGroups[idx] || null,
       total: roundTotal(shoot),
       success: isSuccessfulVolley(roundTotal(shoot)),
     })),
@@ -943,6 +988,7 @@ function closeHistoryModal() {
 
 function restart() {
   state.shoots = [];
+  state.shootGroups = [];
   state.resultsPayload = null;
   state.inputLocked = false;
   resetRoundBuffer();
@@ -989,7 +1035,15 @@ if (!restorePersistedState()) {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {
+    navigator.serviceWorker
+      .register(`./service-worker.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
+      .then((registration) => {
+        registration.update();
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          window.location.reload();
+        });
+      })
+      .catch(() => {
       // Ignore registration failure: app remains usable online.
     });
   });

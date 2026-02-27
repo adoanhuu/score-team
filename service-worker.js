@@ -1,8 +1,7 @@
-const CACHE_NAME = "team-score-v4";
+const CACHE_NAME = "team-score-v5";
 const ASSETS = [
   "./",
   "./index.html",
-  "./help.html",
   "./styles.css",
   "./app.js",
   "./manifest.webmanifest",
@@ -36,22 +35,30 @@ self.addEventListener("fetch", (event) => {
   const requestUrl = new URL(event.request.url);
   if (requestUrl.origin !== self.location.origin) return;
 
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", responseClone));
+          return response;
+        })
+        .catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-
-      return fetch(event.request)
+      const networkFetch = fetch(event.request)
         .then((response) => {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
           return response;
         })
-        .catch(() => {
-          if (event.request.mode === "navigate") {
-            return caches.match("./index.html");
-          }
-          return new Response("", { status: 503, statusText: "Offline" });
-        });
+        .catch(() => cached || new Response("", { status: 503, statusText: "Offline" }));
+
+      return cached || networkFetch;
     })
   );
 });

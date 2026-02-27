@@ -406,6 +406,8 @@ select {
 .score-actions-row {
   margin-top: 8px;
   display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .back-btn {
@@ -413,6 +415,10 @@ select {
   color: #1f2a24;
   margin-top: 0;
   width: 100%;
+  min-height: 54px;
+}
+
+#target-group-select {
   min-height: 54px;
 }
 
