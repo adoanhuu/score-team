@@ -897,6 +897,16 @@ function getScoreColorByRank(index) {
   return SCORE_RANK_COLORS[index] || "#6b7280";
 }
 
+function getBarColorByZoneRatio(value, successZone) {
+  if (successZone <= 0) return "#8c929a";
+  const pct = (value / successZone) * 100;
+  if (pct >= 100) return "#16a34a";  // vert
+  if (pct >= 80) return "#f97316";   // orange
+  if (pct >= 60) return "#eab308";   // jaune
+  if (pct >= 30) return "#f97316";   // orange
+  return "#dc2626";                   // rouge
+}
+
 function getDistributionBarColor(count, totalArrows, isMiss) {
   if (totalArrows <= 0) return "#d1d5db";
   const pct = (count / totalArrows) * 100;
@@ -1063,21 +1073,25 @@ function openStatsModalFromPayload(payload) {
   };
 
   els.statsSuccessZone.textContent = String(successZone);
+  const successZoneArticle = els.statsSuccessZone.closest("article");
+  if (successZoneArticle) {
+    successZoneArticle.classList.toggle("zone-achieved", avgVolley >= successZone);
+  }
   els.statsTotalPoints.textContent = `${totalPoints} pts`;
   els.statsBestVolley.textContent = best;
   els.statsWorstVolley.textContent = worst;
   els.statsBar1.style.height = `${ratioFor(partAverages[0])}%`;
   els.statsBar2.style.height = `${ratioFor(partAverages[1])}%`;
   els.statsBar3.style.height = `${ratioFor(partAverages[2])}%`;
-  els.statsBar1.classList.toggle("success", partAverages[0] >= successZone);
-  els.statsBar2.classList.toggle("success", partAverages[1] >= successZone);
-  els.statsBar3.classList.toggle("success", partAverages[2] >= successZone);
+  els.statsBar1.style.background = getBarColorByZoneRatio(partAverages[0], successZone);
+  els.statsBar2.style.background = getBarColorByZoneRatio(partAverages[1], successZone);
+  els.statsBar3.style.background = getBarColorByZoneRatio(partAverages[2], successZone);
   els.statsBar1Value.textContent = partAverages[0].toFixed(2);
   els.statsBar2Value.textContent = partAverages[1].toFixed(2);
   els.statsBar3Value.textContent = partAverages[2].toFixed(2);
   els.statsGlobalAvg.textContent = avgVolley.toFixed(2);
   els.statsGlobalBar.style.height = `${ratioFor(avgVolley)}%`;
-  els.statsGlobalBar.classList.toggle("success", avgVolley >= successZone);
+  els.statsGlobalBar.style.background = getBarColorByZoneRatio(avgVolley, successZone);
   renderEvolutionChart(totals, maxVolley, successZone, payload.targetCount || totals.length);
   const fullCount = totals.filter((total) => total === maxVolley).length;
   const doubleMissCount = volleys.filter((volley) => isDoubleZeroVolley(volley.arrows || [])).length;

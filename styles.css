@@ -896,6 +896,17 @@ select {
   gap: 4px;
 }
 
+.stats-grid-3 article.zone-achieved {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.stats-grid-3 article.zone-achieved span,
+.stats-grid-3 article.zone-achieved strong {
+  color: #fff;
+}
+
 .stats-grid-3 span {
   font-size: 0.8rem;
   color: #536357;
