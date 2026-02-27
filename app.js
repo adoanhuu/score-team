@@ -62,6 +62,7 @@ const els = {
   historyModalOverlay: document.getElementById("history-modal-overlay"),
   historyCloseBtn: document.getElementById("history-close-btn"),
   historyModeFilter: document.getElementById("history-mode-filter"),
+  historyRulesetFilter: document.getElementById("history-ruleset-filter"),
   historyList: document.getElementById("history-list"),
   statsSuccessZone: document.getElementById("stats-success-zone"),
   statsBestVolley: document.getElementById("stats-best-volley"),
@@ -1020,7 +1021,12 @@ function removeHistoryEntry(archivedAt) {
 
 function renderHistoryList() {
   const selectedMode = els.historyModeFilter.value;
-  const entries = loadHistoryEntries().filter((entry) => selectedMode === "all" || entry.scoringMode === selectedMode);
+  const selectedRuleset = els.historyRulesetFilter.value;
+  const entries = loadHistoryEntries().filter((entry) => {
+    if (selectedMode !== "all" && entry.scoringMode !== selectedMode) return false;
+    if (selectedRuleset !== "all" && entry.ruleset !== selectedRuleset) return false;
+    return true;
+  });
   if (entries.length === 0) {
     els.historyList.innerHTML = '<div class="history-empty">Aucun parcours sauvegardé.</div>';
     return;
@@ -1146,6 +1152,7 @@ els.helpCloseBtn.addEventListener("click", closeHelpModal);
 els.historyModalOverlay.addEventListener("click", closeHistoryModal);
 els.historyCloseBtn.addEventListener("click", closeHistoryModal);
 els.historyModeFilter.addEventListener("change", renderHistoryList);
+els.historyRulesetFilter.addEventListener("change", renderHistoryList);
 els.appVersion.textContent = APP_VERSION;
 if (!restorePersistedState()) {
   syncTargetCountDisplay();

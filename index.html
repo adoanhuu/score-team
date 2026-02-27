@@ -374,9 +374,13 @@
             </button>
           </div>
           <div class="history-filter-row">
-            <label for="history-mode-filter">Filtre mode</label>
-            <select id="history-mode-filter">
-              <option value="all">Tous</option>
+            <select id="history-ruleset-filter" aria-label="Filtre parcours">
+              <option value="all">Tous parcours</option>
+              <option value="nature">Nature</option>
+              <option value="3d">3D</option>
+            </select>
+            <select id="history-mode-filter" aria-label="Filtre mode">
+              <option value="all">Tous modes</option>
               <option value="team">Équipe</option>
               <option value="individual">Individuel</option>
             </select>
