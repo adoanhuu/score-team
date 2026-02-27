@@ -1,5 +1,5 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.2.0";
+const APP_VERSION = "v1.2.1";
 const LAST_SCORE_PREVIEW_MS = 800;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
