@@ -1,5 +1,5 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.2.3";
+const APP_VERSION = "v1.2.4";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -112,12 +112,16 @@ const presets = {
   nature: [20, 15, 10, 0],
   "3d": [11, 10, 8, 5, 0],
   "3d2": [10, 8, 5, 0],
+  "3dh": [20, 16, 10, 0],
+  ar: [20, 18, 16, 14, 12, 10, 0],
 };
 
 const defaultTargetsByRuleset = {
   nature: 21,
   "3d": 24,
   "3d2": 14,
+  "3dh": 14,
+  ar: 14,
 };
 
 const appConfig = {
@@ -125,6 +129,7 @@ const appConfig = {
   fullTarget_individual: 5,
   missLimit_team: 5,
   missLimit_individual: 3,
+  successZoneByRuleset: {},
 };
 
 function loadConfig() {
@@ -145,6 +150,9 @@ function loadConfig() {
       if (Number.isFinite(saved.fullTarget_individual)) appConfig.fullTarget_individual = saved.fullTarget_individual;
       if (Number.isFinite(saved.missLimit_team)) appConfig.missLimit_team = saved.missLimit_team;
       if (Number.isFinite(saved.missLimit_individual)) appConfig.missLimit_individual = saved.missLimit_individual;
+      if (saved.successZoneByRuleset && typeof saved.successZoneByRuleset === "object") {
+        Object.assign(appConfig.successZoneByRuleset, saved.successZoneByRuleset);
+      }
     }
   } catch { /* ignore */ }
 }
@@ -193,12 +201,16 @@ const maxShootTotalByRuleset = {
   nature: 105,
   "3d": 66,
   "3d2": 60,
+  "3dh": 20,
+  ar: 48,
 };
 
 const targetGroupsByRuleset = {
   nature: ["PA", "PG", "MG", "GG"],
   "3d": ["GI", "GII", "GIII", "GIV"],
   "3d2": ["G1", "G2", "G3", "G4"],
+  "3dh": ["G1", "G2", "G3", "G4"],
+  ar: ["G1", "G2", "G3", "G4"],
 };
 
 let flashTimerId = null;
@@ -328,7 +340,7 @@ function restorePersistedState() {
   state.targetCount = Number.isInteger(saved.targetCount) ? saved.targetCount : getTargetCountForRuleset(saved.activeRuleset);
   state.successZone = Number.isInteger(saved.successZone) ? saved.successZone : 1;
   state.scoringMode = saved.scoringMode === "individual" ? "individual" : "team";
-  state.arrowsPerVolley = state.scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
+  state.arrowsPerVolley = getArrowsPerVolley(saved.activeRuleset, state.scoringMode);
   state.activeRuleset = saved.activeRuleset;
   state.allowedPoints = Array.isArray(saved.allowedPoints) && saved.allowedPoints.length ? [...saved.allowedPoints] : [...presets[saved.activeRuleset]];
   state.shootGroups = Array.isArray(saved.shootGroups) ? [...saved.shootGroups] : [];
@@ -484,6 +496,11 @@ function getSelectablePointsForCurrentArrow() {
     const candidateScores = isFirstArrowOfPair ? [20, 15, 0] : [15, 10, 0];
     return candidateScores.filter((score) => state.allowedPoints.includes(score));
   }
+  if (state.activeRuleset === "ar") {
+    const arrowScores = [[20, 18, 0], [16, 14, 0], [12, 10, 0]];
+    const candidates = arrowScores[state.currentArrowIndex] || [0];
+    return candidates.filter((score) => state.allowedPoints.includes(score));
+  }
   return state.allowedPoints;
 }
 
@@ -637,7 +654,7 @@ function getSelectedScoringMode() {
 function getCurrentConfigForSetup() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
-  const arrowsPerVolley = scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
+  const arrowsPerVolley = getArrowsPerVolley(ruleset, scoringMode);
 
   const points = presets[ruleset];
 
@@ -647,6 +664,31 @@ function getCurrentConfigForSetup() {
 
 function getTargetCountForRuleset(ruleset) {
   return defaultTargetsByRuleset[ruleset] ?? 21;
+}
+
+function isFFTLRuleset(ruleset) {
+  return ruleset === "3d2" || ruleset === "3dh" || ruleset === "ar";
+}
+
+function getArrowsPerVolley(ruleset, scoringMode) {
+  if (ruleset === "3dh") return 1;
+  if (ruleset === "ar") return 3;
+  return scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
+}
+
+function syncScoringModeFieldset() {
+  const fftl = isFFTLRuleset(els.rulesetSelect.value);
+  els.scoringModeInputs.forEach((input) => {
+    if (input.value === "team") {
+      input.disabled = fftl;
+      input.closest("label").classList.toggle("disabled", fftl);
+      if (fftl && input.checked) {
+        input.checked = false;
+        const indivInput = [...els.scoringModeInputs].find((i) => i.value === "individual");
+        if (indivInput) indivInput.checked = true;
+      }
+    }
+  });
 }
 
 function syncTargetCountDisplay() {
@@ -660,6 +702,7 @@ function getMaxSuccessZoneForSetup() {
 
   if (maxShootTotalByRuleset[ruleset]) {
     const teamMax = maxShootTotalByRuleset[ruleset];
+    if (isFFTLRuleset(ruleset)) return teamMax;
     return scoringMode === "individual" ? Math.floor(teamMax / 3) : teamMax;
   }
 
@@ -668,21 +711,13 @@ function getMaxSuccessZoneForSetup() {
 }
 
 function getSuccessZoneColor(value, ruleset, scoringMode) {
-  const multiplier = scoringMode === "team" ? 3 : 1;
-  const thresholdsByRuleset = {
-    nature: { orange: 25, redOver: 30 },
-    "3d": { orange: 13, redOver: 20 },
-    "3d2": { orange: 12, redOver: 18 },
-  };
-  const thresholds = thresholdsByRuleset[ruleset];
-  if (!thresholds) return "#2d6a4f";
-
-  const orangeAt = thresholds.orange * multiplier;
-  const redOver = thresholds.redOver * multiplier;
-
-  if (value > redOver) return "#9b2226";
-  if (value >= orangeAt) return "#d68c45";
-  return "#2d6a4f";
+  const max = getMaxSuccessZoneForSetup();
+  if (max <= 0) return "#6b7280";
+  const pct = (value / max) * 100;
+  if (pct >= 90) return "#9b2226";
+  if (pct >= 80) return "#d68c45";
+  if (pct >= 70) return "#2d6a4f";
+  return "#6b7280";
 }
 
 function updateSuccessZoneSlider() {
@@ -696,6 +731,8 @@ function updateSuccessZoneSlider() {
   if (value > max) value = max;
   els.successZoneInput.value = String(value);
   els.successZoneValue.textContent = String(value);
+  appConfig.successZoneByRuleset[ruleset] = value;
+  saveConfig();
   const zoneColor = getSuccessZoneColor(value, ruleset, scoringMode);
   els.successZoneInput.style.setProperty("--zone-color", zoneColor);
   els.successZoneValue.style.color = zoneColor;
@@ -715,7 +752,7 @@ function startScoring() {
   state.successZone = parsedSuccessZone;
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = getSelectedScoringMode();
-  state.arrowsPerVolley = state.scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
+  state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.shoots = [];
   state.shootGroups = [];
@@ -845,6 +882,36 @@ function renderEvolutionChart(totals, maxVolley, successZone, targetCount) {
   els.statsEvolutionAxis.innerHTML = axisLabels.map((value) => `<small>${value}</small>`).join("");
 }
 
+const SCORE_RANK_COLORS = [
+  "#2563eb", // bleu
+  "#16a34a", // vert
+  "#eab308", // jaune
+  "#f97316", // orange
+  "#dc2626", // rouge
+  "#7c3aed", // violet
+  "#ec4899", // rose
+  "#92400e", // marron
+];
+
+function getScoreColorByRank(index) {
+  return SCORE_RANK_COLORS[index] || "#6b7280";
+}
+
+function getDistributionBarColor(count, totalArrows, isMiss) {
+  if (totalArrows <= 0) return "#d1d5db";
+  const pct = (count / totalArrows) * 100;
+  if (isMiss) {
+    if (pct >= 40) return "#9b2226";
+    if (pct >= 30) return "#d68c45";
+    if (pct >= 20) return "#eab308";
+    return "#2d6a4f";
+  }
+  if (pct >= 40) return "#2d6a4f";
+  if (pct >= 30) return "#d68c45";
+  if (pct >= 20) return "#eab308";
+  return "#9b2226";
+}
+
 function renderScoreDistribution(allowedPoints, volleys) {
   const counts = new Map();
   allowedPoints.forEach((score) => counts.set(score, 0));
@@ -853,18 +920,19 @@ function renderScoreDistribution(allowedPoints, volleys) {
   });
 
   const orderedScores = [...allowedPoints].sort((a, b) => b - a);
-  const maxCount = Math.max(1, ...orderedScores.map((score) => counts.get(score) || 0));
+  const totalArrows = orderedScores.reduce((sum, score) => sum + (counts.get(score) || 0), 0);
 
   els.statsScoreDist.innerHTML = orderedScores
-    .map((score) => {
+    .map((score, index) => {
       const count = counts.get(score) || 0;
-      const width = (count / maxCount) * 100;
+      const pct = totalArrows > 0 ? (count / totalArrows) * 100 : 0;
       const label = score === 0 ? "M" : String(score);
+      const barColor = getDistributionBarColor(count, totalArrows, score === 0);
       return `
         <div class="stats-dist-row-item">
           <span class="stats-dist-label">${label}</span>
           <div class="stats-dist-track">
-            <div class="stats-dist-fill" style="width: ${width.toFixed(2)}%"></div>
+            <div class="stats-dist-fill" style="width: ${pct.toFixed(2)}%; background: ${barColor}"></div>
           </div>
           <strong class="stats-dist-value">${count}</strong>
         </div>
@@ -883,11 +951,12 @@ function switchStatsTab(tabName) {
   els.statsTabGroups.classList.toggle("hidden", tabName !== "groups");
 }
 
-function getPieColors(ruleset) {
-  if (ruleset === '3d') {
-    return { 11: '#2563eb', 10: '#10b981', 8: '#eab308', 5: '#f97316', 0: '#ef4444' };
-  }
-  return { 20: '#2563eb', 15: '#10b981', 10: '#eab308', 0: '#ef4444' };
+function getPieColorsFromCounts(counts, orderedScores) {
+  const colors = {};
+  orderedScores.forEach((score, index) => {
+    colors[score] = getScoreColorByRank(index);
+  });
+  return colors;
 }
 
 function buildPieSvg(counts, orderedScores, colors, size) {
@@ -934,7 +1003,12 @@ function renderGroupDistribution(payload) {
     ? payload.allowedPoints
     : [...new Set(volleys.flatMap((v) => v.arrows || []))].sort((a, b) => b - a);
   const orderedScores = [...allowedPoints].sort((a, b) => b - a);
-  const colors = getPieColors(payload.ruleset || state.activeRuleset);
+
+  const globalCounts = new Map();
+  orderedScores.forEach((s) => globalCounts.set(s, 0));
+  volleys.flatMap((v) => v.arrows || []).forEach((s) => {
+    globalCounts.set(s, (globalCounts.get(s) || 0) + 1);
+  });
 
   let piesHtml = '';
   groups.forEach((group) => {
@@ -949,6 +1023,7 @@ function renderGroupDistribution(payload) {
     const groupTotal = groupVolleys.reduce((sum, v) => sum + (v.total ?? 0), 0);
     const groupAvg = (groupTotal / groupVolleys.length).toFixed(2);
 
+    const colors = getPieColorsFromCounts(counts, orderedScores);
     const pie = buildPieSvg(counts, orderedScores, colors, 120);
 
     piesHtml += `<div class="stats-pie-cell">`;
@@ -958,9 +1033,10 @@ function renderGroupDistribution(payload) {
     piesHtml += `</div>`;
   });
 
+  const legendColors = getPieColorsFromCounts(globalCounts, orderedScores);
   const legendItems = orderedScores.map((score) => {
     const label = score === 0 ? 'M' : String(score);
-    const color = colors[score] || '#8c929a';
+    const color = legendColors[score] || '#b0b6c0';
     return `<div class="stats-pie-legend-item"><span class="stats-pie-swatch" style="background:${color}"></span><span>${label}</span></div>`;
   }).join('');
 
@@ -1221,6 +1297,11 @@ function restart() {
 
 els.rulesetSelect.addEventListener("change", () => {
   const ruleset = els.rulesetSelect.value;
+  const saved = appConfig.successZoneByRuleset[ruleset];
+  if (Number.isInteger(saved) && saved >= 1) {
+    els.successZoneInput.value = String(saved);
+  }
+  syncScoringModeFieldset();
   syncTargetCountDisplay();
   updateSuccessZoneSlider();
 });
