@@ -80,6 +80,9 @@ const els = {
   statsFullCount: document.getElementById("stats-full-count"),
   statsDoubleMissCount: document.getElementById("stats-double-miss-count"),
   statsScoreDist: document.getElementById("stats-score-dist"),
+  statsTabSummary: document.getElementById("stats-tab-summary"),
+  statsTabGroups: document.getElementById("stats-tab-groups"),
+  statsGroupDist: document.getElementById("stats-group-dist"),
   finalTotal: document.getElementById("final-total"),
   avgshoot: document.getElementById("avg-volley"),
   avgArrow: document.getElementById("avg-arrow"),
@@ -136,20 +139,21 @@ function getGroupsForRuleset(ruleset) {
   return targetGroupsByRuleset[ruleset] || [];
 }
 
+function getGroupLabel(group) {
+  if (group === "PA") return "Petit animal";
+  if (group === "PG") return "Petit gibier";
+  if (group === "MG") return "Moyen gibier";
+  if (group === "GG") return "Grand gibier";
+  if (group === "GI") return "Groupe I";
+  if (group === "GII") return "Groupe II";
+  if (group === "GIII") return "Groupe III";
+  if (group === "GIV") return "Groupe IV";
+  return group;
+}
+
 function syncTargetGroupSelect(selectedValue = null) {
   const groups = getGroupsForRuleset(state.activeRuleset || els.rulesetSelect.value);
-  const groupLabel = (group) => {
-    if (group === "PA") return "PA - Petit animal";
-    if (group === "PG") return "PG - Petit gibier";
-    if (group === "MG") return "MG - Moyen gibier";
-    if (group === "GG") return "GG - Grand gibier";
-    if (group === "GI") return "Groupe I";
-    if (group === "GII") return "Groupe II";
-    if (group === "GIII") return "Groupe III";
-    if (group === "GIV") return "Groupe IV";
-    return group;
-  };
-  els.targetGroupSelect.innerHTML = groups.map((group) => `<option value="${group}">${groupLabel(group)}</option>`).join("");
+  els.targetGroupSelect.innerHTML = groups.map((group) => `<option value="${group}">${getGroupLabel(group)}</option>`).join("");
   if (selectedValue && groups.includes(selectedValue)) {
     els.targetGroupSelect.value = selectedValue;
   } else if (groups.length > 0) {
@@ -776,6 +780,103 @@ function renderScoreDistribution(allowedPoints, volleys) {
     .join("");
 }
 
+function switchStatsTab(tabName) {
+  document.querySelectorAll(".stats-tab").forEach((btn) => {
+    const isActive = btn.dataset.statsTab === tabName;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", String(isActive));
+  });
+  els.statsTabSummary.classList.toggle("hidden", tabName !== "summary");
+  els.statsTabGroups.classList.toggle("hidden", tabName !== "groups");
+}
+
+function getPieColors(ruleset) {
+  if (ruleset === '3d') {
+    return { 11: '#2563eb', 10: '#10b981', 8: '#eab308', 5: '#f97316', 0: '#ef4444' };
+  }
+  return { 20: '#2563eb', 15: '#10b981', 10: '#eab308', 0: '#ef4444' };
+}
+
+function buildPieSvg(counts, orderedScores, colors, size) {
+  const total = orderedScores.reduce((sum, s) => sum + (counts.get(s) || 0), 0);
+  if (total === 0) return '';
+  const r = size / 2;
+  const cx = r;
+  const cy = r;
+  const sliceR = r - 2;
+  let startAngle = -Math.PI / 2;
+  let paths = '';
+
+  orderedScores.forEach((score) => {
+    const count = counts.get(score) || 0;
+    if (count === 0) return;
+    const sliceAngle = (count / total) * 2 * Math.PI;
+    const endAngle = startAngle + sliceAngle;
+    const largeArc = sliceAngle > Math.PI ? 1 : 0;
+    const x1 = cx + sliceR * Math.cos(startAngle);
+    const y1 = cy + sliceR * Math.sin(startAngle);
+    const x2 = cx + sliceR * Math.cos(endAngle);
+    const y2 = cy + sliceR * Math.sin(endAngle);
+    const color = colors[score] || '#8c929a';
+    if (count === total) {
+      paths += `<circle cx="${cx}" cy="${cy}" r="${sliceR}" fill="${color}"/>`;
+    } else {
+      paths += `<path d="M${cx},${cy} L${x1.toFixed(3)},${y1.toFixed(3)} A${sliceR},${sliceR} 0 ${largeArc} 1 ${x2.toFixed(3)},${y2.toFixed(3)} Z" fill="${color}"/>`;
+    }
+    startAngle = endAngle;
+  });
+
+  return `<svg viewBox="0 0 ${size} ${size}" class="stats-pie-svg" aria-hidden="true">${paths}</svg>`;
+}
+
+function renderGroupDistribution(payload) {
+  const volleys = Array.isArray(payload?.volleys) ? payload.volleys : [];
+  const groups = getGroupsForRuleset(payload.ruleset || state.activeRuleset);
+  if (groups.length === 0 || volleys.length === 0) {
+    els.statsGroupDist.innerHTML = '<div style="text-align:center;color:#888;padding:12px;">Aucune donn\u00e9e de groupe.</div>';
+    return;
+  }
+
+  const allowedPoints = Array.isArray(payload.allowedPoints) && payload.allowedPoints.length
+    ? payload.allowedPoints
+    : [...new Set(volleys.flatMap((v) => v.arrows || []))].sort((a, b) => b - a);
+  const orderedScores = [...allowedPoints].sort((a, b) => b - a);
+  const colors = getPieColors(payload.ruleset || state.activeRuleset);
+
+  let piesHtml = '';
+  groups.forEach((group) => {
+    const groupVolleys = volleys.filter((v) => v.group === group);
+    if (groupVolleys.length === 0) return;
+
+    const counts = new Map();
+    orderedScores.forEach((s) => counts.set(s, 0));
+    groupVolleys.flatMap((v) => v.arrows || []).forEach((s) => {
+      counts.set(s, (counts.get(s) || 0) + 1);
+    });
+    const groupTotal = groupVolleys.reduce((sum, v) => sum + (v.total ?? 0), 0);
+    const groupAvg = (groupTotal / groupVolleys.length).toFixed(2);
+
+    const pie = buildPieSvg(counts, orderedScores, colors, 120);
+
+    piesHtml += `<div class="stats-pie-cell">`;
+    piesHtml += pie;
+    piesHtml += `<strong class="stats-pie-cell-title">${getGroupLabel(group)}</strong>`;
+    piesHtml += `<span class="stats-pie-cell-sub">${groupVolleys.length} cible${groupVolleys.length > 1 ? 's' : ''} \u2022 Moy. ${groupAvg}</span>`;
+    piesHtml += `</div>`;
+  });
+
+  const legendItems = orderedScores.map((score) => {
+    const label = score === 0 ? 'M' : String(score);
+    const color = colors[score] || '#8c929a';
+    return `<div class="stats-pie-legend-item"><span class="stats-pie-swatch" style="background:${color}"></span><span>${label}</span></div>`;
+  }).join('');
+
+  let html = `<div class="stats-pie-grid">${piesHtml}</div>`;
+  html += `<div class="stats-pie-legend-shared">${legendItems}</div>`;
+
+  els.statsGroupDist.innerHTML = html;
+}
+
 function openStatsModalFromPayload(payload) {
   const volleys = Array.isArray(payload?.volleys) ? payload.volleys : [];
   if (volleys.length === 0) return;
@@ -818,6 +919,8 @@ function openStatsModalFromPayload(payload) {
       ? payload.allowedPoints
       : [...new Set(volleys.flatMap((volley) => volley.arrows || []))].sort((a, b) => b - a);
   renderScoreDistribution(allowedPoints, volleys);
+  renderGroupDistribution(payload);
+  switchStatsTab("summary");
 
   closeHelpModal();
   closeHistoryModal();
@@ -1021,6 +1124,9 @@ els.downloadDataBtn.addEventListener("click", downloadResultsJson);
 els.restartBtn.addEventListener("click", restart);
 els.statsModalOverlay.addEventListener("click", closeStatsModal);
 els.statsCloseBtn.addEventListener("click", closeStatsModal);
+document.querySelectorAll(".stats-tab").forEach((btn) => {
+  btn.addEventListener("click", () => switchStatsTab(btn.dataset.statsTab));
+});
 els.helpModalOverlay.addEventListener("click", closeHelpModal);
 els.helpCloseBtn.addEventListener("click", closeHelpModal);
 els.historyModalOverlay.addEventListener("click", closeHistoryModal);
