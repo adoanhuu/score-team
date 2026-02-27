@@ -1,5 +1,5 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.2.2";
+const APP_VERSION = "v1.2.3";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -111,11 +111,13 @@ const els = {
 const presets = {
   nature: [20, 15, 10, 0],
   "3d": [11, 10, 8, 5, 0],
+  "3d2": [10, 8, 5, 0],
 };
 
 const defaultTargetsByRuleset = {
   nature: 21,
   "3d": 24,
+  "3d2": 14,
 };
 
 const appConfig = {
@@ -190,11 +192,13 @@ function closeConfigModal() {
 const maxShootTotalByRuleset = {
   nature: 105,
   "3d": 66,
+  "3d2": 60,
 };
 
 const targetGroupsByRuleset = {
   nature: ["PA", "PG", "MG", "GG"],
   "3d": ["GI", "GII", "GIII", "GIV"],
+  "3d2": ["G1", "G2", "G3", "G4"],
 };
 
 let flashTimerId = null;
@@ -232,6 +236,10 @@ function getGroupLabel(group) {
   if (group === "GII") return "Groupe II";
   if (group === "GIII") return "Groupe III";
   if (group === "GIV") return "Groupe IV";
+  if (group === "G1") return "Groupe 1";
+  if (group === "G2") return "Groupe 2";
+  if (group === "G3") return "Groupe 3";
+  if (group === "G4") return "Groupe 4";
   return group;
 }
 
@@ -664,6 +672,7 @@ function getSuccessZoneColor(value, ruleset, scoringMode) {
   const thresholdsByRuleset = {
     nature: { orange: 25, redOver: 30 },
     "3d": { orange: 13, redOver: 20 },
+    "3d2": { orange: 12, redOver: 18 },
   };
   const thresholds = thresholdsByRuleset[ruleset];
   if (!thresholds) return "#2d6a4f";
