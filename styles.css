@@ -1167,23 +1167,43 @@ select {
   list-style: none;
 }
 
-.zone-success {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: none;
-  background: var(--zone-color, #2d6a4f);
-  margin-left: -16px;
-}
-
 .zone-danger {
   display: inline-block;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: 4px;
   border: none;
   background: var(--zone-danger-color, #9b2226);
+  margin-left: -16px;
+}
+
+.zone-alert {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: none;
+  background: var(--zone-alert-color, #faf611);
+  margin-left: -16px;
+}
+
+.zone-warning {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: none;
+  background: var(--zone-warning-color, #f59e0b);
+  margin-left: -16px;
+}
+
+.zone-success {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: none;
+  background: var(--zone-color, #2d6a4f);
   margin-left: -16px;
 }
 
@@ -1191,7 +1211,7 @@ select {
   display: inline-block;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: 4px;
   border: none;
   background: var(--zone-normal-color, #8c929a);
   margin-left: -16px;

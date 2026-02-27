@@ -882,6 +882,36 @@ function renderEvolutionChart(totals, maxVolley, successZone, targetCount) {
   els.statsEvolutionAxis.innerHTML = axisLabels.map((value) => `<small>${value}</small>`).join("");
 }
 
+const SCORE_RANK_COLORS = [
+  "#2563eb", // bleu
+  "#16a34a", // vert
+  "#eab308", // jaune
+  "#f97316", // orange
+  "#dc2626", // rouge
+  "#7c3aed", // violet
+  "#ec4899", // rose
+  "#92400e", // marron
+];
+
+function getScoreColorByRank(index) {
+  return SCORE_RANK_COLORS[index] || "#6b7280";
+}
+
+function getDistributionBarColor(count, totalArrows, isMiss) {
+  if (totalArrows <= 0) return "#d1d5db";
+  const pct = (count / totalArrows) * 100;
+  if (isMiss) {
+    if (pct >= 40) return "#9b2226";
+    if (pct >= 30) return "#d68c45";
+    if (pct >= 20) return "#eab308";
+    return "#2d6a4f";
+  }
+  if (pct >= 40) return "#2d6a4f";
+  if (pct >= 30) return "#d68c45";
+  if (pct >= 20) return "#eab308";
+  return "#9b2226";
+}
+
 function renderScoreDistribution(allowedPoints, volleys) {
   const counts = new Map();
   allowedPoints.forEach((score) => counts.set(score, 0));
@@ -890,18 +920,19 @@ function renderScoreDistribution(allowedPoints, volleys) {
   });
 
   const orderedScores = [...allowedPoints].sort((a, b) => b - a);
-  const maxCount = Math.max(1, ...orderedScores.map((score) => counts.get(score) || 0));
+  const totalArrows = orderedScores.reduce((sum, score) => sum + (counts.get(score) || 0), 0);
 
   els.statsScoreDist.innerHTML = orderedScores
-    .map((score) => {
+    .map((score, index) => {
       const count = counts.get(score) || 0;
-      const width = (count / maxCount) * 100;
+      const pct = totalArrows > 0 ? (count / totalArrows) * 100 : 0;
       const label = score === 0 ? "M" : String(score);
+      const barColor = getDistributionBarColor(count, totalArrows, score === 0);
       return `
         <div class="stats-dist-row-item">
           <span class="stats-dist-label">${label}</span>
           <div class="stats-dist-track">
-            <div class="stats-dist-fill" style="width: ${width.toFixed(2)}%"></div>
+            <div class="stats-dist-fill" style="width: ${pct.toFixed(2)}%; background: ${barColor}"></div>
           </div>
           <strong class="stats-dist-value">${count}</strong>
         </div>
@@ -920,11 +951,12 @@ function switchStatsTab(tabName) {
   els.statsTabGroups.classList.toggle("hidden", tabName !== "groups");
 }
 
-function getPieColors(ruleset) {
-  if (ruleset === '3d') {
-    return { 11: '#2563eb', 10: '#10b981', 8: '#eab308', 5: '#f97316', 0: '#ef4444' };
-  }
-  return { 20: '#2563eb', 15: '#10b981', 10: '#eab308', 0: '#ef4444' };
+function getPieColorsFromCounts(counts, orderedScores) {
+  const colors = {};
+  orderedScores.forEach((score, index) => {
+    colors[score] = getScoreColorByRank(index);
+  });
+  return colors;
 }
 
 function buildPieSvg(counts, orderedScores, colors, size) {
@@ -971,7 +1003,12 @@ function renderGroupDistribution(payload) {
     ? payload.allowedPoints
     : [...new Set(volleys.flatMap((v) => v.arrows || []))].sort((a, b) => b - a);
   const orderedScores = [...allowedPoints].sort((a, b) => b - a);
-  const colors = getPieColors(payload.ruleset || state.activeRuleset);
+
+  const globalCounts = new Map();
+  orderedScores.forEach((s) => globalCounts.set(s, 0));
+  volleys.flatMap((v) => v.arrows || []).forEach((s) => {
+    globalCounts.set(s, (globalCounts.get(s) || 0) + 1);
+  });
 
   let piesHtml = '';
   groups.forEach((group) => {
@@ -986,6 +1023,7 @@ function renderGroupDistribution(payload) {
     const groupTotal = groupVolleys.reduce((sum, v) => sum + (v.total ?? 0), 0);
     const groupAvg = (groupTotal / groupVolleys.length).toFixed(2);
 
+    const colors = getPieColorsFromCounts(counts, orderedScores);
     const pie = buildPieSvg(counts, orderedScores, colors, 120);
 
     piesHtml += `<div class="stats-pie-cell">`;
@@ -995,9 +1033,10 @@ function renderGroupDistribution(payload) {
     piesHtml += `</div>`;
   });
 
+  const legendColors = getPieColorsFromCounts(globalCounts, orderedScores);
   const legendItems = orderedScores.map((score) => {
     const label = score === 0 ? 'M' : String(score);
-    const color = colors[score] || '#8c929a';
+    const color = legendColors[score] || '#b0b6c0';
     return `<div class="stats-pie-legend-item"><span class="stats-pie-swatch" style="background:${color}"></span><span>${label}</span></div>`;
   }).join('');
 
