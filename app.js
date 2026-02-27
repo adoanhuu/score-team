@@ -434,7 +434,7 @@ function updateScoringHeader() {
 }
 
 function refreshScoringView(options = {}) {
-  const { scrollHistory = false } = options;
+  const { scrollHistory = true } = options;
   renderPad();
   updateScoringHeader();
   renderLiveVolleyHistory();
