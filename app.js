@@ -1,6 +1,6 @@
 const ARROWS_PER_shoot = 6;
 const APP_VERSION = "v1.2.1";
-const LAST_SCORE_PREVIEW_MS = 800;
+const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
 const MAX_HISTORY_ITEMS = 50;
@@ -20,6 +20,7 @@ const state = {
   resultsPayload: null,
   inputLocked: false,
   completionArchived: false,
+  statsOpenedFromHistory: false,
 };
 
 const els = {
@@ -912,8 +913,13 @@ function openStatsModalFromPayload(payload) {
   renderEvolutionChart(totals, maxVolley, successZone, payload.targetCount || totals.length);
   const fullCount = totals.filter((total) => total === maxVolley).length;
   const doubleMissCount = volleys.filter((volley) => isDoubleZeroVolley(volley.arrows || [])).length;
+  const totalArrows = volleys.length * (payload.arrowsPerVolley || state.arrowsPerVolley);
   els.statsFullCount.textContent = String(fullCount);
   els.statsDoubleMissCount.textContent = String(doubleMissCount);
+  const fullCard = els.statsFullCount.closest("article");
+  const missCard = els.statsDoubleMissCount.closest("article");
+  fullCard.classList.toggle("stats-highlight-green", totalArrows > 0 && fullCount / totalArrows > 0.33);
+  missCard.classList.toggle("stats-highlight-red", totalArrows > 0 && doubleMissCount / volleys.length > 0.25);
   const allowedPoints =
     Array.isArray(payload.allowedPoints) && payload.allowedPoints.length
       ? payload.allowedPoints
@@ -933,11 +939,16 @@ function openStatsModal() {
   }
   const payload = state.resultsPayload || buildResultsPayload();
   if (!payload) return;
+  state.statsOpenedFromHistory = false;
   openStatsModalFromPayload(payload);
 }
 
 function closeStatsModal() {
   els.statsModal.classList.add("hidden");
+  if (state.statsOpenedFromHistory) {
+    state.statsOpenedFromHistory = false;
+    openHistoryModal();
+  }
 }
 
 function openHelpModal() {
@@ -1072,7 +1083,10 @@ function renderHistoryList() {
       </div>
     `;
     const [viewBtn, deleteBtn] = row.querySelectorAll("button");
-    viewBtn.addEventListener("click", () => openStatsModalFromPayload(entry));
+    viewBtn.addEventListener("click", () => {
+      state.statsOpenedFromHistory = true;
+      openStatsModalFromPayload(entry);
+    });
     deleteBtn.addEventListener("click", () => removeHistoryEntry(entry.archivedAt));
     els.historyList.appendChild(row);
   });
