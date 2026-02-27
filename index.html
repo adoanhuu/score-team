@@ -44,9 +44,15 @@
           <label>
             <span class="label-inline">Parcours <span id="targets-count-text" class="inline-meta">21 cibles</span></span>
             <select id="ruleset-select">
-              <option value="nature">Nature (20 / 15 / 10)</option>
-              <option value="3d">3D (11 / 10 / 8 / 5)</option>
-              <option value="3d2">3D Two Shoots (10 / 8 / 5)</option>
+              <optgroup label="FFTA">
+                <option value="nature">Nature (20 / 15 / 10)</option>
+                <option value="3d">3D (11 / 10 / 8 / 5)</option>
+              </optgroup>
+              <optgroup label="FFTL">
+                <option value="3d2">3D Two Shoots (10 / 8 / 5)</option>
+                <option value="3dh">3D Hunting (20 / 16 / 10)</option>
+                <option value="ar">Animal Rounds (3 flèches)</option>
+              </optgroup>
             </select>
           </label>
           <fieldset class="mode-fieldset">
@@ -312,7 +318,7 @@
           <section class="help-block">
             <h4>Création d'une session</h4>
             <ul>
-              <li>Sélection du type de parcours (nature/3D/3D Two Shoots).</li>
+              <li>Sélection du type de parcours (nature/3D/3D Two Shoots/3D Hunting/Animal Rounds).</li>
               <li>Mode de parcours (équipe/individuel).</li>
               <li>Définition de la zone de réussite</li>
             </ul>
@@ -333,6 +339,8 @@
               <li>Nature: 20 / 15 / 10 / M.</li>
               <li>3D: 11 / 10 / 8 / 5 / M.</li>
               <li>3D Two Shoots: 10 / 8 / 5 / M (14 cibles, 4 groupes).</li>
+              <li>3D Hunting: 20 / 16 / 10 / M (14 cibles, 1 flèche).</li>
+              <li>Animal Rounds: 1re flèche 20/18/M, 2e 16/14/M, 3e 12/10/M (14 cibles).</li>
             </ul>
           </section>
 
@@ -440,9 +448,15 @@
           <div class="history-filter-row">
             <select id="history-ruleset-filter" aria-label="Filtre parcours">
               <option value="all">Tous parcours</option>
-              <option value="nature">Nature</option>
-              <option value="3d">3D</option>
-              <option value="3d2">3D Two Shoots</option>
+              <optgroup label="FFTA">
+                <option value="nature">Nature</option>
+                <option value="3d">3D</option>
+              </optgroup>
+              <optgroup label="FFTL">
+                <option value="3d2">3D Two Shoots</option>
+                <option value="3dh">3D Hunting</option>
+                <option value="ar">Animal Rounds</option>
+              </optgroup>
             </select>
             <select id="history-mode-filter" aria-label="Filtre mode">
               <option value="all">Tous modes</option>
