@@ -767,6 +767,45 @@ select {
   color: var(--danger) !important;
 }
 
+.history-list-btn {
+  background: #ece6dd !important;
+  color: #1a4fa0 !important;
+  border-color: var(--line) !important;
+}
+
+.history-list-btn svg {
+  color: #1a4fa0 !important;
+}
+
+.history-list-btn.active {
+  background: #1a4fa0 !important;
+  color: #fff !important;
+  border-color: #1a4fa0 !important;
+}
+
+.history-list-btn.active svg {
+  color: #fff !important;
+}
+
+.history-volley-detail {
+  padding: 0 10px 10px 10px;
+}
+
+.history-volley-detail .table-wrap {
+  margin-top: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.history-volley-detail .history-table {
+  font-size: 0.85rem;
+}
+
+.history-volley-detail .history-table th,
+.history-volley-detail .history-table td {
+  padding: 4px 6px;
+}
+
 .history-empty {
   border: 1px dashed var(--line);
   border-radius: 10px;

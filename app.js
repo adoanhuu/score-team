@@ -1367,6 +1367,19 @@ function renderHistoryList() {
       : "--h--";
     const row = document.createElement("article");
     row.className = "history-item";
+    const maxVolley = getMaxVolleyFromPayload(entry);
+    const volleysHtml = (entry.volleys || []).map((v) => {
+      const arrows = v.arrows || [];
+      const total = v.total ?? 0;
+      const pillClass = getVolleyPillClass(arrows, total, maxVolley);
+      const successClass = total >= (entry.successZone || 0) ? "success" : "";
+      return `<tr>
+        <td><span class="volley-pill ${pillClass}">${v.index}</span></td>
+        <td>${arrows.map((a) => formatScore(a)).join(" / ")}</td>
+        <td>${v.group || "-"}</td>
+        <td class="history-total ${successClass}">${total}</td>
+      </tr>`;
+    }).join("");
     row.innerHTML = `
       <div class="history-item-head">
         <span class="history-date">${dateLabel}</span>
@@ -1378,9 +1391,14 @@ function renderHistoryList() {
           <span class="history-mode">${formatParcoursLabel(entry.ruleset)} en ${formatModeLabel(entry.scoringMode)}</span>
         </div>
         <div class="history-item-actions">
+          <button class="btn btn-icon history-list-btn" aria-label="Détail des volées">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M3 4h2v2H3V4Zm4 0h14v2H7V4ZM3 10h2v2H3v-2Zm4 0h14v2H7v-2ZM3 16h2v2H3v-2Zm4 0h14v2H7v-2Z" fill="currentColor"/>
+            </svg>
+          </button>
           <button class="btn btn-primary btn-icon" aria-label="Visualiser">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M12 5c5.8 0 9.8 5.8 9.9 6-.1.2-4.1 6-9.9 6S2.2 11.2 2.1 11c.1-.2 4.1-6 9.9-6Zm0 2c-3.9 0-6.9 3.3-7.8 4 .9.7 3.9 4 7.8 4s6.9-3.3 7.8-4c-.9-.7-3.9-4-7.8-4Zm0 1.7A2.3 2.3 0 1 1 9.7 11 2.3 2.3 0 0 1 12 8.7Z" fill="currentColor"/>
+              <path d="M4 20h16v2H4v-2Zm1-2V9h3v9H5Zm5 0V5h3v13h-3Zm5 0v-7h3v7h-3Z" fill="currentColor"/>
             </svg>
           </button>
           <button class="btn btn-icon history-delete-btn" aria-label="Supprimer">
@@ -1390,8 +1408,30 @@ function renderHistoryList() {
           </button>
         </div>
       </div>
+      <div class="history-volley-detail hidden">
+        <div class="table-wrap">
+          <table class="history-table">
+            <thead><tr><th>Volée</th><th>Flèches</th><th>Groupe</th><th>Total</th></tr></thead>
+            <tbody>${volleysHtml}</tbody>
+          </table>
+        </div>
+      </div>
     `;
-    const [viewBtn, deleteBtn] = row.querySelectorAll("button");
+    const listBtn = row.querySelector(".history-list-btn");
+    const [, viewBtn, deleteBtn] = row.querySelectorAll("button");
+    listBtn.addEventListener("click", () => {
+      const detail = row.querySelector(".history-volley-detail");
+      const isOpen = !detail.classList.contains("hidden");
+      // Accordion: close all others
+      els.historyList.querySelectorAll(".history-volley-detail").forEach((d) => {
+        d.classList.add("hidden");
+        d.closest(".history-item")?.querySelector(".history-list-btn")?.classList.remove("active");
+      });
+      if (!isOpen) {
+        detail.classList.remove("hidden");
+        listBtn.classList.add("active");
+      }
+    });
     viewBtn.addEventListener("click", () => {
       state.statsOpenedFromHistory = true;
       openStatsModalFromPayload(entry);
