@@ -296,7 +296,7 @@
 
       <section id="help-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
         <div class="modal-overlay" id="help-modal-overlay"></div>
-        <div class="modal-card help-modal-card">
+        <div class="modal-card help-modal-card help-paginated-card">
           <div class="modal-head">
             <h3 id="help-modal-title" class="modal-title-with-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -311,91 +311,96 @@
             </button>
           </div>
 
-          <section class="help-block">
-            <h4>Création d'une session</h4>
-            <ul>
-              <li>Sélection du type de parcours (nature/3D/3D Two Shoots/3D Hunting/Animal Rounds).</li>
-              <li>Mode de parcours (équipe/individuel).</li>
-              <li>Définition de la zone de réussite</li>
-            </ul>
-          </section>
+          <div class="help-page" data-help-page="1">
+            <section class="help-block">
+              <h4>Création d'une session</h4>
+              <ul>
+                <li>Sélection du type de parcours (nature/3D/3D Two Shoots/3D Hunting/Animal Rounds).</li>
+                <li>Mode de parcours (équipe/individuel).</li>
+                <li>Définition de la zone de réussite</li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Historique de parcours</h4>
-            <ul>
-              <li>Filtrage par type et mode de parcours.</li>
-              <li>Affichage des détails de chaque parcours enregistré.</li>
-              <li>Suppression des parcours enregistrés.</li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Historique de parcours</h4>
+              <ul>
+                <li>Filtrage par type et mode de parcours.</li>
+                <li>Affichage des détails de chaque parcours enregistré.</li>
+                <li>Suppression des parcours enregistrés.</li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Règles des points</h4>
-            <ul>
-              <li>
-                FFTA
-                <ul>
-                  <li>Nature: 20 / 15 / 10 / M.</li>
-                  <li>3D: 11 / 10 / 8 / 5 / M.</li>
-                </ul>
-              </li>
-              <li>
-                FFTL
-                <ul>
-                  <li>3D Two Shoots: 10 / 8 / 5 / M.</li>
-                  <li>3D Hunting: 20 / 16 / 10 / M.</li>
-                  <li>Animal Rounds: 20/18/M, 16/14/M, 12/10/M.</li>
-                </ul>
-              </li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Règles des points</h4>
+              <ul>
+                <li>
+                  FFTA
+                  <ul>
+                    <li>Nature: 20 / 15 / 10 / M.</li>
+                    <li>3D: 11 / 10 / 8 / 5 / M.</li>
+                  </ul>
+                </li>
+                <li>
+                  FFTL
+                  <ul>
+                    <li>3D Two Shoots: 10 / 8 / 5 / M.</li>
+                    <li>3D Hunting: 20 / 16 / 10 / M.</li>
+                    <li>Animal Rounds: 20/18/M, 16/14/M, 12/10/M.</li>
+                  </ul>
+                </li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Validation de saisie</h4>
-            <ul>
-              <li>Saisie dans l'ordre décroissant des points.</li>
-              <li>Scores non valides grisés.</li>
-              <li>Sauvegarde automatique de la session.</li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Validation de saisie</h4>
+              <ul>
+                <li>Saisie dans l'ordre décroissant des points.</li>
+                <li>Scores non valides grisés.</li>
+                <li>Sauvegarde automatique de la session.</li>
+              </ul>
+            </section>
+          </div>
 
-          <section class="help-block">
-            <h4>Indicateurs de volée</h4>
-            <ul class="zone-indicators">
-              <li><span class="zone-normal"></span> Volée normale.</li>
-              <li><span class="zone-success"></span> Volée de plein.</li>
-              <li><span class="zone-danger"></span> Volée de double pailles.</li>
-            </ul>
-          </section>
+          <div class="help-page hidden" data-help-page="2">
+            <section class="help-block">
+              <h4>Indicateurs de volée</h4>
+              <ul class="zone-indicators">
+                <li><span class="zone-normal"></span> Volée normale.</li>
+                <li><span class="zone-success"></span> Volée de plein.</li>
+                <li><span class="zone-danger"></span> Volée de double pailles.</li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Répartition des scores</h4>
-            <ul class="zone-indicators">
-              <li><span class="zone-danger"></span> Moins de 20% des flèches.</li>
-              <li><span class="zone-warning"></span> Entre 20% et 29% des flèches.</li>
-              <li><span class="zone-alert"></span> Entre 30% et 39% des flèches.</li>
-              <li><span class="zone-success"></span> Plus de 40% des flèches.</li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Répartition des scores</h4>
+              <ul class="zone-indicators">
+                <li><span class="zone-danger"></span> Moins de 20% des flèches.</li>
+                <li><span class="zone-warning"></span> Entre 20% et 29% des flèches.</li>
+                <li><span class="zone-alert"></span> Entre 30% et 39% des flèches.</li>
+                <li><span class="zone-success"></span> Plus de 40% des flèches.</li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Répartition des pailles</h4>
-            <ul class="zone-indicators">
-              <li><span class="zone-success"></span> Moins de 20% des flèches.</li>
-              <li><span class="zone-alert"></span> Entre 20% et 29% des flèches.</li>
-              <li><span class="zone-warning"></span> Entre 30% et 39% des flèches.</li>
-              <li><span class="zone-danger"></span> Plus de 40% des flèches.</li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Répartition des pailles</h4>
+              <ul class="zone-indicators">
+                <li><span class="zone-success"></span> Moins de 20% des flèches.</li>
+                <li><span class="zone-alert"></span> Entre 20% et 29% des flèches.</li>
+                <li><span class="zone-warning"></span> Entre 30% et 39% des flèches.</li>
+                <li><span class="zone-danger"></span> Plus de 40% des flèches.</li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Les actions possibles</h4>
-            <ul>
-              <li>Affichage les statistiques de la session en cours.</li>
-              <li>Téléchargement des données au format JSON.</li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Les actions possibles</h4>
+              <ul>
+                <li>Affichage les statistiques de la session en cours.</li>
+                <li>Téléchargement des données au format JSON.</li>
+              </ul>
+            </section>
+          </div>
 
+          <nav id="help-pagination" class="history-pagination" aria-label="Pagination aide"></nav>
         </div>
       </section>
 

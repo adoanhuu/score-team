@@ -59,6 +59,7 @@ const els = {
   helpModal: document.getElementById("help-modal"),
   helpModalOverlay: document.getElementById("help-modal-overlay"),
   helpCloseBtn: document.getElementById("help-close-btn"),
+  helpPagination: document.getElementById("help-pagination"),
   historyModal: document.getElementById("history-modal"),
   historyModalOverlay: document.getElementById("history-modal-overlay"),
   historyCloseBtn: document.getElementById("history-close-btn"),
@@ -1147,9 +1148,43 @@ function closeStatsModal() {
   }
 }
 
+let helpCurrentPage = 1;
+const HELP_TOTAL_PAGES = 2;
+
+function renderHelpPagination() {
+  const pages = els.helpModal.querySelectorAll(".help-page");
+  pages.forEach((page) => {
+    const pageNum = Number(page.dataset.helpPage);
+    page.classList.toggle("hidden", pageNum !== helpCurrentPage);
+  });
+
+  els.helpPagination.innerHTML = "";
+
+  const prevBtn = document.createElement("button");
+  prevBtn.className = "btn btn-light btn-icon pagination-btn";
+  prevBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M15.4 16.6 10.8 12l4.6-4.6L14 6l-6 6 6 6 1.4-1.4Z" fill="currentColor"/></svg>`;
+  prevBtn.disabled = helpCurrentPage <= 1;
+  prevBtn.addEventListener("click", () => { helpCurrentPage--; renderHelpPagination(); });
+  els.helpPagination.appendChild(prevBtn);
+
+  const indicator = document.createElement("span");
+  indicator.className = "pagination-indicator";
+  indicator.textContent = `${helpCurrentPage} / ${HELP_TOTAL_PAGES}`;
+  els.helpPagination.appendChild(indicator);
+
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "btn btn-light btn-icon pagination-btn";
+  nextBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M8.6 16.6l4.6-4.6-4.6-4.6L10 6l6 6-6 6-1.4-1.4Z" fill="currentColor"/></svg>`;
+  nextBtn.disabled = helpCurrentPage >= HELP_TOTAL_PAGES;
+  nextBtn.addEventListener("click", () => { helpCurrentPage++; renderHelpPagination(); });
+  els.helpPagination.appendChild(nextBtn);
+}
+
 function openHelpModal() {
   closeStatsModal();
   closeHistoryModal();
+  helpCurrentPage = 1;
+  renderHelpPagination();
   els.helpModal.classList.remove("hidden");
 }
 

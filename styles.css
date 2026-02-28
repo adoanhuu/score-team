@@ -677,7 +677,7 @@ select {
   gap: 8px;
   font-size: 0.9rem;
   color: #fff;
-  background-color: #1f6feb;
+  background-color: #6b7280;
   padding: 8px 20px;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
@@ -824,6 +824,16 @@ select {
 
 .help-modal-card {
   max-height: min(80vh, 760px);
+  overflow-y: auto;
+}
+
+.help-paginated-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.help-page {
+  flex: 1 1 auto;
   overflow-y: auto;
 }
 
