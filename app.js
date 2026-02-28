@@ -1660,9 +1660,7 @@ els.setupHelpBtn.addEventListener("click", openHelpModal);
 els.helpBtn.addEventListener("click", openHelpModal);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
 els.statsBtn.addEventListener("click", openStatsModal);
-els.resultsCloseBtn.addEventListener("click", () => {
-  els.resultsActions.classList.add("hidden");
-});
+els.resultsCloseBtn.addEventListener("click", restart);
 els.restartBtn.addEventListener("click", restart);
 els.statsModalOverlay.addEventListener("click", closeStatsModal);
 els.statsCloseBtn.addEventListener("click", closeStatsModal);

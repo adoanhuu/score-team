@@ -618,6 +618,10 @@ select {
   color: var(--danger);
 }
 
+.row-delete-btn svg {
+  color: var(--danger);
+}
+
 .history-total {
   text-align: right;
   font-size: 1.2rem;
