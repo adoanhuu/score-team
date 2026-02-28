@@ -1399,4 +1399,49 @@ select {
   border: none;
   background: var(--zone-normal-color, #8c929a);
   margin-left: -16px;
-} 
+}
+
+.config-history-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
+}
+
+.config-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0;
+  min-height: 54px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  border: 1px solid var(--line);
+  background: #ece6dd;
+  color: #1a4fa0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  width: 100%;
+}
+
+.config-action-btn:hover,
+.config-action-btn:active {
+  background: #ddd5ca;
+  color: #1a4fa0;
+}
+
+.config-action-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  color: #1a4fa0;
+}
+
+.hidden {
+  display: none;
+}

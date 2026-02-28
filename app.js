@@ -101,6 +101,9 @@ const els = {
   configModal: document.getElementById("config-modal"),
   configModalOverlay: document.getElementById("config-modal-overlay"),
   configCloseBtn: document.getElementById("config-close-btn"),
+  configExportHistoryBtn: document.getElementById("config-export-history-btn"),
+  configImportHistoryBtn: document.getElementById("config-import-history-btn"),
+  configImportHistoryInput: document.getElementById("config-import-history-input"),
   configFullTargetTeam: document.getElementById("config-full-target-team"),
   configFullTargetTeamValue: document.getElementById("config-full-target-team-value"),
   configFullTargetIndiv: document.getElementById("config-full-target-indiv"),
@@ -1217,6 +1220,58 @@ function downloadPayloadAsJson(payload, prefix = "score-team") {
   URL.revokeObjectURL(url);
 }
 
+function exportHistory() {
+  const entries = loadHistoryEntries();
+  if (entries.length === 0) {
+    showFlashInfo("Aucun parcours à exporter.");
+    return;
+  }
+  const blob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `score-team-history-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showFlashInfo(`${entries.length} parcours exporté(s).`);
+}
+
+function importHistory(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      if (!Array.isArray(imported)) {
+        showFlashInfo("Format invalide : le fichier doit contenir un tableau.");
+        return;
+      }
+      const valid = imported.filter((item) => item && typeof item === "object" && item.generatedAt);
+      if (valid.length === 0) {
+        showFlashInfo("Aucun parcours valide trouvé dans le fichier.");
+        return;
+      }
+      const existing = loadHistoryEntries();
+      const existingKeys = new Set(existing.map((e) => e.archivedAt || e.generatedAt));
+      const newEntries = valid.filter((e) => !existingKeys.has(e.archivedAt || e.generatedAt));
+      if (newEntries.length === 0) {
+        showFlashInfo("Tous les parcours existent déjà.");
+        return;
+      }
+      const merged = [...newEntries, ...existing].sort((a, b) =>
+        new Date(b.archivedAt || b.generatedAt) - new Date(a.archivedAt || a.generatedAt)
+      );
+      saveHistoryEntries(merged);
+      showFlashInfo(`${newEntries.length} parcours importé(s).`);
+    } catch {
+      showFlashInfo("Erreur lors de la lecture du fichier.");
+    }
+  };
+  reader.readAsText(file);
+}
+
 function loadHistoryEntries() {
   try {
     const raw = window.localStorage.getItem(HISTORY_KEY);
@@ -1484,6 +1539,14 @@ els.historyResetFiltersBtn.addEventListener("click", () => {
 els.configBtn.addEventListener("click", openConfigModal);
 els.configModalOverlay.addEventListener("click", closeConfigModal);
 els.configCloseBtn.addEventListener("click", closeConfigModal);
+els.configExportHistoryBtn.addEventListener("click", exportHistory);
+els.configImportHistoryBtn.addEventListener("click", () => {
+  els.configImportHistoryInput.value = "";
+  els.configImportHistoryInput.click();
+});
+els.configImportHistoryInput.addEventListener("change", (e) => {
+  if (e.target.files.length > 0) importHistory(e.target.files[0]);
+});
 els.configFullTargetTeam.addEventListener("input", () => {
   appConfig.fullTarget_team = Number(els.configFullTargetTeam.value);
   els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
