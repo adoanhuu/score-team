@@ -16,41 +16,38 @@
 body {
   margin: 0;
   font-family: "Nunito", "Trebuchet MS", sans-serif;
-  background: radial-gradient(circle at top, #fff6df, var(--bg));
+  background: #3a3a3a;
   color: var(--ink);
 }
 
 .app {
   max-width: 720px;
   margin: 0 auto;
-  padding: 16px 14px 30px;
+  padding: 16px 14px 50px;
 }
 
 .app-header h1 {
   margin: 0;
   font-size: 1.6rem;
-  text-align: center;
 }
 
 .title-with-icon {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 10px;
+  color: #1a4fa0;
 }
 
 .app-title-icon {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   display: block;
 }
 
 .app-version {
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: #6a776f;
-  align-self: flex-end;
-  margin-bottom: 3px;
 }
 
 .app-header p {
@@ -109,6 +106,7 @@ body {
 .setup-head h2 {
   margin: 0;
   white-space: nowrap;
+  font-size: 1.6rem;
 }
 
 .setup-head .home-btn {
@@ -594,17 +592,75 @@ select {
   border-radius: 8px;
 }
 
+.history-modal-card {
+  display: flex;
+  flex-direction: column;
+}
+
 .history-list {
   display: grid;
   gap: 8px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+.history-pagination {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0 4px;
+  background: #fff;
+  border-top: 1px solid var(--line);
+  margin-top: 8px;
+  z-index: 2;
+}
+
+.pagination-btn {
+  width: 40px;
+  min-width: 40px;
+  min-height: 36px;
+  padding: 6px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.35;
+}
+
+.pagination-active {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-color: var(--primary) !important;
+}
+
+.pagination-indicator {
+  font-size: 0.95rem;
+  font-weight: 700;
+  min-width: 54px;
+  text-align: center;
+  color: var(--ink);
 }
 
 .history-filter-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr auto;
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.history-filter-row .btn-icon {
+  width: 50px;
+  min-width: 50px;
+  min-height: 42px;
+  padding: 8px;
+  background: #ece6dd;
+  color: var(--ink);
+  border: 1px solid var(--line);
 }
 
 .history-item {
@@ -758,8 +814,8 @@ select {
   max-height: min(85vh, 860px);
   overflow-y: auto;
   background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border: 2px solid #123974;
+  border-radius: 14px;
   padding: 12px;
 }
 
@@ -772,23 +828,48 @@ select {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin: -12px -12px 10px -12px;
+  padding: 10px 12px;
+  background: #1a4fa0;
+  border-radius: 12px 12px 0 0;
+  color: #fff;
 }
 
 .modal-head h3 {
   margin: 0;
 }
 
+.modal-head .btn {
+  color: #d32f2f;
+  background: #ffffff;
+  border-radius: 50%;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: none;
+}
+
+.modal-head .btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 .modal-title-with-icon {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  color: #fff;
+  text-transform: uppercase;
 }
 
 .modal-title-with-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   display: block;
+  color: #fff;
 }
 
 .stats-head-title {
@@ -1151,6 +1232,27 @@ select {
   text-align: center;
   font-size: 0.82rem;
   color: #888;
+}
+
+.app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  padding: 8px 0;
+  font-size: 0.78rem;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10;
+}
+
+.app-footer p {
+  margin: 0;
+}
+
+.app-footer-version {
+  color: #aaa;
 }
 
 .config-form {

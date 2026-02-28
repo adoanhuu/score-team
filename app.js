@@ -64,6 +64,8 @@ const els = {
   historyCloseBtn: document.getElementById("history-close-btn"),
   historyModeFilter: document.getElementById("history-mode-filter"),
   historyRulesetFilter: document.getElementById("history-ruleset-filter"),
+  historyResetFiltersBtn: document.getElementById("history-reset-filters-btn"),
+  historyPagination: document.getElementById("history-pagination"),
   historyList: document.getElementById("history-list"),
   statsSuccessZone: document.getElementById("stats-success-zone"),
   statsBestVolley: document.getElementById("stats-best-volley"),
@@ -1211,6 +1213,9 @@ function removeHistoryEntry(archivedAt) {
   renderHistoryList();
 }
 
+const HISTORY_PER_PAGE = 4;
+let historyCurrentPage = 1;
+
 function renderHistoryList() {
   const selectedMode = els.historyModeFilter.value;
   const selectedRuleset = els.historyRulesetFilter.value;
@@ -1219,10 +1224,18 @@ function renderHistoryList() {
     if (selectedRuleset !== "all" && entry.ruleset !== selectedRuleset) return false;
     return true;
   });
+
   if (entries.length === 0) {
     els.historyList.innerHTML = '<div class="history-empty">Aucun parcours sauvegardé.</div>';
+    els.historyPagination.classList.add("hidden");
     return;
   }
+
+  const totalPages = Math.ceil(entries.length / HISTORY_PER_PAGE);
+  if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
+  if (historyCurrentPage < 1) historyCurrentPage = 1;
+  const startIdx = (historyCurrentPage - 1) * HISTORY_PER_PAGE;
+  const pageEntries = entries.slice(startIdx, startIdx + HISTORY_PER_PAGE);
 
   const formatParcoursLabel = (value) => {
     if (value === "nature") return "Nature";
@@ -1236,7 +1249,7 @@ function renderHistoryList() {
   };
 
   els.historyList.innerHTML = "";
-  entries.forEach((entry) => {
+  pageEntries.forEach((entry) => {
     const date = new Date(entry.generatedAt || entry.archivedAt);
     const isValidDate = !Number.isNaN(date.getTime());
     const dateLabel = isValidDate
@@ -1288,11 +1301,74 @@ function renderHistoryList() {
     deleteBtn.addEventListener("click", () => removeHistoryEntry(entry.archivedAt));
     els.historyList.appendChild(row);
   });
+
+  renderHistoryPagination(totalPages);
+}
+
+function renderHistoryPagination(totalPages) {
+  if (totalPages <= 1) {
+    els.historyPagination.classList.add("hidden");
+    return;
+  }
+  els.historyPagination.classList.remove("hidden");
+  els.historyPagination.innerHTML = "";
+
+  const showFirstLast = totalPages > 4;
+
+  const makeBtn = (label, page, extraClass) => {
+    const btn = document.createElement("button");
+    btn.className = `btn btn-light btn-icon pagination-btn${extraClass ? " " + extraClass : ""}`;
+    btn.innerHTML = label;
+    btn.disabled = page === historyCurrentPage;
+    if (page === historyCurrentPage) btn.classList.add("pagination-active");
+    btn.addEventListener("click", () => {
+      historyCurrentPage = page;
+      renderHistoryList();
+    });
+    return btn;
+  };
+
+  /* « First */
+  if (showFirstLast) {
+    els.historyPagination.appendChild(
+      makeBtn(`<svg viewBox="0 0 24 24" width="16" height="16"><path d="M18.4 16.6 13.8 12l4.6-4.6L17 6l-6 6 6 6 1.4-1.4ZM8 6h-2v12h2V6Z" fill="currentColor"/></svg>`, 1, "pagination-edge")
+    );
+  }
+
+  /* ‹ Prev */
+  const prevBtn = document.createElement("button");
+  prevBtn.className = "btn btn-light btn-icon pagination-btn";
+  prevBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M15.4 16.6 10.8 12l4.6-4.6L14 6l-6 6 6 6 1.4-1.4Z" fill="currentColor"/></svg>`;
+  prevBtn.disabled = historyCurrentPage <= 1;
+  prevBtn.addEventListener("click", () => { historyCurrentPage--; renderHistoryList(); });
+  els.historyPagination.appendChild(prevBtn);
+
+  /* Page indicator */
+  const indicator = document.createElement("span");
+  indicator.className = "pagination-indicator";
+  indicator.textContent = `${historyCurrentPage} / ${totalPages}`;
+  els.historyPagination.appendChild(indicator);
+
+  /* › Next */
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "btn btn-light btn-icon pagination-btn";
+  nextBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M8.6 16.6l4.6-4.6-4.6-4.6L10 6l6 6-6 6-1.4-1.4Z" fill="currentColor"/></svg>`;
+  nextBtn.disabled = historyCurrentPage >= totalPages;
+  nextBtn.addEventListener("click", () => { historyCurrentPage++; renderHistoryList(); });
+  els.historyPagination.appendChild(nextBtn);
+
+  /* » Last */
+  if (showFirstLast) {
+    els.historyPagination.appendChild(
+      makeBtn(`<svg viewBox="0 0 24 24" width="16" height="16"><path d="M5.6 7.4 10.2 12l-4.6 4.6L7 18l6-6-6-6-1.4 1.4ZM16 6h2v12h-2V6Z" fill="currentColor"/></svg>`, totalPages, "pagination-edge")
+    );
+  }
 }
 
 function openHistoryModal() {
   closeStatsModal();
   closeHelpModal();
+  historyCurrentPage = 1;
   renderHistoryList();
   els.historyModal.classList.remove("hidden");
 }
@@ -1348,8 +1424,14 @@ els.helpModalOverlay.addEventListener("click", closeHelpModal);
 els.helpCloseBtn.addEventListener("click", closeHelpModal);
 els.historyModalOverlay.addEventListener("click", closeHistoryModal);
 els.historyCloseBtn.addEventListener("click", closeHistoryModal);
-els.historyModeFilter.addEventListener("change", renderHistoryList);
-els.historyRulesetFilter.addEventListener("change", renderHistoryList);
+els.historyModeFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
+els.historyRulesetFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
+els.historyResetFiltersBtn.addEventListener("click", () => {
+  els.historyModeFilter.value = "all";
+  els.historyRulesetFilter.value = "all";
+  historyCurrentPage = 1;
+  renderHistoryList();
+});
 els.configBtn.addEventListener("click", openConfigModal);
 els.configModalOverlay.addEventListener("click", closeConfigModal);
 els.configCloseBtn.addEventListener("click", closeConfigModal);

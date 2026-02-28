@@ -15,18 +15,14 @@
   </head>
   <body>
     <main class="app">
-      <header class="app-header">
-        <h1 class="title-with-icon">
-          <img src="icons/icon.svg" alt="" class="app-title-icon" />
-          <span>Score Team</span>
-          <span id="app-version" class="app-version"></span>
-        </h1>
-      </header>
       <div id="flash-info" class="flash-info hidden" role="status" aria-live="polite"></div>
 
       <section class="card" id="setup-card">
         <div class="setup-head">
-          <h2>Configuration</h2>
+          <h2 class="title-with-icon">
+            <img src="icons/icon.svg" alt="" class="app-title-icon" />
+            <span>Score Team</span>
+          </h2>
           <div class="setup-head-actions">
             <button id="config-btn" class="btn btn-light btn-icon home-btn" aria-label="Réglages">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -400,7 +396,6 @@
             </ul>
           </section>
 
-          <p class="help-credit">Team Score &copy; 2026 Alain DOAN-HUU</p>
         </div>
       </section>
 
@@ -461,7 +456,7 @@
 
       <section id="history-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="history-modal-title">
         <div class="modal-overlay" id="history-modal-overlay"></div>
-        <div class="modal-card help-modal-card">
+        <div class="modal-card help-modal-card history-modal-card">
           <div class="modal-head">
             <h3 id="history-modal-title" class="modal-title-with-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -493,10 +488,20 @@
               <option value="team">Équipe</option>
               <option value="individual">Individuel</option>
             </select>
+            <button id="history-reset-filters-btn" class="btn btn-light btn-icon" aria-label="Réinitialiser les filtres">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 .78 1.63L14 13.5V19a1 1 0 0 1-.55.9l-3 1.5A1 1 0 0 1 9 20.5v-7L2.22 4.63A1 1 0 0 1 3 3Z" fill="currentColor" opacity=".3"/>
+                <path d="M2.1 2.1l19.8 19.8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              </svg>
+            </button>
           </div>
           <div id="history-list" class="history-list"></div>
+          <nav id="history-pagination" class="history-pagination hidden" aria-label="Pagination historique"></nav>
         </div>
       </section>
+      <footer class="app-footer">
+        <p>Team Score &copy; 2026 Alain DOAN-HUU - <span id="app-version" class="app-footer-version"></span></p>
+      </footer>
     </main>
 
     <script src="app.js"></script>
