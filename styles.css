@@ -855,23 +855,24 @@ select {
 }
 
 .action-icons {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  justify-content: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
 }
 
-#stats-btn,
-#download-data-btn {
-  background: #1f6feb;
-  border: 1px solid #1558c0;
+#stats-btn {
+  background: #ece6dd;
+  border: 1px solid var(--line);
   border-radius: 10px;
-  min-height: 54px;
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: #fff;
-  width: 100%;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 8px;
+  margin-top: 0;
+}
+
+#stats-btn svg {
+  color: #1a4fa0;
 }
 
 #results-actions {
@@ -883,10 +884,28 @@ select {
   width: min(720px, calc(100% - 16px));
   margin-top: 0;
   padding: 8px;
-  border: 1px solid var(--line);
+  border: 1px solid #1558c0;
   border-radius: 12px;
-  background: var(--bg-soft);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+  background: #1a4fa0;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+#results-close-btn {
+  background: #fff;
+  border: none;
+  border-radius: 50%;
+  min-width: 28px;
+  min-height: 28px;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  margin-top: 0;
+}
+
+#results-close-btn svg {
+  width: 14px;
+  height: 14px;
+  color: #1a4fa0;
 }
 
 .modal {

@@ -50,7 +50,8 @@ const els = {
   resultsActions: document.getElementById("results-actions"),
   historyBtn: document.getElementById("history-btn"),
   statsBtn: document.getElementById("stats-btn"),
-  downloadDataBtn: document.getElementById("download-data-btn"),
+  resultsCloseBtn: document.getElementById("results-close-btn"),
+
   statsModal: document.getElementById("stats-modal"),
   statsModalOverlay: document.getElementById("stats-modal-overlay"),
   statsCloseBtn: document.getElementById("stats-close-btn"),
@@ -450,8 +451,8 @@ function updateScoringHeader() {
   els.volleyTitleText.textContent = `Volée ${Math.min(shootNumber, state.targetCount)} sur ${state.targetCount}`;
   els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
   els.progressText.textContent = "";
-  els.teamTotal.textContent = globalTotal();
-  els.successZoneDisplay.textContent = String(state.successZone);
+  els.teamTotal.textContent = `${globalTotal()} pts`;
+  els.successZoneDisplay.textContent = `${state.successZone} pts`;
   renderSegmentStats();
 }
 
@@ -866,7 +867,6 @@ function updateResultsAvailability() {
   els.scoreEntryPanel.classList.toggle("hidden", done);
   els.resultsActions.classList.toggle("hidden", !done);
   els.statsBtn.disabled = !done;
-  els.downloadDataBtn.disabled = !done;
 }
 
 function getSegmentCount(targetCount) {
@@ -907,7 +907,7 @@ function renderSegmentStats() {
       ? (i === 0 ? "1ère moitié" : "2e moitié")
       : ["1er tiers", "2e tiers", "3e tiers"][i];
     const strong = document.createElement("strong");
-    strong.textContent = String(segTotals[i]);
+    strong.textContent = `${segTotals[i]} pts`;
 
     if (isComplete && segSize > 0) {
       const avgVolley = segTotals[i] / segSize;
@@ -1166,14 +1166,14 @@ function openStatsModalFromPayload(payload) {
     return Math.max(0, Math.min(100, (value / maxVolley) * 100));
   };
 
-  els.statsSuccessZone.textContent = String(successZone);
+  els.statsSuccessZone.textContent = `${successZone} pts`;
   const successZoneArticle = els.statsSuccessZone.closest("article");
   if (successZoneArticle) {
     successZoneArticle.classList.toggle("zone-achieved", avgVolley >= successZone);
   }
   els.statsTotalPoints.textContent = `${totalPoints} pts`;
-  els.statsBestVolley.textContent = best;
-  els.statsWorstVolley.textContent = worst;
+  els.statsBestVolley.textContent = `${best} pts`;
+  els.statsWorstVolley.textContent = `${worst} pts`;
   els.statsBar1.style.height = `${ratioFor(partAverages[0])}%`;
   els.statsBar2.style.height = `${ratioFor(partAverages[1])}%`;
   els.statsBar3.style.height = `${ratioFor(partAverages[2])}%`;
@@ -1660,7 +1660,9 @@ els.setupHelpBtn.addEventListener("click", openHelpModal);
 els.helpBtn.addEventListener("click", openHelpModal);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
 els.statsBtn.addEventListener("click", openStatsModal);
-els.downloadDataBtn.addEventListener("click", downloadResultsJson);
+els.resultsCloseBtn.addEventListener("click", () => {
+  els.resultsActions.classList.add("hidden");
+});
 els.restartBtn.addEventListener("click", restart);
 els.statsModalOverlay.addEventListener("click", closeStatsModal);
 els.statsCloseBtn.addEventListener("click", closeStatsModal);
