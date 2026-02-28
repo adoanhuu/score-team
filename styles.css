@@ -668,7 +668,7 @@ select {
   border-radius: 10px;
   background: #fff;
   display: grid;
-  gap: 6px;
+  gap: 0;
 }
 
 .history-item-head {
@@ -696,36 +696,37 @@ select {
   align-self: center;
 }
 
-.history-mode {
-  padding: 4px 16px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #536357;
-}
-
-.history-item strong {
-  font-size: 1rem;
-}
-
-.history-bottom-row {
+.history-item-body {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  padding: 8px 12px;
+}
+
+.history-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .history-total-score {
-  font-size: 1.6rem !important;
+  font-size: 1.6rem;
   font-weight: 800;
   color: #1f2a24;
-  padding: 4px 16px;
+  line-height: 1.2;
+}
+
+.history-mode {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #536357;
 }
 
 .history-item-actions {
   display: flex;
-  justify-content: flex-end;
   gap: 8px;
-  padding: 8px;
+  flex-shrink: 0;
 }
 
 .history-item-actions .btn {
@@ -741,7 +742,9 @@ select {
 }
 
 .history-delete-btn {
-  color: var(--ink);
+  background: #ece6dd !important;
+  color: var(--danger) !important;
+  border-color: var(--line) !important;
 }
 
 .history-empty {

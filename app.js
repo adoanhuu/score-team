@@ -1277,16 +1277,18 @@ function renderHistoryList() {
         <span class="history-date">${dateLabel}</span>
         <span class="history-time">${timeLabel}</span>
       </div>
-      <div class="history-mode">${formatParcoursLabel(entry.ruleset)} ${formatModeLabel(entry.scoringMode)}</div>
-      <div class="history-bottom-row">
-        <strong class="history-total-score">${entry.total ?? 0} pts</strong>
+      <div class="history-item-body">
+        <div class="history-item-info">
+          <strong class="history-total-score">${entry.total ?? 0} pts</strong>
+          <span class="history-mode">${formatParcoursLabel(entry.ruleset)} en ${formatModeLabel(entry.scoringMode)}</span>
+        </div>
         <div class="history-item-actions">
           <button class="btn btn-primary btn-icon" aria-label="Visualiser">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M12 5c5.8 0 9.8 5.8 9.9 6-.1.2-4.1 6-9.9 6S2.2 11.2 2.1 11c.1-.2 4.1-6 9.9-6Zm0 2c-3.9 0-6.9 3.3-7.8 4 .9.7 3.9 4 7.8 4s6.9-3.3 7.8-4c-.9-.7-3.9-4-7.8-4Zm0 1.7A2.3 2.3 0 1 1 9.7 11 2.3 2.3 0 0 1 12 8.7Z" fill="currentColor"/>
             </svg>
           </button>
-          <button class="btn btn-light btn-icon history-delete-btn" aria-label="Supprimer">
+          <button class="btn btn-icon history-delete-btn" aria-label="Supprimer">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h2v9H7V9Zm4 0h2v9h-2V9Zm4 0h2v9h-2V9ZM6 7h12l-1 14H7L6 7Z" fill="currentColor"/>
             </svg>
