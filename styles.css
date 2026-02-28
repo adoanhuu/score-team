@@ -368,6 +368,14 @@ select {
   justify-items: center;
 }
 
+.segment-stats {
+  margin-top: 6px;
+}
+
+.segment-stats:empty {
+  display: none;
+}
+
 .quick-stats span {
   font-size: 0.8rem;
   color: #536357;

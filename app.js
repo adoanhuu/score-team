@@ -40,7 +40,6 @@ const els = {
   stepBackBtn: document.getElementById("step-back-btn"),
   shootTitle: document.getElementById("volley-title"),
   progressText: document.getElementById("progress-text"),
-  teamTotalLabel: document.getElementById("team-total-label"),
   teamTotal: document.getElementById("team-total"),
   successZoneDisplay: document.getElementById("success-zone-display"),
   scoreEntryPanel: document.getElementById("score-entry-panel"),
@@ -107,6 +106,7 @@ const els = {
   weaponSelect: document.getElementById("weapon-select"),
   volleyTitleText: document.getElementById("volley-title-text"),
   volleyWeaponLabel: document.getElementById("volley-weapon-label"),
+  segmentStats: document.getElementById("segment-stats"),
   configFullTargetTeam: document.getElementById("config-full-target-team"),
   configFullTargetTeamValue: document.getElementById("config-full-target-team-value"),
   configFullTargetIndiv: document.getElementById("config-full-target-indiv"),
@@ -450,9 +450,9 @@ function updateScoringHeader() {
   els.volleyTitleText.textContent = `Volée ${Math.min(shootNumber, state.targetCount)} sur ${state.targetCount}`;
   els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
   els.progressText.textContent = "";
-  els.teamTotalLabel.textContent = state.scoringMode === "individual" ? "Total individuel" : "Total équipe";
   els.teamTotal.textContent = globalTotal();
   els.successZoneDisplay.textContent = String(state.successZone);
+  renderSegmentStats();
 }
 
 function refreshScoringView(options = {}) {
@@ -867,6 +867,46 @@ function updateResultsAvailability() {
   els.resultsActions.classList.toggle("hidden", !done);
   els.statsBtn.disabled = !done;
   els.downloadDataBtn.disabled = !done;
+}
+
+function getSegmentCount(targetCount) {
+  if (targetCount >= 18) return 3;
+  if (targetCount >= 10) return 2;
+  return 1;
+}
+
+function getSegmentTotals(shoots, targetCount) {
+  const segmentCount = getSegmentCount(targetCount);
+  const totals = [];
+  for (let i = 0; i < segmentCount; i++) {
+    const start = Math.floor((i * targetCount) / segmentCount);
+    const end = Math.floor(((i + 1) * targetCount) / segmentCount);
+    let segTotal = 0;
+    for (let j = start; j < end && j < shoots.length; j++) {
+      segTotal += roundTotal(shoots[j]);
+    }
+    totals.push(segTotal);
+  }
+  return totals;
+}
+
+function renderSegmentStats() {
+  const segmentCount = getSegmentCount(state.targetCount);
+  const segTotals = getSegmentTotals(state.shoots, state.targetCount);
+  els.segmentStats.style.gridTemplateColumns = `repeat(${segmentCount}, 1fr)`;
+  els.segmentStats.innerHTML = "";
+  for (let i = 0; i < segmentCount; i++) {
+    const art = document.createElement("article");
+    const span = document.createElement("span");
+    span.textContent = segmentCount === 2
+      ? (i === 0 ? "1ère moitié" : "2e moitié")
+      : ["1er tiers", "2e tiers", "3e tiers"][i];
+    const strong = document.createElement("strong");
+    strong.textContent = String(segTotals[i]);
+    art.appendChild(span);
+    art.appendChild(strong);
+    els.segmentStats.appendChild(art);
+  }
 }
 
 function getSegmentAverages(totals, segmentCount) {
