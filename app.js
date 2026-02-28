@@ -1,5 +1,5 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.2.5";
+const APP_VERSION = "v1.3.0";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -59,11 +59,14 @@ const els = {
   helpModal: document.getElementById("help-modal"),
   helpModalOverlay: document.getElementById("help-modal-overlay"),
   helpCloseBtn: document.getElementById("help-close-btn"),
+  helpPagination: document.getElementById("help-pagination"),
   historyModal: document.getElementById("history-modal"),
   historyModalOverlay: document.getElementById("history-modal-overlay"),
   historyCloseBtn: document.getElementById("history-close-btn"),
   historyModeFilter: document.getElementById("history-mode-filter"),
   historyRulesetFilter: document.getElementById("history-ruleset-filter"),
+  historyResetFiltersBtn: document.getElementById("history-reset-filters-btn"),
+  historyPagination: document.getElementById("history-pagination"),
   historyList: document.getElementById("history-list"),
   statsSuccessZone: document.getElementById("stats-success-zone"),
   statsBestVolley: document.getElementById("stats-best-volley"),
@@ -98,6 +101,9 @@ const els = {
   configModal: document.getElementById("config-modal"),
   configModalOverlay: document.getElementById("config-modal-overlay"),
   configCloseBtn: document.getElementById("config-close-btn"),
+  configExportHistoryBtn: document.getElementById("config-export-history-btn"),
+  configImportHistoryBtn: document.getElementById("config-import-history-btn"),
+  configImportHistoryInput: document.getElementById("config-import-history-input"),
   configFullTargetTeam: document.getElementById("config-full-target-team"),
   configFullTargetTeamValue: document.getElementById("config-full-target-team-value"),
   configFullTargetIndiv: document.getElementById("config-full-target-indiv"),
@@ -731,6 +737,7 @@ function getSuccessZoneColor(value, ruleset, scoringMode) {
 function updateSuccessZoneSlider() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
+  const zoneKey = `${ruleset}:${scoringMode}`;
   const max = getMaxSuccessZoneForSetup();
   els.successZoneInput.min = "1";
   els.successZoneInput.max = String(max);
@@ -739,7 +746,7 @@ function updateSuccessZoneSlider() {
   if (value > max) value = max;
   els.successZoneInput.value = String(value);
   els.successZoneValue.textContent = String(value);
-  appConfig.successZoneByRuleset[ruleset] = value;
+  appConfig.successZoneByRuleset[zoneKey] = value;
   saveConfig();
   const zoneColor = getSuccessZoneColor(value, ruleset, scoringMode);
   els.successZoneInput.style.setProperty("--zone-color", zoneColor);
@@ -1144,9 +1151,43 @@ function closeStatsModal() {
   }
 }
 
+let helpCurrentPage = 1;
+const HELP_TOTAL_PAGES = 2;
+
+function renderHelpPagination() {
+  const pages = els.helpModal.querySelectorAll(".help-page");
+  pages.forEach((page) => {
+    const pageNum = Number(page.dataset.helpPage);
+    page.classList.toggle("hidden", pageNum !== helpCurrentPage);
+  });
+
+  els.helpPagination.innerHTML = "";
+
+  const prevBtn = document.createElement("button");
+  prevBtn.className = "btn btn-light btn-icon pagination-btn";
+  prevBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M15.4 16.6 10.8 12l4.6-4.6L14 6l-6 6 6 6 1.4-1.4Z" fill="currentColor"/></svg>`;
+  prevBtn.disabled = helpCurrentPage <= 1;
+  prevBtn.addEventListener("click", () => { helpCurrentPage--; renderHelpPagination(); });
+  els.helpPagination.appendChild(prevBtn);
+
+  const indicator = document.createElement("span");
+  indicator.className = "pagination-indicator";
+  indicator.textContent = `${helpCurrentPage} / ${HELP_TOTAL_PAGES}`;
+  els.helpPagination.appendChild(indicator);
+
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "btn btn-light btn-icon pagination-btn";
+  nextBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M8.6 16.6l4.6-4.6-4.6-4.6L10 6l6 6-6 6-1.4-1.4Z" fill="currentColor"/></svg>`;
+  nextBtn.disabled = helpCurrentPage >= HELP_TOTAL_PAGES;
+  nextBtn.addEventListener("click", () => { helpCurrentPage++; renderHelpPagination(); });
+  els.helpPagination.appendChild(nextBtn);
+}
+
 function openHelpModal() {
   closeStatsModal();
   closeHistoryModal();
+  helpCurrentPage = 1;
+  renderHelpPagination();
   els.helpModal.classList.remove("hidden");
 }
 
@@ -1177,6 +1218,58 @@ function downloadPayloadAsJson(payload, prefix = "score-team") {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+function exportHistory() {
+  const entries = loadHistoryEntries();
+  if (entries.length === 0) {
+    showFlashInfo("Aucun parcours à exporter.");
+    return;
+  }
+  const blob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `score-team-history-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showFlashInfo(`${entries.length} parcours exporté(s).`);
+}
+
+function importHistory(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      if (!Array.isArray(imported)) {
+        showFlashInfo("Format invalide : le fichier doit contenir un tableau.");
+        return;
+      }
+      const valid = imported.filter((item) => item && typeof item === "object" && item.generatedAt);
+      if (valid.length === 0) {
+        showFlashInfo("Aucun parcours valide trouvé dans le fichier.");
+        return;
+      }
+      const existing = loadHistoryEntries();
+      const existingKeys = new Set(existing.map((e) => e.archivedAt || e.generatedAt));
+      const newEntries = valid.filter((e) => !existingKeys.has(e.archivedAt || e.generatedAt));
+      if (newEntries.length === 0) {
+        showFlashInfo("Tous les parcours existent déjà.");
+        return;
+      }
+      const merged = [...newEntries, ...existing].sort((a, b) =>
+        new Date(b.archivedAt || b.generatedAt) - new Date(a.archivedAt || a.generatedAt)
+      );
+      saveHistoryEntries(merged);
+      showFlashInfo(`${newEntries.length} parcours importé(s).`);
+    } catch {
+      showFlashInfo("Erreur lors de la lecture du fichier.");
+    }
+  };
+  reader.readAsText(file);
 }
 
 function loadHistoryEntries() {
@@ -1211,6 +1304,9 @@ function removeHistoryEntry(archivedAt) {
   renderHistoryList();
 }
 
+const HISTORY_PER_PAGE = 4;
+let historyCurrentPage = 1;
+
 function renderHistoryList() {
   const selectedMode = els.historyModeFilter.value;
   const selectedRuleset = els.historyRulesetFilter.value;
@@ -1219,10 +1315,18 @@ function renderHistoryList() {
     if (selectedRuleset !== "all" && entry.ruleset !== selectedRuleset) return false;
     return true;
   });
+
   if (entries.length === 0) {
     els.historyList.innerHTML = '<div class="history-empty">Aucun parcours sauvegardé.</div>';
+    els.historyPagination.classList.add("hidden");
     return;
   }
+
+  const totalPages = Math.ceil(entries.length / HISTORY_PER_PAGE);
+  if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
+  if (historyCurrentPage < 1) historyCurrentPage = 1;
+  const startIdx = (historyCurrentPage - 1) * HISTORY_PER_PAGE;
+  const pageEntries = entries.slice(startIdx, startIdx + HISTORY_PER_PAGE);
 
   const formatParcoursLabel = (value) => {
     if (value === "nature") return "Nature";
@@ -1236,7 +1340,7 @@ function renderHistoryList() {
   };
 
   els.historyList.innerHTML = "";
-  entries.forEach((entry) => {
+  pageEntries.forEach((entry) => {
     const date = new Date(entry.generatedAt || entry.archivedAt);
     const isValidDate = !Number.isNaN(date.getTime());
     const dateLabel = isValidDate
@@ -1263,16 +1367,18 @@ function renderHistoryList() {
         <span class="history-date">${dateLabel}</span>
         <span class="history-time">${timeLabel}</span>
       </div>
-      <div class="history-mode">${formatParcoursLabel(entry.ruleset)} ${formatModeLabel(entry.scoringMode)}</div>
-      <div class="history-bottom-row">
-        <strong class="history-total-score">${entry.total ?? 0} pts</strong>
+      <div class="history-item-body">
+        <div class="history-item-info">
+          <strong class="history-total-score">${entry.total ?? 0} pts</strong>
+          <span class="history-mode">${formatParcoursLabel(entry.ruleset)} en ${formatModeLabel(entry.scoringMode)}</span>
+        </div>
         <div class="history-item-actions">
           <button class="btn btn-primary btn-icon" aria-label="Visualiser">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M12 5c5.8 0 9.8 5.8 9.9 6-.1.2-4.1 6-9.9 6S2.2 11.2 2.1 11c.1-.2 4.1-6 9.9-6Zm0 2c-3.9 0-6.9 3.3-7.8 4 .9.7 3.9 4 7.8 4s6.9-3.3 7.8-4c-.9-.7-3.9-4-7.8-4Zm0 1.7A2.3 2.3 0 1 1 9.7 11 2.3 2.3 0 0 1 12 8.7Z" fill="currentColor"/>
             </svg>
           </button>
-          <button class="btn btn-light btn-icon history-delete-btn" aria-label="Supprimer">
+          <button class="btn btn-icon history-delete-btn" aria-label="Supprimer">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h2v9H7V9Zm4 0h2v9h-2V9Zm4 0h2v9h-2V9ZM6 7h12l-1 14H7L6 7Z" fill="currentColor"/>
             </svg>
@@ -1288,11 +1394,74 @@ function renderHistoryList() {
     deleteBtn.addEventListener("click", () => removeHistoryEntry(entry.archivedAt));
     els.historyList.appendChild(row);
   });
+
+  renderHistoryPagination(totalPages);
+}
+
+function renderHistoryPagination(totalPages) {
+  if (totalPages <= 1) {
+    els.historyPagination.classList.add("hidden");
+    return;
+  }
+  els.historyPagination.classList.remove("hidden");
+  els.historyPagination.innerHTML = "";
+
+  const showFirstLast = totalPages > 4;
+
+  const makeBtn = (label, page, extraClass) => {
+    const btn = document.createElement("button");
+    btn.className = `btn btn-light btn-icon pagination-btn${extraClass ? " " + extraClass : ""}`;
+    btn.innerHTML = label;
+    btn.disabled = page === historyCurrentPage;
+    if (page === historyCurrentPage) btn.classList.add("pagination-active");
+    btn.addEventListener("click", () => {
+      historyCurrentPage = page;
+      renderHistoryList();
+    });
+    return btn;
+  };
+
+  /* « First */
+  if (showFirstLast) {
+    els.historyPagination.appendChild(
+      makeBtn(`<svg viewBox="0 0 24 24" width="16" height="16"><path d="M18.4 16.6 13.8 12l4.6-4.6L17 6l-6 6 6 6 1.4-1.4ZM8 6h-2v12h2V6Z" fill="currentColor"/></svg>`, 1, "pagination-edge")
+    );
+  }
+
+  /* ‹ Prev */
+  const prevBtn = document.createElement("button");
+  prevBtn.className = "btn btn-light btn-icon pagination-btn";
+  prevBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M15.4 16.6 10.8 12l4.6-4.6L14 6l-6 6 6 6 1.4-1.4Z" fill="currentColor"/></svg>`;
+  prevBtn.disabled = historyCurrentPage <= 1;
+  prevBtn.addEventListener("click", () => { historyCurrentPage--; renderHistoryList(); });
+  els.historyPagination.appendChild(prevBtn);
+
+  /* Page indicator */
+  const indicator = document.createElement("span");
+  indicator.className = "pagination-indicator";
+  indicator.textContent = `${historyCurrentPage} / ${totalPages}`;
+  els.historyPagination.appendChild(indicator);
+
+  /* › Next */
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "btn btn-light btn-icon pagination-btn";
+  nextBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M8.6 16.6l4.6-4.6-4.6-4.6L10 6l6 6-6 6-1.4-1.4Z" fill="currentColor"/></svg>`;
+  nextBtn.disabled = historyCurrentPage >= totalPages;
+  nextBtn.addEventListener("click", () => { historyCurrentPage++; renderHistoryList(); });
+  els.historyPagination.appendChild(nextBtn);
+
+  /* » Last */
+  if (showFirstLast) {
+    els.historyPagination.appendChild(
+      makeBtn(`<svg viewBox="0 0 24 24" width="16" height="16"><path d="M5.6 7.4 10.2 12l-4.6 4.6L7 18l6-6-6-6-1.4 1.4ZM16 6h2v12h-2V6Z" fill="currentColor"/></svg>`, totalPages, "pagination-edge")
+    );
+  }
 }
 
 function openHistoryModal() {
   closeStatsModal();
   closeHelpModal();
+  historyCurrentPage = 1;
   renderHistoryList();
   els.historyModal.classList.remove("hidden");
 }
@@ -1319,7 +1488,9 @@ function restart() {
 
 els.rulesetSelect.addEventListener("change", () => {
   const ruleset = els.rulesetSelect.value;
-  const saved = appConfig.successZoneByRuleset[ruleset];
+  const scoringMode = getSelectedScoringMode();
+  const zoneKey = `${ruleset}:${scoringMode}`;
+  const saved = appConfig.successZoneByRuleset[zoneKey] ?? appConfig.successZoneByRuleset[ruleset];
   if (Number.isInteger(saved) && saved >= 1) {
     els.successZoneInput.value = String(saved);
   }
@@ -1328,7 +1499,16 @@ els.rulesetSelect.addEventListener("change", () => {
   updateSuccessZoneSlider();
 });
 
-els.scoringModeInputs.forEach((input) => input.addEventListener("change", updateSuccessZoneSlider));
+els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => {
+  const ruleset = els.rulesetSelect.value;
+  const scoringMode = getSelectedScoringMode();
+  const zoneKey = `${ruleset}:${scoringMode}`;
+  const saved = appConfig.successZoneByRuleset[zoneKey] ?? appConfig.successZoneByRuleset[ruleset];
+  if (Number.isInteger(saved) && saved >= 1) {
+    els.successZoneInput.value = String(saved);
+  }
+  updateSuccessZoneSlider();
+}));
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
@@ -1348,11 +1528,25 @@ els.helpModalOverlay.addEventListener("click", closeHelpModal);
 els.helpCloseBtn.addEventListener("click", closeHelpModal);
 els.historyModalOverlay.addEventListener("click", closeHistoryModal);
 els.historyCloseBtn.addEventListener("click", closeHistoryModal);
-els.historyModeFilter.addEventListener("change", renderHistoryList);
-els.historyRulesetFilter.addEventListener("change", renderHistoryList);
+els.historyModeFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
+els.historyRulesetFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
+els.historyResetFiltersBtn.addEventListener("click", () => {
+  els.historyModeFilter.value = "all";
+  els.historyRulesetFilter.value = "all";
+  historyCurrentPage = 1;
+  renderHistoryList();
+});
 els.configBtn.addEventListener("click", openConfigModal);
 els.configModalOverlay.addEventListener("click", closeConfigModal);
 els.configCloseBtn.addEventListener("click", closeConfigModal);
+els.configExportHistoryBtn.addEventListener("click", exportHistory);
+els.configImportHistoryBtn.addEventListener("click", () => {
+  els.configImportHistoryInput.value = "";
+  els.configImportHistoryInput.click();
+});
+els.configImportHistoryInput.addEventListener("change", (e) => {
+  if (e.target.files.length > 0) importHistory(e.target.files[0]);
+});
 els.configFullTargetTeam.addEventListener("input", () => {
   appConfig.fullTarget_team = Number(els.configFullTargetTeam.value);
   els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);

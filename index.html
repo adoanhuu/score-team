@@ -15,18 +15,14 @@
   </head>
   <body>
     <main class="app">
-      <header class="app-header">
-        <h1 class="title-with-icon">
-          <img src="icons/icon.svg" alt="" class="app-title-icon" />
-          <span>Score Team</span>
-          <span id="app-version" class="app-version"></span>
-        </h1>
-      </header>
       <div id="flash-info" class="flash-info hidden" role="status" aria-live="polite"></div>
 
       <section class="card" id="setup-card">
         <div class="setup-head">
-          <h2>Configuration</h2>
+          <h2 class="title-with-icon">
+            <img src="icons/icon.svg" alt="" class="app-title-icon" />
+            <span>Score Team</span>
+          </h2>
           <div class="setup-head-actions">
             <button id="config-btn" class="btn btn-light btn-icon home-btn" aria-label="Réglages">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -40,32 +36,40 @@
             </button>
           </div>
         </div>
-        <div class="grid-two">
-          <label>
-            <span class="label-inline">Parcours <span id="targets-count-text" class="inline-meta">21 cibles</span></span>
-            <select id="ruleset-select">
-              <optgroup label="FFTA">
-                <option value="nature">Nature (20 / 15 / 10)</option>
-                <option value="3d">3D (11 / 10 / 8 / 5)</option>
-              </optgroup>
-              <optgroup label="FFTL">
-                <option value="3d2">3D Two Shoots (10 / 8 / 5)</option>
-                <option value="3dh">3D Hunting (20 / 16 / 10)</option>
-                <option value="ar">Animal Rounds (3 flèches)</option>
-              </optgroup>
-            </select>
-          </label>
-          <fieldset class="mode-fieldset">
-            <legend>Mode de saisie</legend>
-            <label class="mode-option">
-              <input type="radio" name="scoring-mode" value="team" checked />
-              <span>Équipe</span>
+        <div>
+          <h4 class="section-title">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2Zm-2-7V3.5L18.5 8H14Z" fill="currentColor"/>
+            </svg>
+            Créer une nouvelle session
+          </h4>
+          <div class="grid-two">
+            <label>
+              <span class="label-inline">Parcours <span id="targets-count-text" class="inline-meta">21 cibles</span></span>
+              <select id="ruleset-select">
+                <optgroup label="FFTA">
+                  <option value="nature">Nature (20 / 15 / 10)</option>
+                  <option value="3d">3D (11 / 10 / 8 / 5)</option>
+                </optgroup>
+                <optgroup label="FFTL">
+                  <option value="3d2">3D Two Shoots (10 / 8 / 5)</option>
+                  <option value="3dh">3D Hunting (20 / 16 / 10)</option>
+                  <option value="ar">Animal Rounds (3 flèches)</option>
+                </optgroup>
+              </select>
             </label>
-            <label class="mode-option">
-              <input type="radio" name="scoring-mode" value="individual" />
-              <span>Individuel</span>
-            </label>
-          </fieldset>
+            <fieldset class="mode-fieldset">
+              <legend>Mode de saisie</legend>
+              <label class="mode-option">
+                <input type="radio" name="scoring-mode" value="team" checked />
+                <span>Équipe</span>
+              </label>
+              <label class="mode-option">
+                <input type="radio" name="scoring-mode" value="individual" />
+                <span>Individuel</span>
+              </label>
+            </fieldset>
+          </div>
         </div>
         <label>
           Zone de réussite (pts / volée)
@@ -300,7 +304,7 @@
 
       <section id="help-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
         <div class="modal-overlay" id="help-modal-overlay"></div>
-        <div class="modal-card help-modal-card">
+        <div class="modal-card help-modal-card help-paginated-card">
           <div class="modal-head">
             <h3 id="help-modal-title" class="modal-title-with-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -315,92 +319,96 @@
             </button>
           </div>
 
-          <section class="help-block">
-            <h4>Création d'une session</h4>
-            <ul>
-              <li>Sélection du type de parcours (nature/3D/3D Two Shoots/3D Hunting/Animal Rounds).</li>
-              <li>Mode de parcours (équipe/individuel).</li>
-              <li>Définition de la zone de réussite</li>
-            </ul>
-          </section>
+          <div class="help-page" data-help-page="1">
+            <section class="help-block">
+              <h4>Création d'une session</h4>
+              <ul>
+                <li>Sélection du type de parcours (nature/3D/3D Two Shoots/3D Hunting/Animal Rounds).</li>
+                <li>Mode de parcours (équipe/individuel).</li>
+                <li>Définition de la zone de réussite</li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Historique de parcours</h4>
-            <ul>
-              <li>Filtrage par type et mode de parcours.</li>
-              <li>Affichage des détails de chaque parcours enregistré.</li>
-              <li>Suppression des parcours enregistrés.</li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Historique de parcours</h4>
+              <ul>
+                <li>Filtrage par type et mode de parcours.</li>
+                <li>Affichage des détails de chaque parcours enregistré.</li>
+                <li>Suppression des parcours enregistrés.</li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Règles des points</h4>
-            <ul>
-              <li>
-                FFTA
-                <ul>
-                  <li>Nature: 20 / 15 / 10 / M.</li>
-                  <li>3D: 11 / 10 / 8 / 5 / M.</li>
-                </ul>
-              </li>
-              <li>
-                FFTL
-                <ul>
-                  <li>3D Two Shoots: 10 / 8 / 5 / M.</li>
-                  <li>3D Hunting: 20 / 16 / 10 / M.</li>
-                  <li>Animal Rounds: 20/18/M, 16/14/M, 12/10/M.</li>
-                </ul>
-              </li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Règles des points</h4>
+              <ul>
+                <li>
+                  FFTA
+                  <ul>
+                    <li>Nature: 20 / 15 / 10 / M.</li>
+                    <li>3D: 11 / 10 / 8 / 5 / M.</li>
+                  </ul>
+                </li>
+                <li>
+                  FFTL
+                  <ul>
+                    <li>3D Two Shoots: 10 / 8 / 5 / M.</li>
+                    <li>3D Hunting: 20 / 16 / 10 / M.</li>
+                    <li>Animal Rounds: 20/18/M, 16/14/M, 12/10/M.</li>
+                  </ul>
+                </li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Validation de saisie</h4>
-            <ul>
-              <li>Saisie dans l'ordre décroissant des points.</li>
-              <li>Scores non valides grisés.</li>
-              <li>Sauvegarde automatique de la session.</li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Validation de saisie</h4>
+              <ul>
+                <li>Saisie dans l'ordre décroissant des points.</li>
+                <li>Scores non valides grisés.</li>
+                <li>Sauvegarde automatique de la session.</li>
+              </ul>
+            </section>
+          </div>
 
-          <section class="help-block">
-            <h4>Indicateurs de volée</h4>
-            <ul class="zone-indicators">
-              <li><span class="zone-normal"></span> Volée normale.</li>
-              <li><span class="zone-success"></span> Volée de plein.</li>
-              <li><span class="zone-danger"></span> Volée de double pailles.</li>
-            </ul>
-          </section>
+          <div class="help-page hidden" data-help-page="2">
+            <section class="help-block">
+              <h4>Indicateurs de volée</h4>
+              <ul class="zone-indicators">
+                <li><span class="zone-normal"></span> Volée normale.</li>
+                <li><span class="zone-success"></span> Volée de plein.</li>
+                <li><span class="zone-danger"></span> Volée de double pailles.</li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Répartition des scores</h4>
-            <ul class="zone-indicators">
-              <li><span class="zone-danger"></span> Moins de 20% des flèches.</li>
-              <li><span class="zone-warning"></span> Entre 20% et 29% des flèches.</li>
-              <li><span class="zone-alert"></span> Entre 30% et 39% des flèches.</li>
-              <li><span class="zone-success"></span> Plus de 40% des flèches.</li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Répartition des scores</h4>
+              <ul class="zone-indicators">
+                <li><span class="zone-danger"></span> Moins de 20% des flèches.</li>
+                <li><span class="zone-warning"></span> Entre 20% et 29% des flèches.</li>
+                <li><span class="zone-alert"></span> Entre 30% et 39% des flèches.</li>
+                <li><span class="zone-success"></span> Plus de 40% des flèches.</li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Répartition des pailles</h4>
-            <ul class="zone-indicators">
-              <li><span class="zone-success"></span> Moins de 20% des flèches.</li>
-              <li><span class="zone-alert"></span> Entre 20% et 29% des flèches.</li>
-              <li><span class="zone-warning"></span> Entre 30% et 39% des flèches.</li>
-              <li><span class="zone-danger"></span> Plus de 40% des flèches.</li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Répartition des pailles</h4>
+              <ul class="zone-indicators">
+                <li><span class="zone-success"></span> Moins de 20% des flèches.</li>
+                <li><span class="zone-alert"></span> Entre 20% et 29% des flèches.</li>
+                <li><span class="zone-warning"></span> Entre 30% et 39% des flèches.</li>
+                <li><span class="zone-danger"></span> Plus de 40% des flèches.</li>
+              </ul>
+            </section>
 
-          <section class="help-block">
-            <h4>Les actions possibles</h4>
-            <ul>
-              <li>Affichage les statistiques de la session en cours.</li>
-              <li>Téléchargement des données au format JSON.</li>
-            </ul>
-          </section>
+            <section class="help-block">
+              <h4>Les actions possibles</h4>
+              <ul>
+                <li>Affichage les statistiques de la session en cours.</li>
+                <li>Téléchargement des données au format JSON.</li>
+              </ul>
+            </section>
+          </div>
 
-          <p class="help-credit">Team Score &copy; 2026 Alain DOAN-HUU</p>
+          <nav id="help-pagination" class="history-pagination" aria-label="Pagination aide"></nav>
         </div>
       </section>
 
@@ -421,47 +429,70 @@
             </button>
           </div>
           <div class="config-form">
+            <h4 class="config-history-title">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8Zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6Zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4Zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" fill="currentColor"/>
+              </svg>
+              Mes objectifs
+            </h4>
             <fieldset class="config-section">
               <legend class="config-section-legend">Équipe</legend>
               <div class="config-field">
-                <label for="config-full-target-team">Objectif de pleins</label>
+                <label for="config-full-target-team">Nombre de pleins <strong id="config-full-target-team-value">7</strong></label>
                 <div class="config-input-row">
                   <input type="range" id="config-full-target-team" min="0" max="21" step="1" value="7">
-                  <strong id="config-full-target-team-value">7</strong>
                 </div>
               </div>
               <div class="config-field">
-                <label for="config-miss-limit-team">Limite de double pailles</label>
+                <label for="config-miss-limit-team">Nombre de pailles <strong id="config-miss-limit-team-value">5</strong></label>
                 <div class="config-input-row">
                   <input type="range" id="config-miss-limit-team" min="0" max="21" step="1" value="5">
-                  <strong id="config-miss-limit-team-value">5</strong>
                 </div>
               </div>
             </fieldset>
             <fieldset class="config-section">
               <legend class="config-section-legend">Individuel</legend>
               <div class="config-field">
-                <label for="config-full-target-indiv">Objectif de pleins</label>
+                <label for="config-full-target-indiv">Nombre de pleins <strong id="config-full-target-indiv-value">5</strong></label>
                 <div class="config-input-row">
                   <input type="range" id="config-full-target-indiv" min="0" max="21" step="1" value="5">
-                  <strong id="config-full-target-indiv-value">5</strong>
                 </div>
               </div>
               <div class="config-field">
-                <label for="config-miss-limit-indiv">Limite de double pailles</label>
+                <label for="config-miss-limit-indiv">Nombre de pailles <strong id="config-miss-limit-indiv-value">3</strong></label>
                 <div class="config-input-row">
                   <input type="range" id="config-miss-limit-indiv" min="0" max="21" step="1" value="3">
-                  <strong id="config-miss-limit-indiv-value">3</strong>
                 </div>
               </div>
             </fieldset>
+          </div>  
+          <div class="config-history-actions">
+            <h4 class="config-history-title">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4Zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm3-10H5V5h10v4Z" fill="currentColor" />
+              </svg>
+              Sauvegarde de l'historique
+            </h4>
+            <button id="config-export-history-btn" class="btn btn-light btn-icon config-action-btn" aria-label="Exporter l'historique">
+              <span>Exporter</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M11 3h2v9l3-3 1.4 1.4L12 16l-5.4-5.6L8 9l3 3V3ZM4 18h16v3H4v-3Z" fill="currentColor" />
+              </svg>
+            </button>
+            <button id="config-import-history-btn" class="btn btn-light btn-icon config-action-btn" aria-label="Importer l'historique">
+              <span>Importer</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M11 16h2V7l3 3 1.4-1.4L12 3 6.6 8.6 8 10l3-3v9ZM4 18h16v3H4v-3Z" fill="currentColor" />
+              </svg>
+            </button>
+            <input type="file" id="config-import-history-input" accept=".json" class="hidden" />
           </div>
         </div>
       </section>
 
       <section id="history-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="history-modal-title">
         <div class="modal-overlay" id="history-modal-overlay"></div>
-        <div class="modal-card help-modal-card">
+        <div class="modal-card help-modal-card history-modal-card">
           <div class="modal-head">
             <h3 id="history-modal-title" class="modal-title-with-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -493,10 +524,20 @@
               <option value="team">Équipe</option>
               <option value="individual">Individuel</option>
             </select>
+            <button id="history-reset-filters-btn" class="btn btn-light btn-icon" aria-label="Réinitialiser les filtres">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 .78 1.63L14 13.5V19a1 1 0 0 1-.55.9l-3 1.5A1 1 0 0 1 9 20.5v-7L2.22 4.63A1 1 0 0 1 3 3Z" fill="currentColor" opacity=".3"/>
+                <path d="M2.1 2.1l19.8 19.8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              </svg>
+            </button>
           </div>
           <div id="history-list" class="history-list"></div>
+          <nav id="history-pagination" class="history-pagination hidden" aria-label="Pagination historique"></nav>
         </div>
       </section>
+      <footer class="app-footer">
+        <p>Team Score &copy; 2026 Alain DOAN-HUU - <span id="app-version" class="app-footer-version"></span></p>
+      </footer>
     </main>
 
     <script src="app.js"></script>
