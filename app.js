@@ -1,5 +1,5 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.3.0";
+const APP_VERSION = "v1.4.0";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -40,7 +40,6 @@ const els = {
   stepBackBtn: document.getElementById("step-back-btn"),
   shootTitle: document.getElementById("volley-title"),
   progressText: document.getElementById("progress-text"),
-  teamTotalLabel: document.getElementById("team-total-label"),
   teamTotal: document.getElementById("team-total"),
   successZoneDisplay: document.getElementById("success-zone-display"),
   scoreEntryPanel: document.getElementById("score-entry-panel"),
@@ -51,7 +50,8 @@ const els = {
   resultsActions: document.getElementById("results-actions"),
   historyBtn: document.getElementById("history-btn"),
   statsBtn: document.getElementById("stats-btn"),
-  downloadDataBtn: document.getElementById("download-data-btn"),
+  resultsCloseBtn: document.getElementById("results-close-btn"),
+
   statsModal: document.getElementById("stats-modal"),
   statsModalOverlay: document.getElementById("stats-modal-overlay"),
   statsCloseBtn: document.getElementById("stats-close-btn"),
@@ -104,6 +104,10 @@ const els = {
   configExportHistoryBtn: document.getElementById("config-export-history-btn"),
   configImportHistoryBtn: document.getElementById("config-import-history-btn"),
   configImportHistoryInput: document.getElementById("config-import-history-input"),
+  weaponSelect: document.getElementById("weapon-select"),
+  volleyTitleText: document.getElementById("volley-title-text"),
+  volleyWeaponLabel: document.getElementById("volley-weapon-label"),
+  segmentStats: document.getElementById("segment-stats"),
   configFullTargetTeam: document.getElementById("config-full-target-team"),
   configFullTargetTeamValue: document.getElementById("config-full-target-team-value"),
   configFullTargetIndiv: document.getElementById("config-full-target-indiv"),
@@ -237,12 +241,22 @@ function getSetupSnapshot() {
   return {
     ruleset: els.rulesetSelect.value,
     scoringMode: getSelectedScoringMode(),
+    weapon: els.weaponSelect ? els.weaponSelect.value : "",
     successZone: Number.parseInt(els.successZoneInput.value, 10) || 1,
   };
 }
 
 function getGroupsForRuleset(ruleset) {
   return targetGroupsByRuleset[ruleset] || [];
+}
+
+function formatWeaponLabel(code) {
+  if (code === "AC") return "Arc de Chasse";
+  if (code === "AD") return "Arc Droit";
+  if (code === "BB") return "Barebow";
+  if (code === "CO") return "Compound";
+  if (code === "TL") return "Tir Libre";
+  return code || "";
 }
 
 function getGroupLabel(group) {
@@ -291,6 +305,7 @@ function persistAppState() {
             targetCount: state.targetCount,
             successZone: state.successZone,
             scoringMode: state.scoringMode,
+            weapon: state.weapon || "",
             arrowsPerVolley: state.arrowsPerVolley,
             currentArrowIndex: state.currentArrowIndex,
             shoots: state.shoots.map((shoot) => [...shoot]),
@@ -354,6 +369,7 @@ function restorePersistedState() {
   state.targetCount = Number.isInteger(saved.targetCount) ? saved.targetCount : getTargetCountForRuleset(saved.activeRuleset);
   state.successZone = Number.isInteger(saved.successZone) ? saved.successZone : 1;
   state.scoringMode = saved.scoringMode === "individual" ? "individual" : "team";
+  state.weapon = saved.weapon || "";
   state.arrowsPerVolley = getArrowsPerVolley(saved.activeRuleset, state.scoringMode);
   state.activeRuleset = saved.activeRuleset;
   state.allowedPoints = Array.isArray(saved.allowedPoints) && saved.allowedPoints.length ? [...saved.allowedPoints] : [...presets[saved.activeRuleset]];
@@ -432,11 +448,12 @@ function renderPad() {
 
 function updateScoringHeader() {
   const shootNumber = state.shoots.length + 1;
-  els.shootTitle.textContent = `Volée ${Math.min(shootNumber, state.targetCount)} sur ${state.targetCount}`;
+  els.volleyTitleText.textContent = `Volée ${Math.min(shootNumber, state.targetCount)} sur ${state.targetCount}`;
+  els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
   els.progressText.textContent = "";
-  els.teamTotalLabel.textContent = state.scoringMode === "individual" ? "Total individuel" : "Total équipe";
-  els.teamTotal.textContent = globalTotal();
-  els.successZoneDisplay.textContent = String(state.successZone);
+  els.teamTotal.textContent = `${globalTotal()} pts`;
+  els.successZoneDisplay.textContent = `${state.successZone} pts`;
+  renderSegmentStats();
 }
 
 function refreshScoringView(options = {}) {
@@ -538,9 +555,14 @@ function isDoubleZeroVolley(shoot) {
   return shoot.length >= 2 && shoot[0] === 0 && shoot[1] === 0;
 }
 
+function hasSingleMiss(shoot) {
+  return shoot.some((v) => v === 0);
+}
+
 function getVolleyPillClass(shoot, total, maxVolley) {
   if (isDoubleZeroVolley(shoot)) return "is-red";
   if (total === maxVolley) return "is-green";
+  if (hasSingleMiss(shoot)) return "is-orange";
   return "is-blue";
 }
 
@@ -737,7 +759,8 @@ function getSuccessZoneColor(value, ruleset, scoringMode) {
 function updateSuccessZoneSlider() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
-  const zoneKey = `${ruleset}:${scoringMode}`;
+  const weapon = els.weaponSelect ? els.weaponSelect.value : "";
+  const zoneKey = `${ruleset}:${scoringMode}:${weapon}`;
   const max = getMaxSuccessZoneForSetup();
   els.successZoneInput.min = "1";
   els.successZoneInput.max = String(max);
@@ -767,6 +790,7 @@ function startScoring() {
   state.successZone = parsedSuccessZone;
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = getSelectedScoringMode();
+  state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.shoots = [];
@@ -812,6 +836,7 @@ function buildResultsPayload() {
     generatedAt: new Date().toISOString(),
     ruleset: state.activeRuleset,
     scoringMode: state.scoringMode,
+    weapon: state.weapon || "",
     targetCount: state.targetCount,
     arrowsPerVolley: state.arrowsPerVolley,
     successZone: state.successZone,
@@ -843,7 +868,62 @@ function updateResultsAvailability() {
   els.scoreEntryPanel.classList.toggle("hidden", done);
   els.resultsActions.classList.toggle("hidden", !done);
   els.statsBtn.disabled = !done;
-  els.downloadDataBtn.disabled = !done;
+}
+
+function getSegmentCount(targetCount) {
+  if (targetCount >= 18) return 3;
+  if (targetCount >= 10) return 2;
+  return 1;
+}
+
+function getSegmentTotals(shoots, targetCount) {
+  const segmentCount = getSegmentCount(targetCount);
+  const totals = [];
+  for (let i = 0; i < segmentCount; i++) {
+    const start = Math.floor((i * targetCount) / segmentCount);
+    const end = Math.floor(((i + 1) * targetCount) / segmentCount);
+    let segTotal = 0;
+    for (let j = start; j < end && j < shoots.length; j++) {
+      segTotal += roundTotal(shoots[j]);
+    }
+    totals.push(segTotal);
+  }
+  return totals;
+}
+
+function renderSegmentStats() {
+  const segmentCount = getSegmentCount(state.targetCount);
+  const segTotals = getSegmentTotals(state.shoots, state.targetCount);
+  els.segmentStats.style.gridTemplateColumns = `repeat(${segmentCount}, 1fr)`;
+  els.segmentStats.innerHTML = "";
+  for (let i = 0; i < segmentCount; i++) {
+    const start = Math.floor((i * state.targetCount) / segmentCount);
+    const end = Math.floor(((i + 1) * state.targetCount) / segmentCount);
+    const segSize = end - start;
+    const isComplete = state.shoots.length >= end;
+
+    const art = document.createElement("article");
+    const span = document.createElement("span");
+    span.textContent = segmentCount === 2
+      ? (i === 0 ? "1ère moitié" : "2e moitié")
+      : ["1er tiers", "2e tiers", "3e tiers"][i];
+    const strong = document.createElement("strong");
+    strong.textContent = `${segTotals[i]} pts`;
+
+    if (isComplete && segSize > 0) {
+      const avgVolley = segTotals[i] / segSize;
+      const bgColor = getBarColorByZoneRatio(avgVolley, state.successZone);
+      const textColor = bgColor === "#eab308" ? "#1f2a24" : "#fff";
+      art.style.background = bgColor;
+      art.style.borderColor = bgColor;
+      span.style.color = textColor;
+      strong.style.color = textColor;
+    }
+
+    art.appendChild(span);
+    art.appendChild(strong);
+    els.segmentStats.appendChild(art);
+  }
 }
 
 function getSegmentAverages(totals, segmentCount) {
@@ -1087,14 +1167,14 @@ function openStatsModalFromPayload(payload) {
     return Math.max(0, Math.min(100, (value / maxVolley) * 100));
   };
 
-  els.statsSuccessZone.textContent = String(successZone);
+  els.statsSuccessZone.textContent = `${successZone} pts`;
   const successZoneArticle = els.statsSuccessZone.closest("article");
   if (successZoneArticle) {
     successZoneArticle.classList.toggle("zone-achieved", avgVolley >= successZone);
   }
   els.statsTotalPoints.textContent = `${totalPoints} pts`;
-  els.statsBestVolley.textContent = best;
-  els.statsWorstVolley.textContent = worst;
+  els.statsBestVolley.textContent = `${best} pts`;
+  els.statsWorstVolley.textContent = `${worst} pts`;
   els.statsBar1.style.height = `${ratioFor(partAverages[0])}%`;
   els.statsBar2.style.height = `${ratioFor(partAverages[1])}%`;
   els.statsBar3.style.height = `${ratioFor(partAverages[2])}%`;
@@ -1362,6 +1442,19 @@ function renderHistoryList() {
       : "--h--";
     const row = document.createElement("article");
     row.className = "history-item";
+    const maxVolley = getMaxVolleyFromPayload(entry);
+    const volleysHtml = (entry.volleys || []).map((v) => {
+      const arrows = v.arrows || [];
+      const total = v.total ?? 0;
+      const pillClass = getVolleyPillClass(arrows, total, maxVolley);
+      const successClass = total >= (entry.successZone || 0) ? "success" : "";
+      return `<tr>
+        <td><span class="volley-pill ${pillClass}">${v.index}</span></td>
+        <td>${arrows.map((a) => formatScore(a)).join(" / ")}</td>
+        <td>${v.group || "-"}</td>
+        <td class="history-total ${successClass}">${total}</td>
+      </tr>`;
+    }).join("");
     row.innerHTML = `
       <div class="history-item-head">
         <span class="history-date">${dateLabel}</span>
@@ -1370,12 +1463,17 @@ function renderHistoryList() {
       <div class="history-item-body">
         <div class="history-item-info">
           <strong class="history-total-score">${entry.total ?? 0} pts</strong>
-          <span class="history-mode">${formatParcoursLabel(entry.ruleset)} en ${formatModeLabel(entry.scoringMode)}</span>
+          <span class="history-mode">${formatParcoursLabel(entry.ruleset)} en ${formatModeLabel(entry.scoringMode)}${entry.weapon ? " • " + formatWeaponLabel(entry.weapon) : ""}</span>
         </div>
         <div class="history-item-actions">
+          <button class="btn btn-icon history-list-btn" aria-label="Détail des volées">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M3 4h2v2H3V4Zm4 0h14v2H7V4ZM3 10h2v2H3v-2Zm4 0h14v2H7v-2ZM3 16h2v2H3v-2Zm4 0h14v2H7v-2Z" fill="currentColor"/>
+            </svg>
+          </button>
           <button class="btn btn-primary btn-icon" aria-label="Visualiser">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M12 5c5.8 0 9.8 5.8 9.9 6-.1.2-4.1 6-9.9 6S2.2 11.2 2.1 11c.1-.2 4.1-6 9.9-6Zm0 2c-3.9 0-6.9 3.3-7.8 4 .9.7 3.9 4 7.8 4s6.9-3.3 7.8-4c-.9-.7-3.9-4-7.8-4Zm0 1.7A2.3 2.3 0 1 1 9.7 11 2.3 2.3 0 0 1 12 8.7Z" fill="currentColor"/>
+              <path d="M4 20h16v2H4v-2Zm1-2V9h3v9H5Zm5 0V5h3v13h-3Zm5 0v-7h3v7h-3Z" fill="currentColor"/>
             </svg>
           </button>
           <button class="btn btn-icon history-delete-btn" aria-label="Supprimer">
@@ -1385,8 +1483,30 @@ function renderHistoryList() {
           </button>
         </div>
       </div>
+      <div class="history-volley-detail hidden">
+        <div class="table-wrap">
+          <table class="history-table">
+            <thead><tr><th>Volée</th><th>Flèches</th><th>Groupe</th><th>Total</th></tr></thead>
+            <tbody>${volleysHtml}</tbody>
+          </table>
+        </div>
+      </div>
     `;
-    const [viewBtn, deleteBtn] = row.querySelectorAll("button");
+    const listBtn = row.querySelector(".history-list-btn");
+    const [, viewBtn, deleteBtn] = row.querySelectorAll("button");
+    listBtn.addEventListener("click", () => {
+      const detail = row.querySelector(".history-volley-detail");
+      const isOpen = !detail.classList.contains("hidden");
+      // Accordion: close all others
+      els.historyList.querySelectorAll(".history-volley-detail").forEach((d) => {
+        d.classList.add("hidden");
+        d.closest(".history-item")?.querySelector(".history-list-btn")?.classList.remove("active");
+      });
+      if (!isOpen) {
+        detail.classList.remove("hidden");
+        listBtn.classList.add("active");
+      }
+    });
     viewBtn.addEventListener("click", () => {
       state.statsOpenedFromHistory = true;
       openStatsModalFromPayload(entry);
@@ -1487,28 +1607,80 @@ function restart() {
 }
 
 els.rulesetSelect.addEventListener("change", () => {
-  const ruleset = els.rulesetSelect.value;
-  const scoringMode = getSelectedScoringMode();
-  const zoneKey = `${ruleset}:${scoringMode}`;
-  const saved = appConfig.successZoneByRuleset[zoneKey] ?? appConfig.successZoneByRuleset[ruleset];
-  if (Number.isInteger(saved) && saved >= 1) {
-    els.successZoneInput.value = String(saved);
+  // Save current zone for previous config before switching
+  const prevWeapon = state._lastWeapon || "";
+  const prevKey = `${state._lastRuleset}:${state._lastScoringMode}:${prevWeapon}`;
+  const prevValue = Number.parseInt(els.successZoneInput.value, 10);
+  if (Number.isInteger(prevValue) && prevValue >= 1) {
+    appConfig.successZoneByRuleset[prevKey] = prevValue;
+    saveConfig();
   }
   syncScoringModeFieldset();
   syncTargetCountDisplay();
-  updateSuccessZoneSlider();
-});
-
-els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => {
+  // Update slider max BEFORE restoring value to prevent browser clamping
+  const newMax = getMaxSuccessZoneForSetup();
+  els.successZoneInput.max = String(newMax);
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
-  const zoneKey = `${ruleset}:${scoringMode}`;
-  const saved = appConfig.successZoneByRuleset[zoneKey] ?? appConfig.successZoneByRuleset[ruleset];
+  const weapon = els.weaponSelect ? els.weaponSelect.value : "";
+  const zoneKey = `${ruleset}:${scoringMode}:${weapon}`;
+  const saved = appConfig.successZoneByRuleset[zoneKey];
   if (Number.isInteger(saved) && saved >= 1) {
     els.successZoneInput.value = String(saved);
   }
   updateSuccessZoneSlider();
+  state._lastRuleset = ruleset;
+  state._lastScoringMode = getSelectedScoringMode();
+  state._lastWeapon = weapon;
+});
+
+els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => {
+  // Save current zone for previous mode before switching
+  const prevWeapon = state._lastWeapon || "";
+  const prevKey = `${state._lastRuleset}:${state._lastScoringMode}:${prevWeapon}`;
+  const prevValue = Number.parseInt(els.successZoneInput.value, 10);
+  if (Number.isInteger(prevValue) && prevValue >= 1) {
+    appConfig.successZoneByRuleset[prevKey] = prevValue;
+    saveConfig();
+  }
+  // Update slider max BEFORE restoring value to prevent browser clamping
+  const newMax = getMaxSuccessZoneForSetup();
+  els.successZoneInput.max = String(newMax);
+  const ruleset = els.rulesetSelect.value;
+  const scoringMode = getSelectedScoringMode();
+  const weapon = els.weaponSelect ? els.weaponSelect.value : "";
+  const zoneKey = `${ruleset}:${scoringMode}:${weapon}`;
+  const saved = appConfig.successZoneByRuleset[zoneKey];
+  if (Number.isInteger(saved) && saved >= 1) {
+    els.successZoneInput.value = String(saved);
+  }
+  updateSuccessZoneSlider();
+  state._lastRuleset = ruleset;
+  state._lastScoringMode = scoringMode;
+  state._lastWeapon = weapon;
 }));
+if (els.weaponSelect) {
+  els.weaponSelect.addEventListener("change", () => {
+    // Save current zone for previous weapon before switching
+    const prevWeapon = state._lastWeapon || "";
+    const prevKey = `${state._lastRuleset}:${state._lastScoringMode}:${prevWeapon}`;
+    const prevValue = Number.parseInt(els.successZoneInput.value, 10);
+    if (Number.isInteger(prevValue) && prevValue >= 1) {
+      appConfig.successZoneByRuleset[prevKey] = prevValue;
+      saveConfig();
+    }
+    const ruleset = els.rulesetSelect.value;
+    const scoringMode = getSelectedScoringMode();
+    const weapon = els.weaponSelect.value;
+    const zoneKey = `${ruleset}:${scoringMode}:${weapon}`;
+    const saved = appConfig.successZoneByRuleset[zoneKey];
+    if (Number.isInteger(saved) && saved >= 1) {
+      els.successZoneInput.value = String(saved);
+    }
+    updateSuccessZoneSlider();
+    state._lastWeapon = weapon;
+  });
+}
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
@@ -1517,7 +1689,7 @@ els.setupHelpBtn.addEventListener("click", openHelpModal);
 els.helpBtn.addEventListener("click", openHelpModal);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
 els.statsBtn.addEventListener("click", openStatsModal);
-els.downloadDataBtn.addEventListener("click", downloadResultsJson);
+els.resultsCloseBtn.addEventListener("click", restart);
 els.restartBtn.addEventListener("click", restart);
 els.statsModalOverlay.addEventListener("click", closeStatsModal);
 els.statsCloseBtn.addEventListener("click", closeStatsModal);
@@ -1570,6 +1742,9 @@ els.configMissLimitIndiv.addEventListener("input", () => {
 els.rulesetSelect.addEventListener("change", () => syncConfigSliderMax());
 loadConfig();
 els.appVersion.textContent = APP_VERSION;
+state._lastRuleset = els.rulesetSelect.value;
+state._lastScoringMode = getSelectedScoringMode();
+state._lastWeapon = els.weaponSelect ? els.weaponSelect.value : "";
 if (!restorePersistedState()) {
   syncTargetCountDisplay();
   updateSuccessZoneSlider();

@@ -307,6 +307,32 @@ select {
   gap: 10px;
 }
 
+.volley-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+.volley-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: #1a4fa0;
+}
+
+.volley-weapon-text {
+  margin: 2px 0 0 32px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.volley-weapon-text:empty {
+  display: none;
+}
+
 .head-actions {
   display: flex;
   align-items: center;
@@ -340,6 +366,14 @@ select {
   gap: 3px;
   text-align: center;
   justify-items: center;
+}
+
+.segment-stats {
+  margin-top: 6px;
+}
+
+.segment-stats:empty {
+  display: none;
 }
 
 .quick-stats span {
@@ -568,6 +602,10 @@ select {
   background: #2d6a4f;
 }
 
+.volley-pill.is-orange {
+  background: #f59e0b;
+}
+
 .volley-pill.is-red {
   background: #9b2226;
 }
@@ -577,6 +615,10 @@ select {
   min-width: 38px;
   min-height: 34px;
   background: transparent;
+  color: var(--danger);
+}
+
+.row-delete-btn svg {
   color: var(--danger);
 }
 
@@ -763,6 +805,45 @@ select {
   color: var(--danger) !important;
 }
 
+.history-list-btn {
+  background: #ece6dd !important;
+  color: #1a4fa0 !important;
+  border-color: var(--line) !important;
+}
+
+.history-list-btn svg {
+  color: #1a4fa0 !important;
+}
+
+.history-list-btn.active {
+  background: #1a4fa0 !important;
+  color: #fff !important;
+  border-color: #1a4fa0 !important;
+}
+
+.history-list-btn.active svg {
+  color: #fff !important;
+}
+
+.history-volley-detail {
+  padding: 0 10px 10px 10px;
+}
+
+.history-volley-detail .table-wrap {
+  margin-top: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.history-volley-detail .history-table {
+  font-size: 0.85rem;
+}
+
+.history-volley-detail .history-table th,
+.history-volley-detail .history-table td {
+  padding: 4px 6px;
+}
+
 .history-empty {
   border: 1px dashed var(--line);
   border-radius: 10px;
@@ -778,23 +859,24 @@ select {
 }
 
 .action-icons {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  justify-content: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
 }
 
-#stats-btn,
-#download-data-btn {
-  background: #1f6feb;
-  border: 1px solid #1558c0;
+#stats-btn {
+  background: #ece6dd;
+  border: 1px solid var(--line);
   border-radius: 10px;
-  min-height: 54px;
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: #fff;
-  width: 100%;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 8px;
+  margin-top: 0;
+}
+
+#stats-btn svg {
+  color: #1a4fa0;
 }
 
 #results-actions {
@@ -806,10 +888,28 @@ select {
   width: min(720px, calc(100% - 16px));
   margin-top: 0;
   padding: 8px;
-  border: 1px solid var(--line);
+  border: 1px solid #1558c0;
   border-radius: 12px;
-  background: var(--bg-soft);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+  background: #1a4fa0;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+#results-close-btn {
+  background: #fff;
+  border: none;
+  border-radius: 50%;
+  min-width: 28px;
+  min-height: 28px;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  margin-top: 0;
+}
+
+#results-close-btn svg {
+  width: 14px;
+  height: 14px;
+  color: #1a4fa0;
 }
 
 .modal {
