@@ -307,6 +307,32 @@ select {
   gap: 10px;
 }
 
+.volley-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+.volley-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: #1a4fa0;
+}
+
+.volley-weapon-text {
+  margin: 2px 0 0 32px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.volley-weapon-text:empty {
+  display: none;
+}
+
 .head-actions {
   display: flex;
   align-items: center;

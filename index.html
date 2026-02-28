@@ -58,6 +58,16 @@
                 </optgroup>
               </select>
             </label>
+            <label>
+              <span class="label-inline">Type d'arme</span>
+              <select id="weapon-select">
+                <option value="AC">AC - Arc de Chasse</option>
+                <option value="AD">AD - Arc Droit</option>
+                <option value="BB">BB - Barebow</option>
+                <option value="CO">CO - Compound</option>
+                <option value="TL">TL - Tir Libre</option>
+              </select>
+            </label>
             <fieldset class="mode-fieldset">
               <legend>Mode de saisie</legend>
               <label class="mode-option">
@@ -97,7 +107,13 @@
       <section class="card hidden" id="scoring-card">
         <div class="scoring-head">
           <div>
-            <h2 id="volley-title">Volée 1</h2>
+            <h2 id="volley-title" class="volley-title-row">
+              <svg class="volley-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm0-14a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" fill="currentColor"/>
+              </svg>
+              <span id="volley-title-text">Volée 1</span>
+            </h2>
+            <p id="volley-weapon-label" class="volley-weapon-text"></p>
             <p id="progress-text"></p>
           </div>
           <div class="head-actions">

@@ -104,6 +104,9 @@ const els = {
   configExportHistoryBtn: document.getElementById("config-export-history-btn"),
   configImportHistoryBtn: document.getElementById("config-import-history-btn"),
   configImportHistoryInput: document.getElementById("config-import-history-input"),
+  weaponSelect: document.getElementById("weapon-select"),
+  volleyTitleText: document.getElementById("volley-title-text"),
+  volleyWeaponLabel: document.getElementById("volley-weapon-label"),
   configFullTargetTeam: document.getElementById("config-full-target-team"),
   configFullTargetTeamValue: document.getElementById("config-full-target-team-value"),
   configFullTargetIndiv: document.getElementById("config-full-target-indiv"),
@@ -237,12 +240,22 @@ function getSetupSnapshot() {
   return {
     ruleset: els.rulesetSelect.value,
     scoringMode: getSelectedScoringMode(),
+    weapon: els.weaponSelect ? els.weaponSelect.value : "",
     successZone: Number.parseInt(els.successZoneInput.value, 10) || 1,
   };
 }
 
 function getGroupsForRuleset(ruleset) {
   return targetGroupsByRuleset[ruleset] || [];
+}
+
+function formatWeaponLabel(code) {
+  if (code === "AC") return "Arc de Chasse";
+  if (code === "AD") return "Arc Droit";
+  if (code === "BB") return "Barebow";
+  if (code === "CO") return "Compound";
+  if (code === "TL") return "Tir Libre";
+  return code || "";
 }
 
 function getGroupLabel(group) {
@@ -291,6 +304,7 @@ function persistAppState() {
             targetCount: state.targetCount,
             successZone: state.successZone,
             scoringMode: state.scoringMode,
+            weapon: state.weapon || "",
             arrowsPerVolley: state.arrowsPerVolley,
             currentArrowIndex: state.currentArrowIndex,
             shoots: state.shoots.map((shoot) => [...shoot]),
@@ -354,6 +368,7 @@ function restorePersistedState() {
   state.targetCount = Number.isInteger(saved.targetCount) ? saved.targetCount : getTargetCountForRuleset(saved.activeRuleset);
   state.successZone = Number.isInteger(saved.successZone) ? saved.successZone : 1;
   state.scoringMode = saved.scoringMode === "individual" ? "individual" : "team";
+  state.weapon = saved.weapon || "";
   state.arrowsPerVolley = getArrowsPerVolley(saved.activeRuleset, state.scoringMode);
   state.activeRuleset = saved.activeRuleset;
   state.allowedPoints = Array.isArray(saved.allowedPoints) && saved.allowedPoints.length ? [...saved.allowedPoints] : [...presets[saved.activeRuleset]];
@@ -432,7 +447,8 @@ function renderPad() {
 
 function updateScoringHeader() {
   const shootNumber = state.shoots.length + 1;
-  els.shootTitle.textContent = `Volée ${Math.min(shootNumber, state.targetCount)} sur ${state.targetCount}`;
+  els.volleyTitleText.textContent = `Volée ${Math.min(shootNumber, state.targetCount)} sur ${state.targetCount}`;
+  els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
   els.progressText.textContent = "";
   els.teamTotalLabel.textContent = state.scoringMode === "individual" ? "Total individuel" : "Total équipe";
   els.teamTotal.textContent = globalTotal();
@@ -772,6 +788,7 @@ function startScoring() {
   state.successZone = parsedSuccessZone;
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = getSelectedScoringMode();
+  state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.shoots = [];
@@ -817,6 +834,7 @@ function buildResultsPayload() {
     generatedAt: new Date().toISOString(),
     ruleset: state.activeRuleset,
     scoringMode: state.scoringMode,
+    weapon: state.weapon || "",
     targetCount: state.targetCount,
     arrowsPerVolley: state.arrowsPerVolley,
     successZone: state.successZone,
@@ -1388,7 +1406,7 @@ function renderHistoryList() {
       <div class="history-item-body">
         <div class="history-item-info">
           <strong class="history-total-score">${entry.total ?? 0} pts</strong>
-          <span class="history-mode">${formatParcoursLabel(entry.ruleset)} en ${formatModeLabel(entry.scoringMode)}</span>
+          <span class="history-mode">${formatParcoursLabel(entry.ruleset)} en ${formatModeLabel(entry.scoringMode)}${entry.weapon ? " • " + formatWeaponLabel(entry.weapon) : ""}</span>
         </div>
         <div class="history-item-actions">
           <button class="btn btn-icon history-list-btn" aria-label="Détail des volées">
