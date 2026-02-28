@@ -1331,7 +1331,6 @@ select {
 }
 
 .config-section-legend {
-  font-weight: 700;
   font-size: 0.95rem;
   padding: 0 6px;
   color: #1f2a24;
@@ -1401,6 +1400,24 @@ select {
   margin-left: -16px;
 }
 
+.config-history-title {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2a24;
+}
+
+.config-history-title svg {
+  width: 20px;
+  height: 20px;
+  color: #1a4fa0;
+  flex-shrink: 0;
+}
+
 .config-history-actions {
   grid-column: 1 / -1;
   display: grid;
@@ -1421,9 +1438,9 @@ select {
   border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 800;
-  border: 1px solid var(--line);
-  background: var(--line);
-  color: #1a4fa0;
+  border: 1px solid #1558c0;
+  background: #1f6feb;
+  color: #fff;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   width: 100%;
@@ -1431,15 +1448,15 @@ select {
 
 .config-action-btn:hover,
 .config-action-btn:active {
-  background: #ddd5ca;
-  color: #1a4fa0;
+  background: #1558c0;
+  color: #fff;
 }
 
 .config-action-btn svg {
   width: 20px;
   height: 20px;
   display: block;
-  color: #1a4fa0;
+  color: #fff;
 }
 
 .hidden {
