@@ -1286,14 +1286,23 @@ select {
 
 .config-form {
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
 
 .config-field label {
-  display: block;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   font-weight: 600;
   margin-bottom: 4px;
   font-size: 0.92rem;
+}
+
+.config-field label strong {
+  font-size: 1.2rem;
+  min-width: 24px;
+  text-align: right;
 }
 
 .config-input-row {
@@ -1325,7 +1334,7 @@ select {
   font-weight: 700;
   font-size: 0.95rem;
   padding: 0 6px;
-  color: var(--accent);
+  color: #1f2a24;
 }
 
 .hidden {
