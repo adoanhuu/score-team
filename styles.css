@@ -260,7 +260,7 @@ select {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: #ece6dd;
+  background: var(--line);
   border: 1px solid var(--line);
   color: #1a4fa0;
 }
@@ -613,7 +613,7 @@ select {
 
 .history-list {
   display: grid;
-  gap: 8px;
+  gap: 16px;
   flex: 1 1 auto;
   overflow-y: auto;
 }
@@ -682,7 +682,7 @@ select {
   border-radius: 10px;
   background: #fff;
   display: grid;
-  gap: 0;
+  gap: 3px;
 }
 
 .history-item-head {
@@ -704,7 +704,7 @@ select {
 
 .history-item-head .history-time {
   font-size: 0.8rem;
-  color: #fff;
+  color: #000;
   align-self: center;
 }
 
@@ -1422,7 +1422,7 @@ select {
   font-size: 0.95rem;
   font-weight: 800;
   border: 1px solid var(--line);
-  background: #ece6dd;
+  background: var(--line);
   color: #1a4fa0;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
