@@ -896,6 +896,11 @@ function renderSegmentStats() {
   els.segmentStats.style.gridTemplateColumns = `repeat(${segmentCount}, 1fr)`;
   els.segmentStats.innerHTML = "";
   for (let i = 0; i < segmentCount; i++) {
+    const start = Math.floor((i * state.targetCount) / segmentCount);
+    const end = Math.floor(((i + 1) * state.targetCount) / segmentCount);
+    const segSize = end - start;
+    const isComplete = state.shoots.length >= end;
+
     const art = document.createElement("article");
     const span = document.createElement("span");
     span.textContent = segmentCount === 2
@@ -903,6 +908,17 @@ function renderSegmentStats() {
       : ["1er tiers", "2e tiers", "3e tiers"][i];
     const strong = document.createElement("strong");
     strong.textContent = String(segTotals[i]);
+
+    if (isComplete && segSize > 0) {
+      const avgVolley = segTotals[i] / segSize;
+      const bgColor = getBarColorByZoneRatio(avgVolley, state.successZone);
+      const textColor = bgColor === "#eab308" ? "#1f2a24" : "#fff";
+      art.style.background = bgColor;
+      art.style.borderColor = bgColor;
+      span.style.color = textColor;
+      strong.style.color = textColor;
+    }
+
     art.appendChild(span);
     art.appendChild(strong);
     els.segmentStats.appendChild(art);
