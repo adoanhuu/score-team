@@ -1532,27 +1532,51 @@ function restart() {
 }
 
 els.rulesetSelect.addEventListener("change", () => {
-  const ruleset = els.rulesetSelect.value;
-  const scoringMode = getSelectedScoringMode();
-  const zoneKey = `${ruleset}:${scoringMode}`;
-  const saved = appConfig.successZoneByRuleset[zoneKey] ?? appConfig.successZoneByRuleset[ruleset];
-  if (Number.isInteger(saved) && saved >= 1) {
-    els.successZoneInput.value = String(saved);
+  // Save current zone for previous config before switching
+  const prevKey = `${state._lastRuleset}:${state._lastScoringMode}`;
+  const prevValue = Number.parseInt(els.successZoneInput.value, 10);
+  if (Number.isInteger(prevValue) && prevValue >= 1) {
+    appConfig.successZoneByRuleset[prevKey] = prevValue;
+    saveConfig();
   }
   syncScoringModeFieldset();
   syncTargetCountDisplay();
-  updateSuccessZoneSlider();
-});
-
-els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => {
+  // Update slider max BEFORE restoring value to prevent browser clamping
+  const newMax = getMaxSuccessZoneForSetup();
+  els.successZoneInput.max = String(newMax);
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
   const zoneKey = `${ruleset}:${scoringMode}`;
-  const saved = appConfig.successZoneByRuleset[zoneKey] ?? appConfig.successZoneByRuleset[ruleset];
+  const saved = appConfig.successZoneByRuleset[zoneKey];
   if (Number.isInteger(saved) && saved >= 1) {
     els.successZoneInput.value = String(saved);
   }
   updateSuccessZoneSlider();
+  state._lastRuleset = ruleset;
+  state._lastScoringMode = getSelectedScoringMode();
+});
+
+els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => {
+  // Save current zone for previous mode before switching
+  const prevKey = `${state._lastRuleset}:${state._lastScoringMode}`;
+  const prevValue = Number.parseInt(els.successZoneInput.value, 10);
+  if (Number.isInteger(prevValue) && prevValue >= 1) {
+    appConfig.successZoneByRuleset[prevKey] = prevValue;
+    saveConfig();
+  }
+  // Update slider max BEFORE restoring value to prevent browser clamping
+  const newMax = getMaxSuccessZoneForSetup();
+  els.successZoneInput.max = String(newMax);
+  const ruleset = els.rulesetSelect.value;
+  const scoringMode = getSelectedScoringMode();
+  const zoneKey = `${ruleset}:${scoringMode}`;
+  const saved = appConfig.successZoneByRuleset[zoneKey];
+  if (Number.isInteger(saved) && saved >= 1) {
+    els.successZoneInput.value = String(saved);
+  }
+  updateSuccessZoneSlider();
+  state._lastRuleset = ruleset;
+  state._lastScoringMode = scoringMode;
 }));
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
 els.startBtn.addEventListener("click", startScoring);
@@ -1615,6 +1639,8 @@ els.configMissLimitIndiv.addEventListener("input", () => {
 els.rulesetSelect.addEventListener("change", () => syncConfigSliderMax());
 loadConfig();
 els.appVersion.textContent = APP_VERSION;
+state._lastRuleset = els.rulesetSelect.value;
+state._lastScoringMode = getSelectedScoringMode();
 if (!restorePersistedState()) {
   syncTargetCountDisplay();
   updateSuccessZoneSlider();
