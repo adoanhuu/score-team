@@ -1400,6 +1400,26 @@ select {
   margin-left: -16px;
 }
 
+.section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px 0;
+  padding: 0;
+  background: transparent;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a4fa0;
+  text-transform: uppercase;
+}
+
+.section-title svg {
+  width: 22px;
+  height: 22px;
+  color: #1a4fa0;
+  flex-shrink: 0;
+}
+
 .config-history-title {
   grid-column: 1 / -1;
   display: flex;

@@ -36,32 +36,40 @@
             </button>
           </div>
         </div>
-        <div class="grid-two">
-          <label>
-            <span class="label-inline">Parcours <span id="targets-count-text" class="inline-meta">21 cibles</span></span>
-            <select id="ruleset-select">
-              <optgroup label="FFTA">
-                <option value="nature">Nature (20 / 15 / 10)</option>
-                <option value="3d">3D (11 / 10 / 8 / 5)</option>
-              </optgroup>
-              <optgroup label="FFTL">
-                <option value="3d2">3D Two Shoots (10 / 8 / 5)</option>
-                <option value="3dh">3D Hunting (20 / 16 / 10)</option>
-                <option value="ar">Animal Rounds (3 flèches)</option>
-              </optgroup>
-            </select>
-          </label>
-          <fieldset class="mode-fieldset">
-            <legend>Mode de saisie</legend>
-            <label class="mode-option">
-              <input type="radio" name="scoring-mode" value="team" checked />
-              <span>Équipe</span>
+        <div>
+          <h4 class="section-title">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2Zm-2-7V3.5L18.5 8H14Z" fill="currentColor"/>
+            </svg>
+            Créer une nouvelle session
+          </h4>
+          <div class="grid-two">
+            <label>
+              <span class="label-inline">Parcours <span id="targets-count-text" class="inline-meta">21 cibles</span></span>
+              <select id="ruleset-select">
+                <optgroup label="FFTA">
+                  <option value="nature">Nature (20 / 15 / 10)</option>
+                  <option value="3d">3D (11 / 10 / 8 / 5)</option>
+                </optgroup>
+                <optgroup label="FFTL">
+                  <option value="3d2">3D Two Shoots (10 / 8 / 5)</option>
+                  <option value="3dh">3D Hunting (20 / 16 / 10)</option>
+                  <option value="ar">Animal Rounds (3 flèches)</option>
+                </optgroup>
+              </select>
             </label>
-            <label class="mode-option">
-              <input type="radio" name="scoring-mode" value="individual" />
-              <span>Individuel</span>
-            </label>
-          </fieldset>
+            <fieldset class="mode-fieldset">
+              <legend>Mode de saisie</legend>
+              <label class="mode-option">
+                <input type="radio" name="scoring-mode" value="team" checked />
+                <span>Équipe</span>
+              </label>
+              <label class="mode-option">
+                <input type="radio" name="scoring-mode" value="individual" />
+                <span>Individuel</span>
+              </label>
+            </fieldset>
+          </div>
         </div>
         <label>
           Zone de réussite (pts / volée)
