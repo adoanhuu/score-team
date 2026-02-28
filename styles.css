@@ -219,6 +219,14 @@ select {
   color: #fff;
 }
 
+.btn-primary svg {
+  color: #fff;
+}
+
+.start-btn svg {
+  color: #fff;
+}
+
 .start-action {
   margin-top: 2px;
   display: grid;
@@ -243,6 +251,10 @@ select {
   gap: 8px;
 }
 
+#start-btn svg {
+  color: #fff;
+}
+
 #history-btn {
   display: inline-flex;
   align-items: center;
@@ -250,13 +262,14 @@ select {
   gap: 8px;
   background: #ece6dd;
   border: 1px solid var(--line);
-  color: var(--ink);
+  color: #1a4fa0;
 }
 
 #history-btn svg {
   width: 20px;
   height: 20px;
   display: block;
+  color: #1a4fa0;
 }
 
 .btn-light {
@@ -279,6 +292,7 @@ select {
   width: 20px;
   height: 20px;
   display: block;
+  color: #1a4fa0;
 }
 
 .btn:disabled {
@@ -676,22 +690,20 @@ select {
   justify-content: space-between;
   gap: 8px;
   font-size: 0.9rem;
-  color: #fff;
-  background-color: #6b7280;
+  color: #000;
+  background-color: var(--line);
   padding: 8px 20px;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
 }
 
 .history-item-head .history-date {
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: #fff;
+  font-size: 1.1rem;
+  color: #000;
 }
 
 .history-item-head .history-time {
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 0.8rem;
   color: #fff;
   align-self: center;
 }
@@ -745,6 +757,10 @@ select {
   background: #ece6dd !important;
   color: var(--danger) !important;
   border-color: var(--line) !important;
+}
+
+.history-delete-btn svg {
+  color: var(--danger) !important;
 }
 
 .history-empty {
