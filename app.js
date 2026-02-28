@@ -759,7 +759,8 @@ function getSuccessZoneColor(value, ruleset, scoringMode) {
 function updateSuccessZoneSlider() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
-  const zoneKey = `${ruleset}:${scoringMode}`;
+  const weapon = els.weaponSelect ? els.weaponSelect.value : "";
+  const zoneKey = `${ruleset}:${scoringMode}:${weapon}`;
   const max = getMaxSuccessZoneForSetup();
   els.successZoneInput.min = "1";
   els.successZoneInput.max = String(max);
@@ -1607,7 +1608,8 @@ function restart() {
 
 els.rulesetSelect.addEventListener("change", () => {
   // Save current zone for previous config before switching
-  const prevKey = `${state._lastRuleset}:${state._lastScoringMode}`;
+  const prevWeapon = state._lastWeapon || "";
+  const prevKey = `${state._lastRuleset}:${state._lastScoringMode}:${prevWeapon}`;
   const prevValue = Number.parseInt(els.successZoneInput.value, 10);
   if (Number.isInteger(prevValue) && prevValue >= 1) {
     appConfig.successZoneByRuleset[prevKey] = prevValue;
@@ -1620,7 +1622,8 @@ els.rulesetSelect.addEventListener("change", () => {
   els.successZoneInput.max = String(newMax);
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
-  const zoneKey = `${ruleset}:${scoringMode}`;
+  const weapon = els.weaponSelect ? els.weaponSelect.value : "";
+  const zoneKey = `${ruleset}:${scoringMode}:${weapon}`;
   const saved = appConfig.successZoneByRuleset[zoneKey];
   if (Number.isInteger(saved) && saved >= 1) {
     els.successZoneInput.value = String(saved);
@@ -1628,11 +1631,13 @@ els.rulesetSelect.addEventListener("change", () => {
   updateSuccessZoneSlider();
   state._lastRuleset = ruleset;
   state._lastScoringMode = getSelectedScoringMode();
+  state._lastWeapon = weapon;
 });
 
 els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => {
   // Save current zone for previous mode before switching
-  const prevKey = `${state._lastRuleset}:${state._lastScoringMode}`;
+  const prevWeapon = state._lastWeapon || "";
+  const prevKey = `${state._lastRuleset}:${state._lastScoringMode}:${prevWeapon}`;
   const prevValue = Number.parseInt(els.successZoneInput.value, 10);
   if (Number.isInteger(prevValue) && prevValue >= 1) {
     appConfig.successZoneByRuleset[prevKey] = prevValue;
@@ -1643,7 +1648,8 @@ els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => 
   els.successZoneInput.max = String(newMax);
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
-  const zoneKey = `${ruleset}:${scoringMode}`;
+  const weapon = els.weaponSelect ? els.weaponSelect.value : "";
+  const zoneKey = `${ruleset}:${scoringMode}:${weapon}`;
   const saved = appConfig.successZoneByRuleset[zoneKey];
   if (Number.isInteger(saved) && saved >= 1) {
     els.successZoneInput.value = String(saved);
@@ -1651,7 +1657,30 @@ els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => 
   updateSuccessZoneSlider();
   state._lastRuleset = ruleset;
   state._lastScoringMode = scoringMode;
+  state._lastWeapon = weapon;
 }));
+if (els.weaponSelect) {
+  els.weaponSelect.addEventListener("change", () => {
+    // Save current zone for previous weapon before switching
+    const prevWeapon = state._lastWeapon || "";
+    const prevKey = `${state._lastRuleset}:${state._lastScoringMode}:${prevWeapon}`;
+    const prevValue = Number.parseInt(els.successZoneInput.value, 10);
+    if (Number.isInteger(prevValue) && prevValue >= 1) {
+      appConfig.successZoneByRuleset[prevKey] = prevValue;
+      saveConfig();
+    }
+    const ruleset = els.rulesetSelect.value;
+    const scoringMode = getSelectedScoringMode();
+    const weapon = els.weaponSelect.value;
+    const zoneKey = `${ruleset}:${scoringMode}:${weapon}`;
+    const saved = appConfig.successZoneByRuleset[zoneKey];
+    if (Number.isInteger(saved) && saved >= 1) {
+      els.successZoneInput.value = String(saved);
+    }
+    updateSuccessZoneSlider();
+    state._lastWeapon = weapon;
+  });
+}
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
@@ -1715,6 +1744,7 @@ loadConfig();
 els.appVersion.textContent = APP_VERSION;
 state._lastRuleset = els.rulesetSelect.value;
 state._lastScoringMode = getSelectedScoringMode();
+state._lastWeapon = els.weaponSelect ? els.weaponSelect.value : "";
 if (!restorePersistedState()) {
   syncTargetCountDisplay();
   updateSuccessZoneSlider();
