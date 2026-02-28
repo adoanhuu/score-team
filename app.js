@@ -733,6 +733,7 @@ function getSuccessZoneColor(value, ruleset, scoringMode) {
 function updateSuccessZoneSlider() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
+  const zoneKey = `${ruleset}:${scoringMode}`;
   const max = getMaxSuccessZoneForSetup();
   els.successZoneInput.min = "1";
   els.successZoneInput.max = String(max);
@@ -741,7 +742,7 @@ function updateSuccessZoneSlider() {
   if (value > max) value = max;
   els.successZoneInput.value = String(value);
   els.successZoneValue.textContent = String(value);
-  appConfig.successZoneByRuleset[ruleset] = value;
+  appConfig.successZoneByRuleset[zoneKey] = value;
   saveConfig();
   const zoneColor = getSuccessZoneColor(value, ruleset, scoringMode);
   els.successZoneInput.style.setProperty("--zone-color", zoneColor);
@@ -1395,7 +1396,9 @@ function restart() {
 
 els.rulesetSelect.addEventListener("change", () => {
   const ruleset = els.rulesetSelect.value;
-  const saved = appConfig.successZoneByRuleset[ruleset];
+  const scoringMode = getSelectedScoringMode();
+  const zoneKey = `${ruleset}:${scoringMode}`;
+  const saved = appConfig.successZoneByRuleset[zoneKey] ?? appConfig.successZoneByRuleset[ruleset];
   if (Number.isInteger(saved) && saved >= 1) {
     els.successZoneInput.value = String(saved);
   }
@@ -1404,7 +1407,16 @@ els.rulesetSelect.addEventListener("change", () => {
   updateSuccessZoneSlider();
 });
 
-els.scoringModeInputs.forEach((input) => input.addEventListener("change", updateSuccessZoneSlider));
+els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => {
+  const ruleset = els.rulesetSelect.value;
+  const scoringMode = getSelectedScoringMode();
+  const zoneKey = `${ruleset}:${scoringMode}`;
+  const saved = appConfig.successZoneByRuleset[zoneKey] ?? appConfig.successZoneByRuleset[ruleset];
+  if (Number.isInteger(saved) && saved >= 1) {
+    els.successZoneInput.value = String(saved);
+  }
+  updateSuccessZoneSlider();
+}));
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
