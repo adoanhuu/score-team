@@ -538,9 +538,14 @@ function isDoubleZeroVolley(shoot) {
   return shoot.length >= 2 && shoot[0] === 0 && shoot[1] === 0;
 }
 
+function hasSingleMiss(shoot) {
+  return shoot.some((v) => v === 0);
+}
+
 function getVolleyPillClass(shoot, total, maxVolley) {
   if (isDoubleZeroVolley(shoot)) return "is-red";
   if (total === maxVolley) return "is-green";
+  if (hasSingleMiss(shoot)) return "is-orange";
   return "is-blue";
 }
 

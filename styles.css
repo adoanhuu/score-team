@@ -568,6 +568,10 @@ select {
   background: #2d6a4f;
 }
 
+.volley-pill.is-orange {
+  background: #f59e0b;
+}
+
 .volley-pill.is-red {
   background: #9b2226;
 }
