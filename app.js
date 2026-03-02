@@ -1,5 +1,5 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.4.0";
+const APP_VERSION = "v1.4.1";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -22,6 +22,9 @@ const state = {
   inputLocked: false,
   completionArchived: false,
   statsOpenedFromHistory: false,
+  useTargetGroups: true,
+  editingVolleyIndex: null,
+  lastEditedVolleyIndex: null,
 };
 
 const els = {
@@ -45,6 +48,7 @@ const els = {
   scoreEntryPanel: document.getElementById("score-entry-panel"),
   targetGroupSelect: document.getElementById("target-group-select"),
   pointsPad: document.getElementById("points-pad"),
+  currentShootDisplay: document.getElementById("current-shoot-display"),
   liveVolleyHistoryWrap: document.getElementById("live-volley-history-wrap"),
   liveVolleyHistoryBody: document.getElementById("live-volley-history-body"),
   resultsActions: document.getElementById("results-actions"),
@@ -63,6 +67,11 @@ const els = {
   historyModal: document.getElementById("history-modal"),
   historyModalOverlay: document.getElementById("history-modal-overlay"),
   historyCloseBtn: document.getElementById("history-close-btn"),
+  confirmModal: document.getElementById("confirm-modal"),
+  confirmModalOverlay: document.getElementById("confirm-modal-overlay"),
+  confirmModalMessage: document.getElementById("confirm-modal-message"),
+  confirmModalCancelBtn: document.getElementById("confirm-modal-cancel-btn"),
+  confirmModalConfirmBtn: document.getElementById("confirm-modal-confirm-btn"),
   historyModeFilter: document.getElementById("history-mode-filter"),
   historyRulesetFilter: document.getElementById("history-ruleset-filter"),
   historyResetFiltersBtn: document.getElementById("history-reset-filters-btn"),
@@ -88,6 +97,7 @@ const els = {
   statsScoreDist: document.getElementById("stats-score-dist"),
   statsTabSummary: document.getElementById("stats-tab-summary"),
   statsTabGroups: document.getElementById("stats-tab-groups"),
+  statsGroupDistCard: document.getElementById("stats-group-dist-card"),
   statsGroupDist: document.getElementById("stats-group-dist"),
   finalTotal: document.getElementById("final-total"),
   avgshoot: document.getElementById("avg-volley"),
@@ -116,6 +126,9 @@ const els = {
   configMissLimitTeamValue: document.getElementById("config-miss-limit-team-value"),
   configMissLimitIndiv: document.getElementById("config-miss-limit-indiv"),
   configMissLimitIndivValue: document.getElementById("config-miss-limit-indiv-value"),
+  useTargetGroupsCheckbox: document.getElementById("use-target-groups"),
+  groupColumnHeader: document.getElementById("group-column-header"),
+  statsTabGroupsBtn: document.getElementById("stats-tab-groups-btn"),
 };
 
 const presets = {
@@ -243,6 +256,7 @@ function getSetupSnapshot() {
     scoringMode: getSelectedScoringMode(),
     weapon: els.weaponSelect ? els.weaponSelect.value : "",
     successZone: Number.parseInt(els.successZoneInput.value, 10) || 1,
+    useTargetGroups: els.useTargetGroupsCheckbox ? els.useTargetGroupsCheckbox.checked : true,
   };
 }
 
@@ -306,6 +320,7 @@ function persistAppState() {
             successZone: state.successZone,
             scoringMode: state.scoringMode,
             weapon: state.weapon || "",
+            useTargetGroups: state.useTargetGroups,
             arrowsPerVolley: state.arrowsPerVolley,
             currentArrowIndex: state.currentArrowIndex,
             shoots: state.shoots.map((shoot) => [...shoot]),
@@ -314,6 +329,7 @@ function persistAppState() {
             allowedPoints: [...state.allowedPoints],
             shootGroups: [...state.shootGroups],
             currentGroup: getSelectedTargetGroup(),
+            editingVolleyIndex: state.editingVolleyIndex,
           }
         : null,
     };
@@ -353,6 +369,9 @@ function restorePersistedState() {
   if (Number.isInteger(setup.successZone)) {
     els.successZoneInput.value = String(setup.successZone);
   }
+  if (typeof setup.useTargetGroups === "boolean" && els.useTargetGroupsCheckbox) {
+    els.useTargetGroupsCheckbox.checked = setup.useTargetGroups;
+  }
   syncTargetCountDisplay();
   updateSuccessZoneSlider();
 
@@ -370,10 +389,12 @@ function restorePersistedState() {
   state.successZone = Number.isInteger(saved.successZone) ? saved.successZone : 1;
   state.scoringMode = saved.scoringMode === "individual" ? "individual" : "team";
   state.weapon = saved.weapon || "";
+  state.useTargetGroups = typeof saved.useTargetGroups === "boolean" ? saved.useTargetGroups : true;
   state.arrowsPerVolley = getArrowsPerVolley(saved.activeRuleset, state.scoringMode);
   state.activeRuleset = saved.activeRuleset;
   state.allowedPoints = Array.isArray(saved.allowedPoints) && saved.allowedPoints.length ? [...saved.allowedPoints] : [...presets[saved.activeRuleset]];
   state.shootGroups = Array.isArray(saved.shootGroups) ? [...saved.shootGroups] : [];
+  state.editingVolleyIndex = Number.isInteger(saved.editingVolleyIndex) ? saved.editingVolleyIndex : null;
   state.shoots = Array.isArray(saved.shoots) ? saved.shoots.map((shoot) => (Array.isArray(shoot) ? [...shoot] : [])).filter((shoot) => shoot.length === state.arrowsPerVolley) : [];
   state.currentshoot = Array.isArray(saved.currentshoot) ? [...saved.currentshoot].slice(0, state.arrowsPerVolley) : Array(state.arrowsPerVolley).fill(null);
   while (state.currentshoot.length < state.arrowsPerVolley) state.currentshoot.push(null);
@@ -450,21 +471,57 @@ function updateScoringHeader() {
   const shootNumber = state.shoots.length + 1;
   els.volleyTitleText.textContent = `Volée ${Math.min(shootNumber, state.targetCount)} sur ${state.targetCount}`;
   els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
-  els.progressText.textContent = "";
+  if (Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0) {
+    els.progressText.textContent = `Modification de la volée ${state.editingVolleyIndex + 1}`;
+  } else {
+    els.progressText.textContent = "";
+  }
   els.teamTotal.textContent = `${globalTotal()} pts`;
   els.successZoneDisplay.textContent = `${state.successZone} pts`;
   renderSegmentStats();
+}
+
+function updateCurrentShootDisplay() {
+  if (!els.currentShootDisplay) return;
+  const pills = state.currentshoot
+    .map((value) => {
+      const label = formatScore(value);
+      const scoreClass = value === null
+        ? "is-empty"
+        : value === 0
+          ? "is-miss"
+          : "is-hit";
+      return `<span class="current-shoot-pill ${scoreClass}">${label}</span>`;
+    })
+    .join("");
+  if (Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0) {
+    els.currentShootDisplay.innerHTML = `Cible ${state.editingVolleyIndex + 1} : ${pills}`;
+  } else {
+    els.currentShootDisplay.innerHTML = `Cible  : ${pills}`;
+  }
 }
 
 function refreshScoringView(options = {}) {
   const { scrollHistory = true } = options;
   renderPad();
   updateScoringHeader();
+  updateCurrentShootDisplay();
+  updateTargetGroupsVisibility();
   renderLiveVolleyHistory();
   updateResultsAvailability();
   persistAppState();
   if (scrollHistory) {
     scrollLiveVolleyHistoryToBottom();
+  }
+}
+
+function updateTargetGroupsVisibility() {
+  const show = state.useTargetGroups;
+  if (els.targetGroupSelect) {
+    els.targetGroupSelect.style.display = show ? "" : "none";
+  }
+  if (els.groupColumnHeader) {
+    els.groupColumnHeader.style.display = show ? "" : "none";
   }
 }
 
@@ -480,17 +537,35 @@ function scrollLiveVolleyHistoryToBottom() {
 function renderLiveVolleyHistory() {
   els.liveVolleyHistoryBody.innerHTML = "";
   const maxVolley = getMaxVolleyForCurrentConfig();
+  const sessionCompleted = state.shoots.length === state.targetCount;
   state.shoots.forEach((shoot, idx) => {
+    const isEditingRow = idx === state.editingVolleyIndex;
     const total = roundTotal(shoot);
     const successful = isSuccessfulVolley(total);
     const pillClass = getVolleyPillClass(shoot, total, maxVolley);
     const row = document.createElement("tr");
+    row.classList.toggle("is-edited-row", idx === state.lastEditedVolleyIndex);
+    const editButtonHtml = sessionCompleted
+      ? ""
+      : `
+        <button class=\"btn btn-light btn-icon row-edit-btn\" aria-label=\"Modifier la volée ${idx + 1}\">
+          <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\">
+            <path d=\"m3 17.25 9.81-9.81 3.75 3.75L6.75 21H3v-3.75Zm14.71-9.04a1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-1.42 0L12.56 5.5l3.75 3.75 1.4-1.04Z\" fill=\"currentColor\" />
+          </svg>
+        </button>
+      `;
+    const arrowsText = isEditingRow
+      ? Array(state.arrowsPerVolley).fill("-").join(" / ")
+      : shoot.map((value) => formatScore(value)).join(" / ");
+    const totalText = isEditingRow ? "-" : String(total);
+    const groupCell = state.useTargetGroups ? `<td>${state.shootGroups[idx] || "-"}</td>` : "";
     row.innerHTML = `
       <td><span class="volley-pill ${pillClass}">${idx + 1}</span></td>
-      <td>${shoot.map((value) => formatScore(value)).join(" / ")}</td>
-      <td>${state.shootGroups[idx] || "-"}</td>
-      <td class="history-total ${successful ? "success" : ""}">${total}</td>
+      <td>${arrowsText}</td>
+      ${groupCell}
+      <td class="history-total ${successful && !isEditingRow ? "success" : ""}">${totalText}</td>
       <td>
+        ${editButtonHtml}
         <button class="btn btn-danger btn-icon row-delete-btn" aria-label="Supprimer la volée ${idx + 1}">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path
@@ -501,20 +576,25 @@ function renderLiveVolleyHistory() {
         </button>
       </td>
     `;
-    row.querySelector(".row-delete-btn").addEventListener("click", () => deleteVolleyAt(idx));
+    if (!sessionCompleted) {
+      row.querySelector(".row-edit-btn").addEventListener("click", () => editVolleyAt(idx));
+    }
+    row.querySelector(".row-delete-btn").addEventListener("click", () => {
+      void deleteVolleyAt(idx);
+    });
     els.liveVolleyHistoryBody.appendChild(row);
   });
 
   const partial = state.currentshoot.some((value) => value !== null);
   if (partial && state.shoots.length < state.targetCount) {
     const idx = state.shoots.length;
-    const partialTotal = state.currentshoot.reduce((sum, value) => sum + (value ?? 0), 0);
     const previewRow = document.createElement("tr");
+    const previewGroupCell = state.useTargetGroups ? `<td>${getSelectedTargetGroup() || "-"}</td>` : "";
     previewRow.innerHTML = `
       <td><span class="volley-pill is-blue">${idx + 1}</span></td>
-      <td>${state.currentshoot.map((value) => formatScore(value)).join(" / ")}</td>
-      <td>${getSelectedTargetGroup() || "-"}</td>
-      <td class="history-total">${partialTotal}</td>
+      <td>${Array(state.arrowsPerVolley).fill("-").join(" / ")}</td>
+      ${previewGroupCell}
+      <td class="history-total">-</td>
       <td>-</td>
     `;
     els.liveVolleyHistoryBody.appendChild(previewRow);
@@ -591,7 +671,8 @@ function registerScore(score) {
     return;
   }
 
-  if (state.shoots.length >= state.targetCount) {
+  const isEditing = Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0;
+  if (state.shoots.length >= state.targetCount && !isEditing) {
     return;
   }
 
@@ -615,9 +696,21 @@ function registerScore(score) {
   if (state.currentArrowIndex === state.arrowsPerVolley) {
     state.inputLocked = true;
     refreshScoringView();
+    const editingIndexSnapshot = isEditing ? state.editingVolleyIndex : null;
+    const delay = isEditing ? 0 : LAST_SCORE_PREVIEW_MS;
     window.setTimeout(() => {
-      state.shoots.push([...state.currentshoot]);
-      state.shootGroups.push(getSelectedTargetGroup());
+      const newShoot = [...state.currentshoot];
+      const selectedGroup = getSelectedTargetGroup();
+      if (Number.isInteger(editingIndexSnapshot)) {
+        const replaceIndex = Math.max(0, Math.min(editingIndexSnapshot, state.shoots.length - 1));
+        state.shoots[replaceIndex] = newShoot;
+        state.shootGroups[replaceIndex] = selectedGroup;
+        state.lastEditedVolleyIndex = replaceIndex;
+        state.editingVolleyIndex = null;
+      } else {
+        state.shoots.push(newShoot);
+        state.shootGroups.push(selectedGroup);
+      }
       state.inputLocked = false;
       if (state.shoots.length === state.targetCount) {
         state.resultsPayload = buildResultsPayload();
@@ -631,14 +724,38 @@ function registerScore(score) {
       }
       resetRoundBuffer();
       refreshScoringView({ scrollHistory: true });
-    }, LAST_SCORE_PREVIEW_MS);
+    }, delay);
     return;
   }
 
   refreshScoringView({ scrollHistory: true });
 }
 
-function deleteVolleyAt(index) {
+function editVolleyAt(index) {
+  if (state.inputLocked) {
+    return;
+  }
+  if (state.shoots.length === state.targetCount) {
+    showFlashInfo("Session terminée : modification désactivée.");
+    return;
+  }
+  if (!Number.isInteger(index) || index < 0 || index >= state.shoots.length) {
+    return;
+  }
+
+  const originalGroup = state.shootGroups[index] || null;
+  state.editingVolleyIndex = index;
+  resetRoundBuffer();
+  if (state.useTargetGroups) {
+    syncTargetGroupSelect(originalGroup);
+  }
+  state.resultsPayload = null;
+  state.completionArchived = false;
+  showFlashInfo(`Modification volée ${index + 1} : la ligne sera remplacée.`);
+  refreshScoringView({ scrollHistory: true });
+}
+
+async function deleteVolleyAt(index) {
   if (state.inputLocked) {
     return;
   }
@@ -646,8 +763,17 @@ function deleteVolleyAt(index) {
   if (!Number.isInteger(index) || index < 0 || index >= state.shoots.length) {
     return;
   }
+  const confirmed = await confirmAction("Confirmer la suppression de cette volée ?", "Supprimer");
+  if (!confirmed) {
+    return;
+  }
   state.shoots.splice(index, 1);
   state.shootGroups.splice(index, 1);
+  if (state.lastEditedVolleyIndex === index) {
+    state.lastEditedVolleyIndex = null;
+  } else if (Number.isInteger(state.lastEditedVolleyIndex) && index < state.lastEditedVolleyIndex) {
+    state.lastEditedVolleyIndex -= 1;
+  }
   state.resultsPayload = null;
   state.completionArchived = false;
   refreshScoringView();
@@ -655,6 +781,11 @@ function deleteVolleyAt(index) {
 
 function stepBackOneArrow() {
   if (state.inputLocked) {
+    return;
+  }
+
+  if (state.editingVolleyIndex !== null && state.currentArrowIndex === 0) {
+    showFlashInfo("Volée en modification : saisissez les flèches ou validez la nouvelle volée.");
     return;
   }
 
@@ -791,12 +922,15 @@ function startScoring() {
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = getSelectedScoringMode();
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
+  state.useTargetGroups = els.useTargetGroupsCheckbox ? els.useTargetGroupsCheckbox.checked : true;
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.shoots = [];
   state.shootGroups = [];
   state.resultsPayload = null;
   state.completionArchived = false;
+  state.editingVolleyIndex = null;
+  state.lastEditedVolleyIndex = null;
   resetRoundBuffer();
   syncTargetGroupSelect();
 
@@ -837,6 +971,7 @@ function buildResultsPayload() {
     ruleset: state.activeRuleset,
     scoringMode: state.scoringMode,
     weapon: state.weapon || "",
+    useTargetGroups: state.useTargetGroups,
     targetCount: state.targetCount,
     arrowsPerVolley: state.arrowsPerVolley,
     successZone: state.successZone,
@@ -1098,6 +1233,17 @@ function buildPieSvg(counts, orderedScores, colors, size) {
 
 function renderGroupDistribution(payload) {
   const volleys = Array.isArray(payload?.volleys) ? payload.volleys : [];
+  const useTargetGroups = typeof payload.useTargetGroups === "boolean" ? payload.useTargetGroups : (state.useTargetGroups ?? true);
+
+  if (els.statsGroupDistCard) {
+    els.statsGroupDistCard.classList.toggle("hidden", !useTargetGroups);
+  }
+
+  if (!useTargetGroups) {
+    els.statsGroupDist.innerHTML = "";
+    return;
+  }
+
   const groups = getGroupsForRuleset(payload.ruleset || state.activeRuleset);
   if (groups.length === 0 || volleys.length === 0) {
     els.statsGroupDist.innerHTML = '<div style="text-align:center;color:#888;padding:12px;">Aucune donn\u00e9e de groupe.</div>';
@@ -1206,6 +1352,11 @@ function openStatsModalFromPayload(payload) {
       : [...new Set(volleys.flatMap((volley) => volley.arrows || []))].sort((a, b) => b - a);
   renderScoreDistribution(allowedPoints, volleys);
   renderGroupDistribution(payload);
+
+  if (els.statsTabGroupsBtn) {
+    els.statsTabGroupsBtn.style.display = "";
+  }
+
   switchStatsTab("summary");
 
   closeHelpModal();
@@ -1378,7 +1529,11 @@ function addHistoryEntry(payload) {
   saveHistoryEntries([entry, ...entries]);
 }
 
-function removeHistoryEntry(archivedAt) {
+async function removeHistoryEntry(archivedAt) {
+  const confirmed = await confirmAction("Confirmer la suppression de ce parcours de l'historique ?", "Supprimer");
+  if (!confirmed) {
+    return;
+  }
   const entries = loadHistoryEntries().filter((entry) => entry.archivedAt !== archivedAt);
   saveHistoryEntries(entries);
   renderHistoryList();
@@ -1511,7 +1666,9 @@ function renderHistoryList() {
       state.statsOpenedFromHistory = true;
       openStatsModalFromPayload(entry);
     });
-    deleteBtn.addEventListener("click", () => removeHistoryEntry(entry.archivedAt));
+    deleteBtn.addEventListener("click", () => {
+      void removeHistoryEntry(entry.archivedAt);
+    });
     els.historyList.appendChild(row);
   });
 
@@ -1590,10 +1747,50 @@ function closeHistoryModal() {
   els.historyModal.classList.add("hidden");
 }
 
+function confirmAction(message, confirmLabel = "Supprimer") {
+  return new Promise((resolve) => {
+    if (!els.confirmModal || !els.confirmModalMessage || !els.confirmModalCancelBtn || !els.confirmModalConfirmBtn) {
+      resolve(window.confirm(message));
+      return;
+    }
+
+    els.confirmModalMessage.textContent = message;
+    els.confirmModalConfirmBtn.textContent = confirmLabel;
+    els.confirmModal.classList.remove("hidden");
+
+    const cleanup = () => {
+      els.confirmModal.classList.add("hidden");
+      els.confirmModalConfirmBtn.removeEventListener("click", onConfirm);
+      els.confirmModalCancelBtn.removeEventListener("click", onCancel);
+      if (els.confirmModalOverlay) {
+        els.confirmModalOverlay.removeEventListener("click", onCancel);
+      }
+    };
+
+    const onConfirm = () => {
+      cleanup();
+      resolve(true);
+    };
+
+    const onCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    els.confirmModalConfirmBtn.addEventListener("click", onConfirm);
+    els.confirmModalCancelBtn.addEventListener("click", onCancel);
+    if (els.confirmModalOverlay) {
+      els.confirmModalOverlay.addEventListener("click", onCancel);
+    }
+  });
+}
+
 function restart() {
   state.shoots = [];
   state.shootGroups = [];
   state.resultsPayload = null;
+  state.editingVolleyIndex = null;
+  state.lastEditedVolleyIndex = null;
   state.inputLocked = false;
   resetRoundBuffer();
   closeStatsModal();
@@ -1682,6 +1879,9 @@ if (els.weaponSelect) {
   });
 }
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
+if (els.useTargetGroupsCheckbox) {
+  els.useTargetGroupsCheckbox.addEventListener("change", persistAppState);
+}
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
 els.historyBtn.addEventListener("click", openHistoryModal);

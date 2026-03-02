@@ -80,6 +80,10 @@
               </label>
             </fieldset>
           </div>
+          <label class="checkbox-label">
+            <input type="checkbox" id="use-target-groups" checked />
+            <span>Utiliser les groupes de cibles</span>
+          </label>
         </div>
         <label>
           Zone de réussite (pts / volée)
@@ -143,12 +147,15 @@
         <div id="segment-stats" class="quick-stats segment-stats"></div>
 
         <div id="score-entry-panel" class="score-entry-sticky">
-          <div id="points-pad" class="points-pad"></div>
+          <div id="current-shoot-display" class="current-shoot-display"></div>
           <div class="score-actions-row">
             <div id="target-group-select" class="target-group-radios" role="radiogroup" aria-label="Groupe de cible"></div>
-            <button id="step-back-btn" class="btn btn-light btn-icon back-btn" aria-label="Retour 1 flèche">
+          </div>
+          <div class="points-pad-container">
+            <div id="points-pad" class="points-pad"></div>
+            <button id="step-back-btn" class="btn btn-light btn-icon back-btn" aria-label="Effacer la dernière flèche">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M14.5 6 8.5 12l6 6 1.5-1.5L11.5 12 16 7.5 14.5 6Z" fill="currentColor" />
+                <path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l10.6-10.6c.79-.78 2.05-.78 2.83 0M4.22 15.58l3.54 3.53c.78.79 2.04.79 2.83 0l3.53-3.53-6.36-6.36-3.54 3.54c-.78.78-.78 2.05 0 2.82Z" fill="currentColor" />
               </svg>
             </button>
           </div>
@@ -161,7 +168,7 @@
               <tr>
                 <th>Volée</th>
                 <th>Flèches</th>
-                <th>Groupe</th>
+                <th id="group-column-header">Groupe</th>
                 <th>Total</th>
                 <th>Action</th>
               </tr>
@@ -237,7 +244,7 @@
           </div>
           <nav class="stats-tabs" role="tablist">
             <button class="stats-tab active" role="tab" aria-selected="true" data-stats-tab="summary">Résumé</button>
-            <button class="stats-tab" role="tab" aria-selected="false" data-stats-tab="groups">Par groupe</button>
+            <button id="stats-tab-groups-btn" class="stats-tab" role="tab" aria-selected="false" data-stats-tab="groups">Par groupe</button>
           </nav>
           <div id="stats-tab-summary" class="stats-tab-panel">
           <div class="stats-grid-3">
@@ -304,7 +311,7 @@
           </div>
           <div id="stats-tab-groups" class="stats-tab-panel hidden">
             <div class="stats-grid-1">
-              <article class="stats-dist-card">
+              <article id="stats-group-dist-card" class="stats-dist-card">
                 <span>Répartition des scores par groupe</span>
                 <div id="stats-group-dist" class="stats-group-dist"></div>
               </article>
@@ -551,6 +558,20 @@
           </div>
           <div id="history-list" class="history-list"></div>
           <nav id="history-pagination" class="history-pagination hidden" aria-label="Pagination historique"></nav>
+        </div>
+      </section>
+
+      <section id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <div class="modal-overlay" id="confirm-modal-overlay"></div>
+        <div class="modal-card confirm-modal-card">
+          <div class="modal-head">
+            <h3 id="confirm-modal-title">Confirmation</h3>
+          </div>
+          <p id="confirm-modal-message" class="confirm-modal-message">Confirmer cette action ?</p>
+          <div class="confirm-modal-actions">
+            <button id="confirm-modal-cancel-btn" class="btn btn-light">Annuler</button>
+            <button id="confirm-modal-confirm-btn" class="btn btn-danger">Supprimer</button>
+          </div>
         </div>
       </section>
       <footer class="app-footer">

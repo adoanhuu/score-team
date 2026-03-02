@@ -174,6 +174,21 @@ label {
   pointer-events: none;
 }
 
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
 input,
 select,
 button {
@@ -422,11 +437,59 @@ select {
   color: #1f2a24;
 }
 
+.points-pad-container {
+  margin-top: 0;
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.current-shoot-display {
+  margin-bottom: 8px;
+  padding: 6px 10px 0;
+  border-radius: 10px;
+  background: #b6b5b5;
+  border: 1px solid var(--line);
+  font-weight: 700;
+  color: #1f2a24;
+  text-align: center;
+}
+
+.current-shoot-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 32px;
+  margin: 6px 6px 0;
+  padding: 4px 12px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  background: #1f6feb;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.current-shoot-pill.is-empty {
+  background: #ffffff;
+  color: #6b7280;
+}
+
+.current-shoot-pill.is-miss {
+  background: #991b1b;
+  color: #fff;
+}
+
+.current-shoot-pill.is-hit {
+  background: #1f6feb;
+  color: #fff;
+}
+
 .points-pad {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
-  gap: 8px;
+  flex: 1;
+  display: flex;
+  gap: 6px;
 }
 
 .score-entry-sticky {
@@ -449,7 +512,7 @@ select {
 }
 
 .point-btn {
-  width: 100%;
+  flex: 1;
   background: #1f6feb;
   border: 1px solid #1558c0;
   border-radius: 10px;
@@ -460,7 +523,7 @@ select {
 }
 
 .score-actions-row {
-  margin-top: 8px;
+  margin-bottom: 8px;
   display: flex;
   gap: 8px;
   align-items: stretch;
@@ -470,9 +533,9 @@ select {
   background: #d3d6da;
   color: #1f2a24;
   margin-top: 0;
-  min-height: 42px;
-  min-width: 42px;
-  padding: 0 10px;
+  min-height: 54px;
+  width: 56px;
+  padding: 0;
   flex-shrink: 0;
 }
 
@@ -582,6 +645,10 @@ select {
   border-bottom: none;
 }
 
+#live-volley-history-body tr.is-edited-row td {
+  background: #eef1f4;
+}
+
 .volley-pill {
   display: inline-flex;
   align-items: center;
@@ -595,7 +662,8 @@ select {
 }
 
 .volley-pill.is-blue {
-  background: #8c929a;
+  background: #b8bec8;
+  color: #374151;
 }
 
 .volley-pill.is-green {
@@ -616,6 +684,18 @@ select {
   min-height: 34px;
   background: transparent;
   color: var(--danger);
+}
+
+.row-edit-btn {
+  padding: 6px;
+  min-width: 38px;
+  min-height: 34px;
+  background: transparent;
+  color: #1a4fa0;
+}
+
+.row-edit-btn svg {
+  color: #1a4fa0;
 }
 
 .row-delete-btn svg {
@@ -941,6 +1021,22 @@ select {
 .help-modal-card {
   max-height: min(80vh, 760px);
   overflow-y: auto;
+}
+
+.confirm-modal-card {
+  width: min(420px, 100%);
+}
+
+.confirm-modal-message {
+  margin: 4px 4px 14px;
+  color: #1f2a24;
+  font-weight: 600;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .help-paginated-card {
