@@ -1,5 +1,5 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.4.1";
+const APP_VERSION = "v1.4.2";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -126,7 +126,7 @@ const els = {
   configMissLimitTeamValue: document.getElementById("config-miss-limit-team-value"),
   configMissLimitIndiv: document.getElementById("config-miss-limit-indiv"),
   configMissLimitIndivValue: document.getElementById("config-miss-limit-indiv-value"),
-  useTargetGroupsCheckbox: document.getElementById("use-target-groups"),
+  useTargetGroupsInputs: document.querySelectorAll('input[name="use-target-groups"]'),
   groupColumnHeader: document.getElementById("group-column-header"),
   statsTabGroupsBtn: document.getElementById("stats-tab-groups-btn"),
 };
@@ -256,7 +256,7 @@ function getSetupSnapshot() {
     scoringMode: getSelectedScoringMode(),
     weapon: els.weaponSelect ? els.weaponSelect.value : "",
     successZone: Number.parseInt(els.successZoneInput.value, 10) || 1,
-    useTargetGroups: els.useTargetGroupsCheckbox ? els.useTargetGroupsCheckbox.checked : true,
+    useTargetGroups: getSelectedUseTargetGroups(),
   };
 }
 
@@ -365,12 +365,15 @@ function restorePersistedState() {
     els.scoringModeInputs.forEach((input) => {
       input.checked = input.value === setup.scoringMode;
     });
+    updateWeaponSelectVisibility();
   }
   if (Number.isInteger(setup.successZone)) {
     els.successZoneInput.value = String(setup.successZone);
   }
-  if (typeof setup.useTargetGroups === "boolean" && els.useTargetGroupsCheckbox) {
-    els.useTargetGroupsCheckbox.checked = setup.useTargetGroups;
+  if (typeof setup.useTargetGroups === "boolean") {
+    const targetValue = setup.useTargetGroups ? "yes" : "no";
+    const input = [...els.useTargetGroupsInputs].find((i) => i.value === targetValue);
+    if (input) input.checked = true;
   }
   syncTargetCountDisplay();
   updateSuccessZoneSlider();
@@ -494,11 +497,7 @@ function updateCurrentShootDisplay() {
       return `<span class="current-shoot-pill ${scoreClass}">${label}</span>`;
     })
     .join("");
-  if (Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0) {
-    els.currentShootDisplay.innerHTML = `Cible ${state.editingVolleyIndex + 1} : ${pills}`;
-  } else {
-    els.currentShootDisplay.innerHTML = `Cible  : ${pills}`;
-  }
+    els.currentShootDisplay.innerHTML = `${pills}`;
 }
 
 function refreshScoringView(options = {}) {
@@ -545,15 +544,6 @@ function renderLiveVolleyHistory() {
     const pillClass = getVolleyPillClass(shoot, total, maxVolley);
     const row = document.createElement("tr");
     row.classList.toggle("is-edited-row", idx === state.lastEditedVolleyIndex);
-    const editButtonHtml = sessionCompleted
-      ? ""
-      : `
-        <button class=\"btn btn-light btn-icon row-edit-btn\" aria-label=\"Modifier la volée ${idx + 1}\">
-          <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\">
-            <path d=\"m3 17.25 9.81-9.81 3.75 3.75L6.75 21H3v-3.75Zm14.71-9.04a1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-1.42 0L12.56 5.5l3.75 3.75 1.4-1.04Z\" fill=\"currentColor\" />
-          </svg>
-        </button>
-      `;
     const arrowsText = isEditingRow
       ? Array(state.arrowsPerVolley).fill("-").join(" / ")
       : shoot.map((value) => formatScore(value)).join(" / ");
@@ -565,7 +555,6 @@ function renderLiveVolleyHistory() {
       ${groupCell}
       <td class="history-total ${successful && !isEditingRow ? "success" : ""}">${totalText}</td>
       <td>
-        ${editButtonHtml}
         <button class="btn btn-danger btn-icon row-delete-btn" aria-label="Supprimer la volée ${idx + 1}">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path
@@ -577,7 +566,22 @@ function renderLiveVolleyHistory() {
       </td>
     `;
     if (!sessionCompleted) {
-      row.querySelector(".row-edit-btn").addEventListener("click", () => editVolleyAt(idx));
+      // Double-click/double-tap to edit row
+      let lastTapTime = 0;
+      const DOUBLE_TAP_DELAY = 300;
+      
+      row.addEventListener("click", (e) => {
+        // Ignore clicks on buttons
+        if (e.target.closest("button")) return;
+        
+        const now = Date.now();
+        if (now - lastTapTime < DOUBLE_TAP_DELAY) {
+          editVolleyAt(idx);
+          lastTapTime = 0;
+        } else {
+          lastTapTime = now;
+        }
+      });
     }
     row.querySelector(".row-delete-btn").addEventListener("click", () => {
       void deleteVolleyAt(idx);
@@ -818,6 +822,19 @@ function getSelectedScoringMode() {
   return checked ? checked.value : "team";
 }
 
+function updateWeaponSelectVisibility() {
+  const scoringMode = getSelectedScoringMode();
+  const weaponWrapper = document.getElementById("weapon-select-wrapper");
+  if (weaponWrapper) {
+    weaponWrapper.style.display = scoringMode === "team" ? "none" : "block";
+  }
+}
+
+function getSelectedUseTargetGroups() {
+  const checked = [...els.useTargetGroupsInputs].find((input) => input.checked);
+  return checked ? checked.value === "yes" : true;
+}
+
 function getCurrentConfigForSetup() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
@@ -922,7 +939,7 @@ function startScoring() {
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = getSelectedScoringMode();
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
-  state.useTargetGroups = els.useTargetGroupsCheckbox ? els.useTargetGroupsCheckbox.checked : true;
+  state.useTargetGroups = getSelectedUseTargetGroups();
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.shoots = [];
@@ -1852,6 +1869,7 @@ els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => 
     els.successZoneInput.value = String(saved);
   }
   updateSuccessZoneSlider();
+  updateWeaponSelectVisibility();
   state._lastRuleset = ruleset;
   state._lastScoringMode = scoringMode;
   state._lastWeapon = weapon;
@@ -1879,9 +1897,7 @@ if (els.weaponSelect) {
   });
 }
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
-if (els.useTargetGroupsCheckbox) {
-  els.useTargetGroupsCheckbox.addEventListener("change", persistAppState);
-}
+els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
 els.historyBtn.addEventListener("click", openHistoryModal);
@@ -1941,6 +1957,7 @@ els.configMissLimitIndiv.addEventListener("input", () => {
 });
 els.rulesetSelect.addEventListener("change", () => syncConfigSliderMax());
 loadConfig();
+updateWeaponSelectVisibility();
 els.appVersion.textContent = APP_VERSION;
 state._lastRuleset = els.rulesetSelect.value;
 state._lastScoringMode = getSelectedScoringMode();
