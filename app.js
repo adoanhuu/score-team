@@ -555,8 +555,8 @@ function renderLiveVolleyHistory() {
         </button>
       `;
     const arrowsText = isEditingRow
-      ? Array(state.arrowsPerVolley).fill("-").join(" / ")
-      : shoot.map((value) => formatScore(value)).join(" / ");
+      ? Array(state.arrowsPerVolley).fill("-").join(" ")
+      : shoot.map((value) => formatScore(value)).join(" ");
     const totalText = isEditingRow ? "-" : String(total);
     const groupCell = state.useTargetGroups ? `<td>${state.shootGroups[idx] || "-"}</td>` : "";
     row.innerHTML = `
@@ -592,7 +592,7 @@ function renderLiveVolleyHistory() {
     const previewGroupCell = state.useTargetGroups ? `<td>${getSelectedTargetGroup() || "-"}</td>` : "";
     previewRow.innerHTML = `
       <td><span class="volley-pill is-blue">${idx + 1}</span></td>
-      <td>${Array(state.arrowsPerVolley).fill("-").join(" / ")}</td>
+      <td>${Array(state.arrowsPerVolley).fill("-").join(" ")}</td>
       ${previewGroupCell}
       <td class="history-total">-</td>
       <td>-</td>
@@ -1605,7 +1605,7 @@ function renderHistoryList() {
       const successClass = total >= (entry.successZone || 0) ? "success" : "";
       return `<tr>
         <td><span class="volley-pill ${pillClass}">${v.index}</span></td>
-        <td>${arrows.map((a) => formatScore(a)).join(" / ")}</td>
+        <td>${arrows.map((a) => formatScore(a)).join(" ")}</td>
         <td>${v.group || "-"}</td>
         <td class="history-total ${successClass}">${total}</td>
       </tr>`;
