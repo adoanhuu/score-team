@@ -464,6 +464,7 @@ select {
   flex: 1;
   height: 32px;
   padding: 4px 8px;
+  margin: 0 1px;
   border-radius: 4px;
   background: #1f6feb;
   color: #fff;
