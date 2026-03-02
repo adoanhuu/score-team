@@ -58,16 +58,6 @@
                 </optgroup>
               </select>
             </label>
-            <label>
-              <span class="label-inline">Type d'arme</span>
-              <select id="weapon-select">
-                <option value="AC">AC - Arc de Chasse</option>
-                <option value="AD">AD - Arc Droit</option>
-                <option value="BB">BB - Barebow</option>
-                <option value="CO">CO - Compound</option>
-                <option value="TL">TL - Tir Libre</option>
-              </select>
-            </label>
             <fieldset class="mode-fieldset">
               <legend>Mode de saisie</legend>
               <label class="mode-option">
@@ -79,8 +69,18 @@
                 <span>Individuel</span>
               </label>
             </fieldset>
+            <label id="weapon-select-wrapper">
+              <span class="label-inline">Type d'arme</span>
+              <select id="weapon-select">
+                <option value="AC">AC - Arc de Chasse</option>
+                <option value="AD">AD - Arc Droit</option>
+                <option value="BB">BB - Barebow</option>
+                <option value="CO">CO - Compound</option>
+                <option value="TL">TL - Tir Libre</option>
+              </select>
+            </label>
           </div>
-          <label class="checkbox-label">
+          <label class="checkbox-label use-target-groups-label">
             <input type="checkbox" id="use-target-groups" checked />
             <span>Utiliser les groupes de cibles</span>
           </label>

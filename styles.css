@@ -183,6 +183,11 @@ label {
   cursor: pointer;
 }
 
+.checkbox-label.use-target-groups-label {
+  display: block;
+  margin-top: 28px;
+}
+
 .checkbox-label input[type="checkbox"] {
   width: auto;
   cursor: pointer;
@@ -648,14 +653,6 @@ select {
 
 #live-volley-history-body tr.is-edited-row td {
   background: #eef1f4;
-}
-
-#live-volley-history-body tr:not(.is-edited-row) {
-  cursor: pointer;
-}
-
-#live-volley-history-body tr:not(.is-edited-row):hover td {
-  background-color: rgba(45, 106, 79, 0.05);
 }
 
 .volley-pill {

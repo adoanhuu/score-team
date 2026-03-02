@@ -126,7 +126,7 @@ const els = {
   configMissLimitTeamValue: document.getElementById("config-miss-limit-team-value"),
   configMissLimitIndiv: document.getElementById("config-miss-limit-indiv"),
   configMissLimitIndivValue: document.getElementById("config-miss-limit-indiv-value"),
-  useTargetGroupsCheckbox: document.getElementById("use-target-groups"),
+  useTargetGroupsInputs: document.querySelectorAll('input[name="use-target-groups"]'),
   groupColumnHeader: document.getElementById("group-column-header"),
   statsTabGroupsBtn: document.getElementById("stats-tab-groups-btn"),
 };
@@ -256,7 +256,7 @@ function getSetupSnapshot() {
     scoringMode: getSelectedScoringMode(),
     weapon: els.weaponSelect ? els.weaponSelect.value : "",
     successZone: Number.parseInt(els.successZoneInput.value, 10) || 1,
-    useTargetGroups: els.useTargetGroupsCheckbox ? els.useTargetGroupsCheckbox.checked : true,
+    useTargetGroups: getSelectedUseTargetGroups(),
   };
 }
 
@@ -365,12 +365,15 @@ function restorePersistedState() {
     els.scoringModeInputs.forEach((input) => {
       input.checked = input.value === setup.scoringMode;
     });
+    updateWeaponSelectVisibility();
   }
   if (Number.isInteger(setup.successZone)) {
     els.successZoneInput.value = String(setup.successZone);
   }
-  if (typeof setup.useTargetGroups === "boolean" && els.useTargetGroupsCheckbox) {
-    els.useTargetGroupsCheckbox.checked = setup.useTargetGroups;
+  if (typeof setup.useTargetGroups === "boolean") {
+    const targetValue = setup.useTargetGroups ? "yes" : "no";
+    const input = [...els.useTargetGroupsInputs].find((i) => i.value === targetValue);
+    if (input) input.checked = true;
   }
   syncTargetCountDisplay();
   updateSuccessZoneSlider();
@@ -819,6 +822,19 @@ function getSelectedScoringMode() {
   return checked ? checked.value : "team";
 }
 
+function updateWeaponSelectVisibility() {
+  const scoringMode = getSelectedScoringMode();
+  const weaponWrapper = document.getElementById("weapon-select-wrapper");
+  if (weaponWrapper) {
+    weaponWrapper.style.display = scoringMode === "team" ? "none" : "block";
+  }
+}
+
+function getSelectedUseTargetGroups() {
+  const checked = [...els.useTargetGroupsInputs].find((input) => input.checked);
+  return checked ? checked.value === "yes" : true;
+}
+
 function getCurrentConfigForSetup() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
@@ -923,7 +939,7 @@ function startScoring() {
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = getSelectedScoringMode();
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
-  state.useTargetGroups = els.useTargetGroupsCheckbox ? els.useTargetGroupsCheckbox.checked : true;
+  state.useTargetGroups = getSelectedUseTargetGroups();
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.shoots = [];
@@ -1853,6 +1869,7 @@ els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => 
     els.successZoneInput.value = String(saved);
   }
   updateSuccessZoneSlider();
+  updateWeaponSelectVisibility();
   state._lastRuleset = ruleset;
   state._lastScoringMode = scoringMode;
   state._lastWeapon = weapon;
@@ -1880,9 +1897,7 @@ if (els.weaponSelect) {
   });
 }
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
-if (els.useTargetGroupsCheckbox) {
-  els.useTargetGroupsCheckbox.addEventListener("change", persistAppState);
-}
+els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
 els.historyBtn.addEventListener("click", openHistoryModal);
@@ -1942,6 +1957,7 @@ els.configMissLimitIndiv.addEventListener("input", () => {
 });
 els.rulesetSelect.addEventListener("change", () => syncConfigSliderMax());
 loadConfig();
+updateWeaponSelectVisibility();
 els.appVersion.textContent = APP_VERSION;
 state._lastRuleset = els.rulesetSelect.value;
 state._lastScoringMode = getSelectedScoringMode();
