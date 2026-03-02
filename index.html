@@ -559,6 +559,20 @@
           <nav id="history-pagination" class="history-pagination hidden" aria-label="Pagination historique"></nav>
         </div>
       </section>
+
+      <section id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <div class="modal-overlay" id="confirm-modal-overlay"></div>
+        <div class="modal-card confirm-modal-card">
+          <div class="modal-head">
+            <h3 id="confirm-modal-title">Confirmation</h3>
+          </div>
+          <p id="confirm-modal-message" class="confirm-modal-message">Confirmer cette action ?</p>
+          <div class="confirm-modal-actions">
+            <button id="confirm-modal-cancel-btn" class="btn btn-light">Annuler</button>
+            <button id="confirm-modal-confirm-btn" class="btn btn-danger">Supprimer</button>
+          </div>
+        </div>
+      </section>
       <footer class="app-footer">
         <p>Team Score &copy; 2026 Alain DOAN-HUU - <span id="app-version" class="app-footer-version"></span></p>
       </footer>

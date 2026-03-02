@@ -616,7 +616,8 @@ select {
 }
 
 .volley-pill.is-blue {
-  background: #8c929a;
+  background: #b8bec8;
+  color: #374151;
 }
 
 .volley-pill.is-green {
@@ -962,6 +963,22 @@ select {
 .help-modal-card {
   max-height: min(80vh, 760px);
   overflow-y: auto;
+}
+
+.confirm-modal-card {
+  width: min(420px, 100%);
+}
+
+.confirm-modal-message {
+  margin: 4px 4px 14px;
+  color: #1f2a24;
+  font-weight: 600;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .help-paginated-card {

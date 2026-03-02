@@ -64,6 +64,11 @@ const els = {
   historyModal: document.getElementById("history-modal"),
   historyModalOverlay: document.getElementById("history-modal-overlay"),
   historyCloseBtn: document.getElementById("history-close-btn"),
+  confirmModal: document.getElementById("confirm-modal"),
+  confirmModalOverlay: document.getElementById("confirm-modal-overlay"),
+  confirmModalMessage: document.getElementById("confirm-modal-message"),
+  confirmModalCancelBtn: document.getElementById("confirm-modal-cancel-btn"),
+  confirmModalConfirmBtn: document.getElementById("confirm-modal-confirm-btn"),
   historyModeFilter: document.getElementById("history-mode-filter"),
   historyRulesetFilter: document.getElementById("history-ruleset-filter"),
   historyResetFiltersBtn: document.getElementById("history-reset-filters-btn"),
@@ -524,7 +529,9 @@ function renderLiveVolleyHistory() {
         </button>
       </td>
     `;
-    row.querySelector(".row-delete-btn").addEventListener("click", () => deleteVolleyAt(idx));
+    row.querySelector(".row-delete-btn").addEventListener("click", () => {
+      void deleteVolleyAt(idx);
+    });
     els.liveVolleyHistoryBody.appendChild(row);
   });
 
@@ -662,12 +669,16 @@ function registerScore(score) {
   refreshScoringView({ scrollHistory: true });
 }
 
-function deleteVolleyAt(index) {
+async function deleteVolleyAt(index) {
   if (state.inputLocked) {
     return;
   }
 
   if (!Number.isInteger(index) || index < 0 || index >= state.shoots.length) {
+    return;
+  }
+  const confirmed = await confirmAction("Confirmer la suppression de cette volée ?", "Supprimer");
+  if (!confirmed) {
     return;
   }
   state.shoots.splice(index, 1);
@@ -1420,7 +1431,11 @@ function addHistoryEntry(payload) {
   saveHistoryEntries([entry, ...entries]);
 }
 
-function removeHistoryEntry(archivedAt) {
+async function removeHistoryEntry(archivedAt) {
+  const confirmed = await confirmAction("Confirmer la suppression de ce parcours de l'historique ?", "Supprimer");
+  if (!confirmed) {
+    return;
+  }
   const entries = loadHistoryEntries().filter((entry) => entry.archivedAt !== archivedAt);
   saveHistoryEntries(entries);
   renderHistoryList();
@@ -1554,6 +1569,9 @@ function renderHistoryList() {
       openStatsModalFromPayload(entry);
     });
     deleteBtn.addEventListener("click", () => removeHistoryEntry(entry.archivedAt));
+    deleteBtn.addEventListener("click", () => {
+      void removeHistoryEntry(entry.archivedAt);
+    });
     els.historyList.appendChild(row);
   });
 
@@ -1630,6 +1648,44 @@ function openHistoryModal() {
 
 function closeHistoryModal() {
   els.historyModal.classList.add("hidden");
+}
+
+function confirmAction(message, confirmLabel = "Supprimer") {
+  return new Promise((resolve) => {
+    if (!els.confirmModal || !els.confirmModalMessage || !els.confirmModalCancelBtn || !els.confirmModalConfirmBtn) {
+      resolve(window.confirm(message));
+      return;
+    }
+
+    els.confirmModalMessage.textContent = message;
+    els.confirmModalConfirmBtn.textContent = confirmLabel;
+    els.confirmModal.classList.remove("hidden");
+
+    const cleanup = () => {
+      els.confirmModal.classList.add("hidden");
+      els.confirmModalConfirmBtn.removeEventListener("click", onConfirm);
+      els.confirmModalCancelBtn.removeEventListener("click", onCancel);
+      if (els.confirmModalOverlay) {
+        els.confirmModalOverlay.removeEventListener("click", onCancel);
+      }
+    };
+
+    const onConfirm = () => {
+      cleanup();
+      resolve(true);
+    };
+
+    const onCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    els.confirmModalConfirmBtn.addEventListener("click", onConfirm);
+    els.confirmModalCancelBtn.addEventListener("click", onCancel);
+    if (els.confirmModalOverlay) {
+      els.confirmModalOverlay.addEventListener("click", onCancel);
+    }
+  });
 }
 
 function restart() {
