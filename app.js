@@ -495,9 +495,9 @@ function updateCurrentShootDisplay() {
     })
     .join("");
   if (Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0) {
-    els.currentShootDisplay.innerHTML = `Cible ${state.editingVolleyIndex + 1} : ${pills}`;
+    els.currentShootDisplay.innerHTML = `<span style="white-space: nowrap; margin-right: 4px;">${state.editingVolleyIndex + 1} :</span>${pills}`;
   } else {
-    els.currentShootDisplay.innerHTML = `Cible  : ${pills}`;
+    els.currentShootDisplay.innerHTML = `${pills}`;
   }
 }
 

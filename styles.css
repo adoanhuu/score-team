@@ -446,25 +446,25 @@ select {
 
 .current-shoot-display {
   margin-bottom: 8px;
-  padding: 6px 10px 0;
+  padding: 10px;
   border-radius: 10px;
   background: #b6b5b5;
   border: 1px solid var(--line);
   font-weight: 700;
   color: #1f2a24;
-  text-align: center;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
 }
 
 .current-shoot-pill {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
+  flex: 1;
   height: 32px;
-  margin: 6px 6px 0;
-  padding: 4px 12px;
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
   background: #1f6feb;
   color: #fff;
   font-size: 0.85rem;
@@ -472,7 +472,7 @@ select {
 }
 
 .current-shoot-pill.is-empty {
-  background: #ffffff;
+  background: #d6d6d6;
   color: #6b7280;
 }
 
@@ -712,7 +712,7 @@ select {
 }
 
 .history-total.success {
-  color: var(--accent);
+  color: green;
 }
 
 .stats-list {
