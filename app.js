@@ -133,6 +133,7 @@ const els = {
 
 const presets = {
   nature: [20, 15, 10, 0],
+  campagne: [6, 5, 4, 3, 2, 1, 0],
   "3d": [11, 10, 8, 5, 0],
   "3d2": [10, 8, 5, 0],
   "3dh": [20, 16, 10, 0],
@@ -141,6 +142,7 @@ const presets = {
 
 const defaultTargetsByRuleset = {
   nature: 21,
+  campagne: 24,
   "3d": 24,
   "3d2": 14,
   "3dh": 14,
@@ -268,9 +270,34 @@ function formatWeaponLabel(code) {
   if (code === "AC") return "Arc de Chasse";
   if (code === "AD") return "Arc Droit";
   if (code === "BB") return "Barebow";
+  if (code === "CL") return "Classique Viseur";
   if (code === "CO") return "Compound";
   if (code === "TL") return "Tir Libre";
   return code || "";
+}
+
+function getWeaponsForRuleset(ruleset) {
+  if (ruleset === "campagne") {
+    return ["AD", "BB", "TL", "CL"];
+  }
+  return ["AC", "AD", "BB", "CO", "TL"];
+}
+
+function isWeaponAllowedForRuleset(weapon, ruleset) {
+  return getWeaponsForRuleset(ruleset).includes(weapon);
+}
+
+function syncWeaponSelectOptions(preferredWeapon = null) {
+  if (!els.weaponSelect) return;
+  const ruleset = els.rulesetSelect.value;
+  const allowedWeapons = getWeaponsForRuleset(ruleset);
+  const currentWeapon = preferredWeapon || els.weaponSelect.value;
+  const selectedWeapon = allowedWeapons.includes(currentWeapon) ? currentWeapon : allowedWeapons[0];
+
+  els.weaponSelect.innerHTML = allowedWeapons
+    .map((weapon) => `<option value="${weapon}">${weapon} - ${formatWeaponLabel(weapon)}</option>`)
+    .join("");
+  els.weaponSelect.value = selectedWeapon;
 }
 
 function getGroupLabel(group) {
@@ -361,6 +388,7 @@ function restorePersistedState() {
   if (setup.ruleset && presets[setup.ruleset]) {
     els.rulesetSelect.value = setup.ruleset;
   }
+  syncWeaponSelectOptions(setup.weapon || null);
   if (setup.scoringMode === "team" || setup.scoringMode === "individual") {
     els.scoringModeInputs.forEach((input) => {
       input.checked = input.value === setup.scoringMode;
@@ -391,7 +419,9 @@ function restorePersistedState() {
   state.targetCount = Number.isInteger(saved.targetCount) ? saved.targetCount : getTargetCountForRuleset(saved.activeRuleset);
   state.successZone = Number.isInteger(saved.successZone) ? saved.successZone : 1;
   state.scoringMode = saved.scoringMode === "individual" ? "individual" : "team";
-  state.weapon = saved.weapon || "";
+  state.weapon = isWeaponAllowedForRuleset(saved.weapon || "", saved.activeRuleset)
+    ? saved.weapon
+    : getWeaponsForRuleset(saved.activeRuleset)[0];
   state.useTargetGroups = typeof saved.useTargetGroups === "boolean" ? saved.useTargetGroups : true;
   state.arrowsPerVolley = getArrowsPerVolley(saved.activeRuleset, state.scoringMode);
   state.activeRuleset = saved.activeRuleset;
@@ -857,6 +887,7 @@ function isFFTLRuleset(ruleset) {
 function getArrowsPerVolley(ruleset, scoringMode) {
   if (ruleset === "3dh") return 1;
   if (ruleset === "ar") return 3;
+  if (ruleset === "campagne") return 3;
   return scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
 }
 
@@ -1582,7 +1613,11 @@ function renderHistoryList() {
 
   const formatParcoursLabel = (value) => {
     if (value === "nature") return "Nature";
+    if (value === "campagne") return "Campagne";
     if (value === "3d") return "3D";
+    if (value === "3d2") return "3D Two Shoots";
+    if (value === "3dh") return "3D Hunting";
+    if (value === "ar") return "Animal Rounds";
     return "-";
   };
   const formatModeLabel = (value) => {
@@ -1830,6 +1865,7 @@ els.rulesetSelect.addEventListener("change", () => {
     saveConfig();
   }
   syncScoringModeFieldset();
+  syncWeaponSelectOptions();
   syncTargetCountDisplay();
   // Update slider max BEFORE restoring value to prevent browser clamping
   const newMax = getMaxSuccessZoneForSetup();
@@ -1957,6 +1993,7 @@ els.configMissLimitIndiv.addEventListener("input", () => {
 });
 els.rulesetSelect.addEventListener("change", () => syncConfigSliderMax());
 loadConfig();
+syncWeaponSelectOptions();
 updateWeaponSelectVisibility();
 els.appVersion.textContent = APP_VERSION;
 state._lastRuleset = els.rulesetSelect.value;

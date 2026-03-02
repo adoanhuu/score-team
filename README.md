@@ -1,12 +1,12 @@
 # Score Team Arc
 
-Application web mobile pour saisir les scores d'une équipe sur un parcours Nature ou 3D en tir à l'arc.
+Application web mobile pour saisir les scores d'une équipe sur un parcours Nature, Campagne ou 3D en tir à l'arc.
 
 ## Fonctions
 - Saisie des points pour chaque flèche (6 flèches par volée).
 - Total en temps réel de la volée et de l'équipe.
 - Nombre de cibles configurable.
-- Barèmes intégrés : Nature et 3D.
+- Barèmes intégrés : Nature, Campagne et 3D.
 - Barème personnalisé possible.
 - Bilan final : total, moyennes, meilleure/pire volée, répartition des impacts.
 
