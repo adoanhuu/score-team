@@ -22,6 +22,7 @@ const state = {
   inputLocked: false,
   completionArchived: false,
   statsOpenedFromHistory: false,
+  useTargetGroups: true,
 };
 
 const els = {
@@ -88,6 +89,7 @@ const els = {
   statsScoreDist: document.getElementById("stats-score-dist"),
   statsTabSummary: document.getElementById("stats-tab-summary"),
   statsTabGroups: document.getElementById("stats-tab-groups"),
+  statsGroupDistCard: document.getElementById("stats-group-dist-card"),
   statsGroupDist: document.getElementById("stats-group-dist"),
   finalTotal: document.getElementById("final-total"),
   avgshoot: document.getElementById("avg-volley"),
@@ -116,6 +118,9 @@ const els = {
   configMissLimitTeamValue: document.getElementById("config-miss-limit-team-value"),
   configMissLimitIndiv: document.getElementById("config-miss-limit-indiv"),
   configMissLimitIndivValue: document.getElementById("config-miss-limit-indiv-value"),
+  useTargetGroupsCheckbox: document.getElementById("use-target-groups"),
+  groupColumnHeader: document.getElementById("group-column-header"),
+  statsTabGroupsBtn: document.getElementById("stats-tab-groups-btn"),
 };
 
 const presets = {
@@ -243,6 +248,7 @@ function getSetupSnapshot() {
     scoringMode: getSelectedScoringMode(),
     weapon: els.weaponSelect ? els.weaponSelect.value : "",
     successZone: Number.parseInt(els.successZoneInput.value, 10) || 1,
+    useTargetGroups: els.useTargetGroupsCheckbox ? els.useTargetGroupsCheckbox.checked : true,
   };
 }
 
@@ -306,6 +312,7 @@ function persistAppState() {
             successZone: state.successZone,
             scoringMode: state.scoringMode,
             weapon: state.weapon || "",
+            useTargetGroups: state.useTargetGroups,
             arrowsPerVolley: state.arrowsPerVolley,
             currentArrowIndex: state.currentArrowIndex,
             shoots: state.shoots.map((shoot) => [...shoot]),
@@ -353,6 +360,9 @@ function restorePersistedState() {
   if (Number.isInteger(setup.successZone)) {
     els.successZoneInput.value = String(setup.successZone);
   }
+  if (typeof setup.useTargetGroups === "boolean" && els.useTargetGroupsCheckbox) {
+    els.useTargetGroupsCheckbox.checked = setup.useTargetGroups;
+  }
   syncTargetCountDisplay();
   updateSuccessZoneSlider();
 
@@ -370,6 +380,7 @@ function restorePersistedState() {
   state.successZone = Number.isInteger(saved.successZone) ? saved.successZone : 1;
   state.scoringMode = saved.scoringMode === "individual" ? "individual" : "team";
   state.weapon = saved.weapon || "";
+  state.useTargetGroups = typeof saved.useTargetGroups === "boolean" ? saved.useTargetGroups : true;
   state.arrowsPerVolley = getArrowsPerVolley(saved.activeRuleset, state.scoringMode);
   state.activeRuleset = saved.activeRuleset;
   state.allowedPoints = Array.isArray(saved.allowedPoints) && saved.allowedPoints.length ? [...saved.allowedPoints] : [...presets[saved.activeRuleset]];
@@ -460,11 +471,22 @@ function refreshScoringView(options = {}) {
   const { scrollHistory = true } = options;
   renderPad();
   updateScoringHeader();
+  updateTargetGroupsVisibility();
   renderLiveVolleyHistory();
   updateResultsAvailability();
   persistAppState();
   if (scrollHistory) {
     scrollLiveVolleyHistoryToBottom();
+  }
+}
+
+function updateTargetGroupsVisibility() {
+  const show = state.useTargetGroups;
+  if (els.targetGroupSelect) {
+    els.targetGroupSelect.style.display = show ? "" : "none";
+  }
+  if (els.groupColumnHeader) {
+    els.groupColumnHeader.style.display = show ? "" : "none";
   }
 }
 
@@ -485,10 +507,11 @@ function renderLiveVolleyHistory() {
     const successful = isSuccessfulVolley(total);
     const pillClass = getVolleyPillClass(shoot, total, maxVolley);
     const row = document.createElement("tr");
+    const groupCell = state.useTargetGroups ? `<td>${state.shootGroups[idx] || "-"}</td>` : "";
     row.innerHTML = `
       <td><span class="volley-pill ${pillClass}">${idx + 1}</span></td>
       <td>${shoot.map((value) => formatScore(value)).join(" / ")}</td>
-      <td>${state.shootGroups[idx] || "-"}</td>
+      ${groupCell}
       <td class="history-total ${successful ? "success" : ""}">${total}</td>
       <td>
         <button class="btn btn-danger btn-icon row-delete-btn" aria-label="Supprimer la volée ${idx + 1}">
@@ -510,10 +533,11 @@ function renderLiveVolleyHistory() {
     const idx = state.shoots.length;
     const partialTotal = state.currentshoot.reduce((sum, value) => sum + (value ?? 0), 0);
     const previewRow = document.createElement("tr");
+    const previewGroupCell = state.useTargetGroups ? `<td>${getSelectedTargetGroup() || "-"}</td>` : "";
     previewRow.innerHTML = `
       <td><span class="volley-pill is-blue">${idx + 1}</span></td>
       <td>${state.currentshoot.map((value) => formatScore(value)).join(" / ")}</td>
-      <td>${getSelectedTargetGroup() || "-"}</td>
+      ${previewGroupCell}
       <td class="history-total">${partialTotal}</td>
       <td>-</td>
     `;
@@ -791,6 +815,7 @@ function startScoring() {
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = getSelectedScoringMode();
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
+  state.useTargetGroups = els.useTargetGroupsCheckbox ? els.useTargetGroupsCheckbox.checked : true;
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.shoots = [];
@@ -837,6 +862,7 @@ function buildResultsPayload() {
     ruleset: state.activeRuleset,
     scoringMode: state.scoringMode,
     weapon: state.weapon || "",
+    useTargetGroups: state.useTargetGroups,
     targetCount: state.targetCount,
     arrowsPerVolley: state.arrowsPerVolley,
     successZone: state.successZone,
@@ -1098,6 +1124,17 @@ function buildPieSvg(counts, orderedScores, colors, size) {
 
 function renderGroupDistribution(payload) {
   const volleys = Array.isArray(payload?.volleys) ? payload.volleys : [];
+  const useTargetGroups = typeof payload.useTargetGroups === "boolean" ? payload.useTargetGroups : (state.useTargetGroups ?? true);
+
+  if (els.statsGroupDistCard) {
+    els.statsGroupDistCard.classList.toggle("hidden", !useTargetGroups);
+  }
+
+  if (!useTargetGroups) {
+    els.statsGroupDist.innerHTML = "";
+    return;
+  }
+
   const groups = getGroupsForRuleset(payload.ruleset || state.activeRuleset);
   if (groups.length === 0 || volleys.length === 0) {
     els.statsGroupDist.innerHTML = '<div style="text-align:center;color:#888;padding:12px;">Aucune donn\u00e9e de groupe.</div>';
@@ -1206,6 +1243,11 @@ function openStatsModalFromPayload(payload) {
       : [...new Set(volleys.flatMap((volley) => volley.arrows || []))].sort((a, b) => b - a);
   renderScoreDistribution(allowedPoints, volleys);
   renderGroupDistribution(payload);
+
+  if (els.statsTabGroupsBtn) {
+    els.statsTabGroupsBtn.style.display = "";
+  }
+
   switchStatsTab("summary");
 
   closeHelpModal();
@@ -1682,6 +1724,9 @@ if (els.weaponSelect) {
   });
 }
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
+if (els.useTargetGroupsCheckbox) {
+  els.useTargetGroupsCheckbox.addEventListener("change", persistAppState);
+}
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
 els.historyBtn.addEventListener("click", openHistoryModal);
