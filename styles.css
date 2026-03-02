@@ -650,6 +650,14 @@ select {
   background: #eef1f4;
 }
 
+#live-volley-history-body tr:not(.is-edited-row) {
+  cursor: pointer;
+}
+
+#live-volley-history-body tr:not(.is-edited-row):hover td {
+  background-color: rgba(45, 106, 79, 0.05);
+}
+
 .volley-pill {
   display: inline-flex;
   align-items: center;

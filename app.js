@@ -494,11 +494,7 @@ function updateCurrentShootDisplay() {
       return `<span class="current-shoot-pill ${scoreClass}">${label}</span>`;
     })
     .join("");
-  if (Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0) {
-    els.currentShootDisplay.innerHTML = `<span style="white-space: nowrap; margin-right: 4px;">${state.editingVolleyIndex + 1} :</span>${pills}`;
-  } else {
     els.currentShootDisplay.innerHTML = `${pills}`;
-  }
 }
 
 function refreshScoringView(options = {}) {
@@ -545,18 +541,9 @@ function renderLiveVolleyHistory() {
     const pillClass = getVolleyPillClass(shoot, total, maxVolley);
     const row = document.createElement("tr");
     row.classList.toggle("is-edited-row", idx === state.lastEditedVolleyIndex);
-    const editButtonHtml = sessionCompleted
-      ? ""
-      : `
-        <button class=\"btn btn-light btn-icon row-edit-btn\" aria-label=\"Modifier la volée ${idx + 1}\">
-          <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\">
-            <path d=\"m3 17.25 9.81-9.81 3.75 3.75L6.75 21H3v-3.75Zm14.71-9.04a1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-1.42 0L12.56 5.5l3.75 3.75 1.4-1.04Z\" fill=\"currentColor\" />
-          </svg>
-        </button>
-      `;
     const arrowsText = isEditingRow
-      ? Array(state.arrowsPerVolley).fill("-").join(" ")
-      : shoot.map((value) => formatScore(value)).join(" ");
+      ? Array(state.arrowsPerVolley).fill("-").join(" / ")
+      : shoot.map((value) => formatScore(value)).join(" / ");
     const totalText = isEditingRow ? "-" : String(total);
     const groupCell = state.useTargetGroups ? `<td>${state.shootGroups[idx] || "-"}</td>` : "";
     row.innerHTML = `
@@ -565,7 +552,6 @@ function renderLiveVolleyHistory() {
       ${groupCell}
       <td class="history-total ${successful && !isEditingRow ? "success" : ""}">${totalText}</td>
       <td>
-        ${editButtonHtml}
         <button class="btn btn-danger btn-icon row-delete-btn" aria-label="Supprimer la volée ${idx + 1}">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path
@@ -577,7 +563,22 @@ function renderLiveVolleyHistory() {
       </td>
     `;
     if (!sessionCompleted) {
-      row.querySelector(".row-edit-btn").addEventListener("click", () => editVolleyAt(idx));
+      // Double-click/double-tap to edit row
+      let lastTapTime = 0;
+      const DOUBLE_TAP_DELAY = 300;
+      
+      row.addEventListener("click", (e) => {
+        // Ignore clicks on buttons
+        if (e.target.closest("button")) return;
+        
+        const now = Date.now();
+        if (now - lastTapTime < DOUBLE_TAP_DELAY) {
+          editVolleyAt(idx);
+          lastTapTime = 0;
+        } else {
+          lastTapTime = now;
+        }
+      });
     }
     row.querySelector(".row-delete-btn").addEventListener("click", () => {
       void deleteVolleyAt(idx);
@@ -592,7 +593,7 @@ function renderLiveVolleyHistory() {
     const previewGroupCell = state.useTargetGroups ? `<td>${getSelectedTargetGroup() || "-"}</td>` : "";
     previewRow.innerHTML = `
       <td><span class="volley-pill is-blue">${idx + 1}</span></td>
-      <td>${Array(state.arrowsPerVolley).fill("-").join(" ")}</td>
+      <td>${Array(state.arrowsPerVolley).fill("-").join(" / ")}</td>
       ${previewGroupCell}
       <td class="history-total">-</td>
       <td>-</td>
@@ -1605,7 +1606,7 @@ function renderHistoryList() {
       const successClass = total >= (entry.successZone || 0) ? "success" : "";
       return `<tr>
         <td><span class="volley-pill ${pillClass}">${v.index}</span></td>
-        <td>${arrows.map((a) => formatScore(a)).join(" ")}</td>
+        <td>${arrows.map((a) => formatScore(a)).join(" / ")}</td>
         <td>${v.group || "-"}</td>
         <td class="history-total ${successClass}">${total}</td>
       </tr>`;
