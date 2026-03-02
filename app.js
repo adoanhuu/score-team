@@ -23,6 +23,8 @@ const state = {
   completionArchived: false,
   statsOpenedFromHistory: false,
   useTargetGroups: true,
+  editingVolleyIndex: null,
+  lastEditedVolleyIndex: null,
 };
 
 const els = {
@@ -46,6 +48,7 @@ const els = {
   scoreEntryPanel: document.getElementById("score-entry-panel"),
   targetGroupSelect: document.getElementById("target-group-select"),
   pointsPad: document.getElementById("points-pad"),
+  currentShootDisplay: document.getElementById("current-shoot-display"),
   liveVolleyHistoryWrap: document.getElementById("live-volley-history-wrap"),
   liveVolleyHistoryBody: document.getElementById("live-volley-history-body"),
   resultsActions: document.getElementById("results-actions"),
@@ -326,6 +329,7 @@ function persistAppState() {
             allowedPoints: [...state.allowedPoints],
             shootGroups: [...state.shootGroups],
             currentGroup: getSelectedTargetGroup(),
+            editingVolleyIndex: state.editingVolleyIndex,
           }
         : null,
     };
@@ -390,6 +394,7 @@ function restorePersistedState() {
   state.activeRuleset = saved.activeRuleset;
   state.allowedPoints = Array.isArray(saved.allowedPoints) && saved.allowedPoints.length ? [...saved.allowedPoints] : [...presets[saved.activeRuleset]];
   state.shootGroups = Array.isArray(saved.shootGroups) ? [...saved.shootGroups] : [];
+  state.editingVolleyIndex = Number.isInteger(saved.editingVolleyIndex) ? saved.editingVolleyIndex : null;
   state.shoots = Array.isArray(saved.shoots) ? saved.shoots.map((shoot) => (Array.isArray(shoot) ? [...shoot] : [])).filter((shoot) => shoot.length === state.arrowsPerVolley) : [];
   state.currentshoot = Array.isArray(saved.currentshoot) ? [...saved.currentshoot].slice(0, state.arrowsPerVolley) : Array(state.arrowsPerVolley).fill(null);
   while (state.currentshoot.length < state.arrowsPerVolley) state.currentshoot.push(null);
@@ -466,16 +471,41 @@ function updateScoringHeader() {
   const shootNumber = state.shoots.length + 1;
   els.volleyTitleText.textContent = `Volée ${Math.min(shootNumber, state.targetCount)} sur ${state.targetCount}`;
   els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
-  els.progressText.textContent = "";
+  if (Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0) {
+    els.progressText.textContent = `Modification de la volée ${state.editingVolleyIndex + 1}`;
+  } else {
+    els.progressText.textContent = "";
+  }
   els.teamTotal.textContent = `${globalTotal()} pts`;
   els.successZoneDisplay.textContent = `${state.successZone} pts`;
   renderSegmentStats();
+}
+
+function updateCurrentShootDisplay() {
+  if (!els.currentShootDisplay) return;
+  const pills = state.currentshoot
+    .map((value) => {
+      const label = formatScore(value);
+      const scoreClass = value === null
+        ? "is-empty"
+        : value === 0
+          ? "is-miss"
+          : "is-hit";
+      return `<span class="current-shoot-pill ${scoreClass}">${label}</span>`;
+    })
+    .join("");
+  if (Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0) {
+    els.currentShootDisplay.innerHTML = `Cible ${state.editingVolleyIndex + 1} : ${pills}`;
+  } else {
+    els.currentShootDisplay.innerHTML = `Cible  : ${pills}`;
+  }
 }
 
 function refreshScoringView(options = {}) {
   const { scrollHistory = true } = options;
   renderPad();
   updateScoringHeader();
+  updateCurrentShootDisplay();
   updateTargetGroupsVisibility();
   renderLiveVolleyHistory();
   updateResultsAvailability();
@@ -507,18 +537,35 @@ function scrollLiveVolleyHistoryToBottom() {
 function renderLiveVolleyHistory() {
   els.liveVolleyHistoryBody.innerHTML = "";
   const maxVolley = getMaxVolleyForCurrentConfig();
+  const sessionCompleted = state.shoots.length === state.targetCount;
   state.shoots.forEach((shoot, idx) => {
+    const isEditingRow = idx === state.editingVolleyIndex;
     const total = roundTotal(shoot);
     const successful = isSuccessfulVolley(total);
     const pillClass = getVolleyPillClass(shoot, total, maxVolley);
     const row = document.createElement("tr");
+    row.classList.toggle("is-edited-row", idx === state.lastEditedVolleyIndex);
+    const editButtonHtml = sessionCompleted
+      ? ""
+      : `
+        <button class=\"btn btn-light btn-icon row-edit-btn\" aria-label=\"Modifier la volée ${idx + 1}\">
+          <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\">
+            <path d=\"m3 17.25 9.81-9.81 3.75 3.75L6.75 21H3v-3.75Zm14.71-9.04a1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-1.42 0L12.56 5.5l3.75 3.75 1.4-1.04Z\" fill=\"currentColor\" />
+          </svg>
+        </button>
+      `;
+    const arrowsText = isEditingRow
+      ? Array(state.arrowsPerVolley).fill("-").join(" / ")
+      : shoot.map((value) => formatScore(value)).join(" / ");
+    const totalText = isEditingRow ? "-" : String(total);
     const groupCell = state.useTargetGroups ? `<td>${state.shootGroups[idx] || "-"}</td>` : "";
     row.innerHTML = `
       <td><span class="volley-pill ${pillClass}">${idx + 1}</span></td>
-      <td>${shoot.map((value) => formatScore(value)).join(" / ")}</td>
+      <td>${arrowsText}</td>
       ${groupCell}
-      <td class="history-total ${successful ? "success" : ""}">${total}</td>
+      <td class="history-total ${successful && !isEditingRow ? "success" : ""}">${totalText}</td>
       <td>
+        ${editButtonHtml}
         <button class="btn btn-danger btn-icon row-delete-btn" aria-label="Supprimer la volée ${idx + 1}">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path
@@ -529,6 +576,9 @@ function renderLiveVolleyHistory() {
         </button>
       </td>
     `;
+    if (!sessionCompleted) {
+      row.querySelector(".row-edit-btn").addEventListener("click", () => editVolleyAt(idx));
+    }
     row.querySelector(".row-delete-btn").addEventListener("click", () => {
       void deleteVolleyAt(idx);
     });
@@ -538,14 +588,13 @@ function renderLiveVolleyHistory() {
   const partial = state.currentshoot.some((value) => value !== null);
   if (partial && state.shoots.length < state.targetCount) {
     const idx = state.shoots.length;
-    const partialTotal = state.currentshoot.reduce((sum, value) => sum + (value ?? 0), 0);
     const previewRow = document.createElement("tr");
     const previewGroupCell = state.useTargetGroups ? `<td>${getSelectedTargetGroup() || "-"}</td>` : "";
     previewRow.innerHTML = `
       <td><span class="volley-pill is-blue">${idx + 1}</span></td>
-      <td>${state.currentshoot.map((value) => formatScore(value)).join(" / ")}</td>
+      <td>${Array(state.arrowsPerVolley).fill("-").join(" / ")}</td>
       ${previewGroupCell}
-      <td class="history-total">${partialTotal}</td>
+      <td class="history-total">-</td>
       <td>-</td>
     `;
     els.liveVolleyHistoryBody.appendChild(previewRow);
@@ -622,7 +671,8 @@ function registerScore(score) {
     return;
   }
 
-  if (state.shoots.length >= state.targetCount) {
+  const isEditing = Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0;
+  if (state.shoots.length >= state.targetCount && !isEditing) {
     return;
   }
 
@@ -646,9 +696,21 @@ function registerScore(score) {
   if (state.currentArrowIndex === state.arrowsPerVolley) {
     state.inputLocked = true;
     refreshScoringView();
+    const editingIndexSnapshot = isEditing ? state.editingVolleyIndex : null;
+    const delay = isEditing ? 0 : LAST_SCORE_PREVIEW_MS;
     window.setTimeout(() => {
-      state.shoots.push([...state.currentshoot]);
-      state.shootGroups.push(getSelectedTargetGroup());
+      const newShoot = [...state.currentshoot];
+      const selectedGroup = getSelectedTargetGroup();
+      if (Number.isInteger(editingIndexSnapshot)) {
+        const replaceIndex = Math.max(0, Math.min(editingIndexSnapshot, state.shoots.length - 1));
+        state.shoots[replaceIndex] = newShoot;
+        state.shootGroups[replaceIndex] = selectedGroup;
+        state.lastEditedVolleyIndex = replaceIndex;
+        state.editingVolleyIndex = null;
+      } else {
+        state.shoots.push(newShoot);
+        state.shootGroups.push(selectedGroup);
+      }
       state.inputLocked = false;
       if (state.shoots.length === state.targetCount) {
         state.resultsPayload = buildResultsPayload();
@@ -662,10 +724,34 @@ function registerScore(score) {
       }
       resetRoundBuffer();
       refreshScoringView({ scrollHistory: true });
-    }, LAST_SCORE_PREVIEW_MS);
+    }, delay);
     return;
   }
 
+  refreshScoringView({ scrollHistory: true });
+}
+
+function editVolleyAt(index) {
+  if (state.inputLocked) {
+    return;
+  }
+  if (state.shoots.length === state.targetCount) {
+    showFlashInfo("Session terminée : modification désactivée.");
+    return;
+  }
+  if (!Number.isInteger(index) || index < 0 || index >= state.shoots.length) {
+    return;
+  }
+
+  const originalGroup = state.shootGroups[index] || null;
+  state.editingVolleyIndex = index;
+  resetRoundBuffer();
+  if (state.useTargetGroups) {
+    syncTargetGroupSelect(originalGroup);
+  }
+  state.resultsPayload = null;
+  state.completionArchived = false;
+  showFlashInfo(`Modification volée ${index + 1} : la ligne sera remplacée.`);
   refreshScoringView({ scrollHistory: true });
 }
 
@@ -683,6 +769,11 @@ async function deleteVolleyAt(index) {
   }
   state.shoots.splice(index, 1);
   state.shootGroups.splice(index, 1);
+  if (state.lastEditedVolleyIndex === index) {
+    state.lastEditedVolleyIndex = null;
+  } else if (Number.isInteger(state.lastEditedVolleyIndex) && index < state.lastEditedVolleyIndex) {
+    state.lastEditedVolleyIndex -= 1;
+  }
   state.resultsPayload = null;
   state.completionArchived = false;
   refreshScoringView();
@@ -690,6 +781,11 @@ async function deleteVolleyAt(index) {
 
 function stepBackOneArrow() {
   if (state.inputLocked) {
+    return;
+  }
+
+  if (state.editingVolleyIndex !== null && state.currentArrowIndex === 0) {
+    showFlashInfo("Volée en modification : saisissez les flèches ou validez la nouvelle volée.");
     return;
   }
 
@@ -833,6 +929,8 @@ function startScoring() {
   state.shootGroups = [];
   state.resultsPayload = null;
   state.completionArchived = false;
+  state.editingVolleyIndex = null;
+  state.lastEditedVolleyIndex = null;
   resetRoundBuffer();
   syncTargetGroupSelect();
 
@@ -1568,7 +1666,6 @@ function renderHistoryList() {
       state.statsOpenedFromHistory = true;
       openStatsModalFromPayload(entry);
     });
-    deleteBtn.addEventListener("click", () => removeHistoryEntry(entry.archivedAt));
     deleteBtn.addEventListener("click", () => {
       void removeHistoryEntry(entry.archivedAt);
     });
@@ -1692,6 +1789,8 @@ function restart() {
   state.shoots = [];
   state.shootGroups = [];
   state.resultsPayload = null;
+  state.editingVolleyIndex = null;
+  state.lastEditedVolleyIndex = null;
   state.inputLocked = false;
   resetRoundBuffer();
   closeStatsModal();
