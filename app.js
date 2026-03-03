@@ -266,21 +266,47 @@ function getGroupsForRuleset(ruleset) {
   return targetGroupsByRuleset[ruleset] || [];
 }
 
+const weaponsByFederation = {
+  FFTA: [
+    { code: "AC", libelle: "Arc de chasse" },
+    { code: "AD", libelle: "Arc droit" },
+    { code: "BB", libelle: "Barebow" },
+    { code: "CL", libelle: "Classique" },
+    { code: "CO", libelle: "Compound" },
+    { code: "TL", libelle: "Tir libre" },
+  ],
+  FFTL: [
+    { code: "BB-C", libelle: "Barebow compound" },
+    { code: "BB-R", libelle: "Barebow recurve" },
+    { code: "BH-C", libelle: "Bowhunter compound" },
+    { code: "BH-R", libelle: "Bowhunter recurve" },
+    { code: "BL", libelle: "Bowhunter limited" },
+    { code: "BU", libelle: "Bowhunter unlimited" },
+    { code: "FS", libelle: "Freestyle limited" },
+    { code: "FU", libelle: "Freestyle unlimited" },
+    { code: "HB", libelle: "Historical bow" },
+    { code: "LB", libelle: "Longbow" },
+    { code: "TR", libelle: "Traditional recurve" },
+  ],
+};
+
+function getFederationByRuleset(ruleset) {
+  return isFFTLRuleset(ruleset) ? "FFTL" : "FFTA";
+}
+
 function formatWeaponLabel(code) {
-  if (code === "AC") return "Arc de Chasse";
-  if (code === "AD") return "Arc Droit";
-  if (code === "BB") return "Barebow";
-  if (code === "CL") return "Classique Viseur";
-  if (code === "CO") return "Compound";
-  if (code === "TL") return "Tir Libre";
+  for (const weapon of weaponsByFederation.FFTA) {
+    if (weapon.code === code) return weapon.libelle;
+  }
+  for (const weapon of weaponsByFederation.FFTL) {
+    if (weapon.code === code) return weapon.libelle;
+  }
   return code || "";
 }
 
 function getWeaponsForRuleset(ruleset) {
-  if (ruleset === "campagne") {
-    return ["AD", "BB", "TL", "CL"];
-  }
-  return ["AC", "AD", "BB", "CO", "TL"];
+  const federation = getFederationByRuleset(ruleset);
+  return (weaponsByFederation[federation] || []).map((weapon) => weapon.code);
 }
 
 function isWeaponAllowedForRuleset(weapon, ruleset) {
@@ -290,12 +316,14 @@ function isWeaponAllowedForRuleset(weapon, ruleset) {
 function syncWeaponSelectOptions(preferredWeapon = null) {
   if (!els.weaponSelect) return;
   const ruleset = els.rulesetSelect.value;
+  const federation = getFederationByRuleset(ruleset);
+  const federationWeapons = weaponsByFederation[federation] || [];
   const allowedWeapons = getWeaponsForRuleset(ruleset);
   const currentWeapon = preferredWeapon || els.weaponSelect.value;
   const selectedWeapon = allowedWeapons.includes(currentWeapon) ? currentWeapon : allowedWeapons[0];
 
-  els.weaponSelect.innerHTML = allowedWeapons
-    .map((weapon) => `<option value="${weapon}">${weapon} - ${formatWeaponLabel(weapon)}</option>`)
+  els.weaponSelect.innerHTML = federationWeapons
+    .map((weapon) => `<option value="${weapon.code}">${weapon.code} - ${weapon.libelle}</option>`)
     .join("");
   els.weaponSelect.value = selectedWeapon;
 }
