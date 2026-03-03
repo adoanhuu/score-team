@@ -157,6 +157,7 @@ const appConfig = {
   missLimit_team: 5,
   missLimit_individual: 3,
   successZoneByRuleset: {},
+  enabledRulesets: ["nature", "campagne", "3d", "3d2", "3dh", "ar", "field"],
 };
 
 function loadConfig() {
@@ -179,6 +180,9 @@ function loadConfig() {
       if (Number.isFinite(saved.missLimit_individual)) appConfig.missLimit_individual = saved.missLimit_individual;
       if (saved.successZoneByRuleset && typeof saved.successZoneByRuleset === "object") {
         Object.assign(appConfig.successZoneByRuleset, saved.successZoneByRuleset);
+      }
+      if (Array.isArray(saved.enabledRulesets)) {
+        appConfig.enabledRulesets = saved.enabledRulesets;
       }
     }
   } catch { /* ignore */ }
@@ -217,11 +221,83 @@ function openConfigModal() {
   els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
   els.configMissLimitIndiv.value = String(appConfig.missLimit_individual);
   els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
+  syncRulesetCheckboxes();
   els.configModal.classList.remove("hidden");
 }
 
 function closeConfigModal() {
   els.configModal.classList.add("hidden");
+  updateRulesetSelectOptions();
+}
+
+function syncRulesetCheckboxes() {
+  const rulesetCheckboxes = document.querySelectorAll(".config-ruleset-cb");
+  rulesetCheckboxes.forEach((cb) => {
+    cb.checked = appConfig.enabledRulesets.includes(cb.value);
+  });
+  syncFederationCheckboxes();
+}
+
+function syncFederationCheckboxes() {
+  const fftaCheckboxes = document.querySelectorAll('.config-ruleset-cb[data-federation="FFTA"]');
+  const fftlCheckboxes = document.querySelectorAll('.config-ruleset-cb[data-federation="FFTL"]');
+  const fftaCheckbox = document.getElementById("config-fed-ffta");
+  const fftlCheckbox = document.getElementById("config-fed-fftl");
+  
+  if (fftaCheckbox) {
+    const allFFTAChecked = Array.from(fftaCheckboxes).every((cb) => cb.checked);
+    const someFFTAChecked = Array.from(fftaCheckboxes).some((cb) => cb.checked);
+    fftaCheckbox.checked = allFFTAChecked;
+    fftaCheckbox.indeterminate = someFFTAChecked && !allFFTAChecked;
+  }
+  
+  if (fftlCheckbox) {
+    const allFFTLChecked = Array.from(fftlCheckboxes).every((cb) => cb.checked);
+    const someFFTLChecked = Array.from(fftlCheckboxes).some((cb) => cb.checked);
+    fftlCheckbox.checked = allFFTLChecked;
+    fftlCheckbox.indeterminate = someFFTLChecked && !allFFTLChecked;
+  }
+}
+
+function updateRulesetSelectOptions() {
+  const select = els.rulesetSelect;
+  if (!select) return;
+  
+  const currentValue = select.value;
+  const allOptions = select.querySelectorAll("option");
+  
+  allOptions.forEach((option) => {
+    const value = option.value;
+    if (value && appConfig.enabledRulesets.includes(value)) {
+      option.disabled = false;
+      option.style.display = "";
+    } else if (value) {
+      option.disabled = true;
+      option.style.display = "none";
+    }
+  });
+  
+  // Masquer les optgroups vides
+  const optgroups = select.querySelectorAll("optgroup");
+  optgroups.forEach((optgroup) => {
+    const visibleOptions = Array.from(optgroup.querySelectorAll("option")).filter(
+      (opt) => opt.value && appConfig.enabledRulesets.includes(opt.value)
+    );
+    if (visibleOptions.length === 0) {
+      optgroup.style.display = "none";
+    } else {
+      optgroup.style.display = "";
+    }
+  });
+  
+  // Si l'option actuelle est désactivée, sélectionner la première option activée
+  if (currentValue && !appConfig.enabledRulesets.includes(currentValue)) {
+    const firstEnabled = appConfig.enabledRulesets[0];
+    if (firstEnabled) {
+      select.value = firstEnabled;
+      select.dispatchEvent(new Event("change"));
+    }
+  }
 }
 
 const maxShootTotalByRuleset = {
@@ -2028,8 +2104,63 @@ els.configMissLimitIndiv.addEventListener("input", () => {
   els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
   saveConfig();
 });
+
+const configFedFFTA = document.getElementById("config-fed-ffta");
+const configFedFFTL = document.getElementById("config-fed-fftl");
+
+if (configFedFFTA) {
+  configFedFFTA.addEventListener("change", (e) => {
+    const checked = e.target.checked;
+    const fftaCheckboxes = document.querySelectorAll('.config-ruleset-cb[data-federation="FFTA"]');
+    fftaCheckboxes.forEach((cb) => {
+      cb.checked = checked;
+      if (checked && !appConfig.enabledRulesets.includes(cb.value)) {
+        appConfig.enabledRulesets.push(cb.value);
+      } else if (!checked) {
+        appConfig.enabledRulesets = appConfig.enabledRulesets.filter((r) => r !== cb.value);
+      }
+    });
+    saveConfig();
+    syncFederationCheckboxes();
+  });
+}
+
+if (configFedFFTL) {
+  configFedFFTL.addEventListener("change", (e) => {
+    const checked = e.target.checked;
+    const fftlCheckboxes = document.querySelectorAll('.config-ruleset-cb[data-federation="FFTL"]');
+    fftlCheckboxes.forEach((cb) => {
+      cb.checked = checked;
+      if (checked && !appConfig.enabledRulesets.includes(cb.value)) {
+        appConfig.enabledRulesets.push(cb.value);
+      } else if (!checked) {
+        appConfig.enabledRulesets = appConfig.enabledRulesets.filter((r) => r !== cb.value);
+      }
+    });
+    saveConfig();
+    syncFederationCheckboxes();
+  });
+}
+
+const rulesetCheckboxes = document.querySelectorAll(".config-ruleset-cb");
+rulesetCheckboxes.forEach((cb) => {
+  cb.addEventListener("change", (e) => {
+    const value = e.target.value;
+    if (e.target.checked) {
+      if (!appConfig.enabledRulesets.includes(value)) {
+        appConfig.enabledRulesets.push(value);
+      }
+    } else {
+      appConfig.enabledRulesets = appConfig.enabledRulesets.filter((r) => r !== value);
+    }
+    saveConfig();
+    syncFederationCheckboxes();
+  });
+});
+
 els.rulesetSelect.addEventListener("change", () => syncConfigSliderMax());
 loadConfig();
+updateRulesetSelectOptions();
 syncWeaponSelectOptions();
 updateWeaponSelectVisibility();
 els.appVersion.textContent = APP_VERSION;
