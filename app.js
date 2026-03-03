@@ -135,6 +135,7 @@ const presets = {
   nature: [20, 15, 10, 0],
   campagne: [6, 5, 4, 3, 2, 1, 0],
   "3d": [11, 10, 8, 5, 0],
+  field: [5, 4, 3, 0],
   "3d2": [10, 8, 5, 0],
   "3dh": [20, 16, 10, 0],
   ar: [20, 18, 16, 14, 12, 10, 0],
@@ -144,6 +145,7 @@ const defaultTargetsByRuleset = {
   nature: 21,
   campagne: 24,
   "3d": 24,
+  field: 14,
   "3d2": 14,
   "3dh": 14,
   ar: 14,
@@ -233,6 +235,7 @@ const maxShootTotalByRuleset = {
 const targetGroupsByRuleset = {
   nature: ["PA", "PG", "MG", "GG"],
   "3d": ["G1", "G2", "G3", "G4"],
+  field: ["65", "50", "35", "20"],
   "3d2": ["G1", "G2", "G3", "G4"],
   "3dh": ["G1", "G2", "G3", "G4"],
   ar: ["G1", "G2", "G3", "G4"],
@@ -909,12 +912,13 @@ function getTargetCountForRuleset(ruleset) {
 }
 
 function isFFTLRuleset(ruleset) {
-  return ruleset === "3d2" || ruleset === "3dh" || ruleset === "ar";
+  return ruleset === "3d2" || ruleset === "3dh" || ruleset === "ar" || ruleset === "field";
 }
 
 function getArrowsPerVolley(ruleset, scoringMode) {
   if (ruleset === "3dh") return 1;
   if (ruleset === "ar") return 3;
+  if (ruleset === "field") return 4;
   if (ruleset === "campagne") return 3;
   return scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
 }
@@ -1643,14 +1647,19 @@ function renderHistoryList() {
     if (value === "nature") return "Nature";
     if (value === "campagne") return "Campagne";
     if (value === "3d") return "3D";
+    if (value === "field") return "Field / Hunter";
     if (value === "3d2") return "3D Two Shoots";
     if (value === "3dh") return "3D Hunting";
     if (value === "ar") return "Animal Rounds";
     return "-";
   };
-  const formatModeLabel = (value) => {
-    if (value === "team") return "Équipe";
-    if (value === "individual") return "Individuel";
+  const formatModeWithIcon = (value) => {
+    if (value === "team") {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="18" height="18" style="vertical-align: middle;"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3Zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3Zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13Zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.96 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5Z" fill="currentColor"/></svg>`;
+    }
+    if (value === "individual") {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="16" height="16" style="vertical-align: middle;"><path d="M12 12c2.76 0 5-2.24 5-5S14.76 2 12 2 7 4.24 7 7s2.24 5 5 5Zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5Z" fill="currentColor"/></svg>`;
+    }
     return "-";
   };
 
@@ -1698,7 +1707,7 @@ function renderHistoryList() {
       <div class="history-item-body">
         <div class="history-item-info">
           <strong class="history-total-score">${entry.total ?? 0} pts</strong>
-          <span class="history-mode">${formatParcoursLabel(entry.ruleset)} en ${formatModeLabel(entry.scoringMode)}${entry.weapon ? " • " + formatWeaponLabel(entry.weapon) : ""}</span>
+          <span class="history-mode">${formatParcoursLabel(entry.ruleset)}<br>${formatModeWithIcon(entry.scoringMode)}${entry.weapon ? " • " + entry.weapon : ""}</span>
         </div>
         <div class="history-item-actions">
           <button class="btn btn-icon history-list-btn" aria-label="Détail des volées">
