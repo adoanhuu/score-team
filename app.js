@@ -36,6 +36,8 @@ const els = {
   successZoneValue: document.getElementById("success-zone-value"),
   rulesetSelect: document.getElementById("ruleset-select"),
   scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
+  setupMenuBtn: document.getElementById("setup-menu-btn"),
+  setupMenuPanel: document.getElementById("setup-menu-panel"),
   setupHelpBtn: document.getElementById("setup-help-btn"),
   startBtn: document.getElementById("start-btn"),
   backSetupBtn: document.getElementById("back-setup-btn"),
@@ -228,6 +230,19 @@ function openConfigModal() {
 function closeConfigModal() {
   els.configModal.classList.add("hidden");
   updateRulesetSelectOptions();
+}
+
+function closeSetupMenu() {
+  if (!els.setupMenuPanel || !els.setupMenuBtn) return;
+  els.setupMenuPanel.classList.add("hidden");
+  els.setupMenuBtn.setAttribute("aria-expanded", "false");
+}
+
+function toggleSetupMenu() {
+  if (!els.setupMenuPanel || !els.setupMenuBtn) return;
+  const shouldOpen = els.setupMenuPanel.classList.contains("hidden");
+  els.setupMenuPanel.classList.toggle("hidden", !shouldOpen);
+  els.setupMenuBtn.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
 }
 
 function syncRulesetCheckboxes() {
@@ -2050,7 +2065,29 @@ els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", pe
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
 els.historyBtn.addEventListener("click", openHistoryModal);
-els.setupHelpBtn.addEventListener("click", openHelpModal);
+if (els.setupMenuBtn) {
+  els.setupMenuBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleSetupMenu();
+  });
+}
+if (els.setupMenuPanel) {
+  els.setupMenuPanel.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+}
+document.addEventListener("click", () => {
+  closeSetupMenu();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeSetupMenu();
+  }
+});
+els.setupHelpBtn.addEventListener("click", () => {
+  closeSetupMenu();
+  openHelpModal();
+});
 els.helpBtn.addEventListener("click", openHelpModal);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
 els.statsBtn.addEventListener("click", openStatsModal);
@@ -2073,7 +2110,10 @@ els.historyResetFiltersBtn.addEventListener("click", () => {
   historyCurrentPage = 1;
   renderHistoryList();
 });
-els.configBtn.addEventListener("click", openConfigModal);
+els.configBtn.addEventListener("click", () => {
+  closeSetupMenu();
+  openConfigModal();
+});
 els.configModalOverlay.addEventListener("click", closeConfigModal);
 els.configCloseBtn.addEventListener("click", closeConfigModal);
 els.configExportHistoryBtn.addEventListener("click", exportHistory);

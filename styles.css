@@ -114,9 +114,60 @@ body {
 }
 
 .setup-head-actions {
+  position: relative;
   display: flex;
   gap: 6px;
   margin-left: auto;
+}
+
+.setup-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ece6dd;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 4px;
+  z-index: 20;
+}
+
+.setup-menu-item {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.setup-menu-item:hover,
+.setup-menu-item:focus-visible {
+  background: #f4efe6;
+  border-color: var(--line);
+  outline: none;
+}
+
+.setup-menu-item svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: #1a4fa0;
+}
+
+#setup-menu-btn svg {
+  width: 24px;
+  height: 24px;
 }
 
 .grid-two {
