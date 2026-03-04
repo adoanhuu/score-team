@@ -265,11 +265,19 @@ a {
 
 .codes-table th {
   color: #000;
-  background-color: var(--line);
+  background-color: rgb(223, 215, 215);
   padding: 12px;
   text-align: left;
   font-weight: 700;
   border-bottom: 3px solid var(--accent);
+}
+
+.codes-table th:first-of-type {
+  border-top-left-radius: 12px;
+}
+
+.codes-table th:last-of-type {
+  border-top-right-radius: 12px;
 }
 
 .codes-table td {
