@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archery Team Score - Accueil</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <div class="site-wrapper">
+    <!-- En-tête -->
+    <header class="site-header">
+      <div class="header-content">
+        <a href="index.html" class="header-logo">
+          <img src="../icons/icon-192.png" alt="Archery Team Score">
+          Archery Team Score
+        </a>
+        <button class="menu-toggle" aria-label="Toggle menu">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z"/>
+          </svg>
+        </button>
+        <nav class="site-nav">
+          <a href="index.html">Accueil</a>
+          <a href="nouvelle-session.html">Nouvelle session</a>
+          <a href="saisie-scores.html">Saisie des scores</a>
+          <a href="statistiques.html">Statistiques</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Contenu principal -->
+    <main class="site-main">
+      <div class="page-content">
+        <h1>
+          Bienvenue dans Archery Team Score
+        </h1>
+
+        <p style="font-size: 1.1rem; color: #536357;">
+          Archery Team Score est une application web progressive conçue pour simplifier la gestion des scores lors des parcours de tir à l'arc.
+        </p>
+
+        <h2>Fonctionnalités principales</h2>
+
+        <div class="explanation-grid">
+          <div class="explanation-card">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2Zm-2-7V3.5L18.5 8H14Z"/>
+              </svg>
+              Créer une session
+            </h3>
+            <p>Démarrez facilement une nouvelle session en sélectionnant votre parcours et votre mode de saisie.</p>
+            <p><a href="nouvelle-session.html">En savoir plus →</a></p>
+          </div>
+
+          <div class="explanation-card">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/>
+                <path d="M20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+              </svg>
+              Saisir les scores
+            </h3>
+            <p>Enregistrez les résultats de votre équipe flèche par flèche avec une interface intuitive.</p>
+            <p><a href="saisie-scores.html">En savoir plus →</a></p>
+          </div>
+
+          <div class="explanation-card">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2V17zm4 0h-2V7h2V17zm4 0h-2v-4h2V17z"/>
+              </svg>
+              Analyser les statistiques
+            </h3>
+            <p>Consultez des statistiques détaillées et visualisez votre progression au fil du temps.</p>
+            <p><a href="statistiques.html">En savoir plus →</a></p>
+          </div>
+        </div>
+
+        <h2>À propos</h2>
+        <p>Archery Team Score supporte les règlements de la FFTA (Fédération Française de Tir à l'Arc) et de la FFTL (Fédération Field de Tir Libre). L'application fonctionne hors ligne grâce à la technologie des Progressive Web Apps.</p>
+
+        <h2>Démarrage rapide</h2>
+        <ol>
+          <li><a href="nouvelle-session.html">Créez une nouvelle session</a> en choisissant votre parcours</li>
+          <li>Sélectionnez le mode d'équipe ou individuel</li>
+          <li><a href="saisie-scores.html">Saisissez vos scores</a> à chaque cible</li>
+          <li>Consultez <a href="statistiques.html">vos statistiques</a> à la fin</li>
+        </ol>
+      </div>
+    </main>
+
+    <!-- Pied de page -->
+    <footer class="site-footer">
+      <div class="footer-content">
+        <p>&copy; 2026 Archery Team Score. Application dédiée aux archers de parcours.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="shared.js"></script>
+</body>
+</html>
