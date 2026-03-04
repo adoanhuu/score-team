@@ -222,11 +222,24 @@ a {
   border-radius: 12px;
   padding: 20px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .explanation-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.explanation-card p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.explanation-card p:last-child {
+  margin-top: auto;
+  text-align: right;
 }
 
 .explanation-card h3 {
@@ -241,11 +254,6 @@ a {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-}
-
-.explanation-card p {
-  margin: 8px 0 0 0;
-  font-size: 0.95rem;
 }
 
 /* Table de codes */
