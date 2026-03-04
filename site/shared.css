@@ -264,11 +264,12 @@ a {
 }
 
 .codes-table th {
-  background: var(--accent);
-  color: #fff;
+  color: #000;
+  background-color: var(--line);
   padding: 12px;
   text-align: left;
   font-weight: 700;
+  border-bottom: 3px solid var(--accent);
 }
 
 .codes-table td {
@@ -282,13 +283,15 @@ a {
 
 .code-badge {
   display: inline-block;
-  background: var(--accent-2);
+  background: var(--accent);
   color: #fff;
   padding: 4px 8px;
   border-radius: 6px;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-family: monospace;
+  width: 80px;
+  text-align: center;
 }
 
 /* Milestones/Timeline */

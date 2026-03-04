@@ -12,7 +12,7 @@ Page de présentation générale de l'application avec liens vers les autres pag
 
 Guide détaillé pour :
 
-- Choisir le parcours (ruleset) FFTA ou FFTL
+- Choisir le parcours FFTA ou FFTL
 - Configurer le nombre de cibles
 - Définir la zone de succès
 - Sélectionner le mode d'équipe ou individuel
