@@ -27,6 +27,15 @@ body {
   flex-direction: column;
 }
 
+a {
+  color: var(--accent);
+    text-decoration: none;
+  
+  @media screen and (max-width: 768px) {
+    text-decoration: underline;
+  }
+}
+
 /* Layout principal */
 .site-wrapper {
   display: flex;
@@ -274,8 +283,78 @@ body {
   font-family: monospace;
 }
 
+/* Milestones/Timeline */
+.milestones {
+  display: flex;
+  gap: 24px;
+  margin: 24px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.milestone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  position: relative;
+}
+
+.milestone-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 62px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.milestone-content {
+  text-align: center;
+  font-weight: 600;
+}
+
+.milestone-arrow {
+  position: absolute;
+  right: -36px;
+  top: -40px;
+  font-size: 4rem;
+}
+
+.milestone:last-child .milestone-arrow {
+  display: none;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
+  .milestones {
+    flex-direction: column;
+    gap: 48px;
+  }
+
+  .milestone {
+    position: relative;
+  }
+
+  .milestone-arrow {
+    position: absolute;
+    right: auto;
+    top: 100px;
+    transform: translateX(0) rotate(90deg);
+    font-size: 2rem;
+    font-weight: bold;
+  }
+
+  .milestone:last-child .milestone-arrow {
+    display: block;
+  }
+
   .header-content {
     flex-direction: row;
     padding: 14px;
