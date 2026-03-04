@@ -211,7 +211,7 @@ a {
 /* Cartes d'explication */
 .explanation-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   margin: 24px 0;
 }
@@ -238,8 +238,8 @@ a {
 }
 
 .explanation-card svg {
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
 }
 
@@ -405,7 +405,6 @@ a {
     background: transparent;
     color: var(--ink);
   }
-}
 
   .site-main {
     padding: 20px 12px;
