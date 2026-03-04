@@ -114,9 +114,60 @@ body {
 }
 
 .setup-head-actions {
+  position: relative;
   display: flex;
   gap: 6px;
   margin-left: auto;
+}
+
+.setup-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ece6dd;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 4px;
+  z-index: 20;
+}
+
+.setup-menu-item {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.setup-menu-item:hover,
+.setup-menu-item:focus-visible {
+  background: #f4efe6;
+  border-color: var(--line);
+  outline: none;
+}
+
+.setup-menu-item svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: #1a4fa0;
+}
+
+#setup-menu-btn svg {
+  width: 24px;
+  height: 24px;
 }
 
 .grid-two {
@@ -1490,6 +1541,7 @@ select {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+  margin-bottom: 12px;
 }
 
 .config-field label {
@@ -1536,6 +1588,69 @@ select {
   font-size: 0.95rem;
   padding: 0 6px;
   color: #1f2a24;
+}
+
+.config-form-rulesets {
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.config-form-rulesets .config-history-title {
+  grid-column: 1 / -1;
+  margin-bottom: 2px;
+}
+
+.config-rulesets-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.config-form-rulesets .config-section {
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.config-fed-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.95rem;
+  width: 12px;
+}
+
+.config-fed-label input[type="checkbox"] {
+  cursor: pointer;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.config-ruleset-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 2px;
+}
+
+.config-ruleset-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #1f2a24;
+  text-align: left;
+  padding: 6px 0 6px 14px;
+}
+
+.config-ruleset-label input[type="checkbox"] {
+  cursor: pointer;
+  margin: 0;
+  width: 12px;
 }
 
 .hidden {

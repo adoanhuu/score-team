@@ -6,10 +6,10 @@
     <meta name="theme-color" content="#2d6a4f" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Score Team" />
-    <title>Score Team</title>
+    <meta name="apple-mobile-web-app-title" content="Archery Team Score" />
+    <title>Archery Team Score</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="icons/icon.png" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -20,20 +20,29 @@
       <section class="card" id="setup-card">
         <div class="setup-head">
           <h2 class="title-with-icon">
-            <img src="icons/icon.svg" alt="" class="app-title-icon" />
-            <span>Score Team</span>
+            <img src="icons/icon.png" alt="" class="app-title-icon" />
+            <span>Archery Team Score</span>
           </h2>
           <div class="setup-head-actions">
-            <button id="config-btn" class="btn btn-light btn-icon home-btn" aria-label="Réglages">
+            <button id="setup-menu-btn" class="btn btn-light btn-icon home-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false" aria-controls="setup-menu-panel">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94 7.07 7.07 0 0 0-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54a7.04 7.04 0 0 0-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0-.06.94c0 .32.02.64.06.94L2.86 14.5a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54a7.04 7.04 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.56ZM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6Z" fill="currentColor" />
+                <path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z" fill="currentColor" />
               </svg>
             </button>
-            <button id="setup-help-btn" class="btn btn-light btn-icon home-btn" aria-label="Aide">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
-              </svg>
-            </button>
+            <div id="setup-menu-panel" class="setup-menu-panel hidden" role="menu" aria-label="Menu principal">
+              <button id="config-btn" class="setup-menu-item" type="button" role="menuitem" aria-label="Paramètres">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94 7.07 7.07 0 0 0-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54a7.04 7.04 0 0 0-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0-.06.94c0 .32.02.64.06.94L2.86 14.5a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54a7.04 7.04 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.56ZM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6Z" fill="currentColor" />
+                </svg>
+                <span>Paramètres</span>
+              </button>
+              <button id="setup-help-btn" class="setup-menu-item" type="button" role="menuitem" aria-label="Aide">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
+                </svg>
+                <span>Aide</span>
+              </button>
+            </div>
           </div>
         </div>
         <div>
@@ -56,6 +65,7 @@
                   <option value="3d2">3D Two Shoots (10 / 8 / 5)</option>
                   <option value="3dh">3D Hunting (20 / 16 / 10)</option>
                   <option value="ar">Animal Rounds (3 flèches)</option>
+                  <option value="field">Field / Hunter (5 / 4 / 3)</option>
                 </optgroup>
               </select>
             </label>
@@ -73,11 +83,12 @@
             <label id="weapon-select-wrapper">
               <span class="label-inline">Type d'arme</span>
               <select id="weapon-select">
-                <option value="AC">AC - Arc de Chasse</option>
-                <option value="AD">AD - Arc Droit</option>
+                <option value="AC">AC - Arc de chasse</option>
+                <option value="AD">AD - Arc droit</option>
                 <option value="BB">BB - Barebow</option>
+                <option value="CL">CL - Classique</option>
                 <option value="CO">CO - Compound</option>
-                <option value="TL">TL - Tir Libre</option>
+                <option value="TL">TL - Tir libre</option>
               </select>
             </label>
           </div>
@@ -493,6 +504,43 @@
                 </div>
               </div>
             </fieldset>
+          </div>
+          <div class="config-form config-form-rulesets">
+            <h4 class="config-history-title">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2Zm-2-7V3.5L18.5 8H14Z" fill="currentColor"/>
+              </svg>
+              Parcours à afficher
+            </h4>
+            <div class="config-rulesets-row">
+              <fieldset class="config-section">
+                <legend class="config-section-legend">
+                  <label class="config-fed-label">
+                    <input type="checkbox" id="config-fed-ffta" checked>
+                    FFTA
+                  </label>
+                </legend>
+                <div class="config-ruleset-group">
+                  <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTA" value="nature" checked> Nature</label>
+                  <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTA" value="campagne" checked> Campagne</label>
+                  <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTA" value="3d" checked> 3D</label>
+                </div>
+              </fieldset>
+              <fieldset class="config-section">
+                <legend class="config-section-legend">
+                  <label class="config-fed-label">
+                    <input type="checkbox" id="config-fed-fftl" checked>
+                    FFTL
+                  </label>
+                </legend>
+                <div class="config-ruleset-group">
+                  <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTL" value="3d2" checked> 3D Two Shoots</label>
+                  <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTL" value="3dh" checked> 3D Hunting</label>
+                  <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTL" value="ar" checked> Animal Rounds</label>
+                  <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTL" value="field" checked> Field / Hunter</label>
+                </div>
+              </fieldset>
+            </div>
           </div>  
           <div class="config-history-actions">
             <h4 class="config-history-title">
@@ -546,6 +594,7 @@
                 <option value="3d2">3D Two Shoots</option>
                 <option value="3dh">3D Hunting</option>
                 <option value="ar">Animal Rounds</option>
+                <option value="field">Field / Hunter</option>
               </optgroup>
             </select>
             <select id="history-mode-filter" aria-label="Filtre mode">
@@ -579,7 +628,7 @@
         </div>
       </section>
       <footer class="app-footer">
-        <p>Team Score &copy; 2026 Alain DOAN-HUU - <span id="app-version" class="app-footer-version"></span></p>
+        <p>Archery Team Score &copy; 2026 Alain DOAN-HUU - <span id="app-version" class="app-footer-version"></span></p>
       </footer>
     </main>
 

@@ -1,5 +1,5 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.4.3";
+const APP_VERSION = "v1.5.0";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -36,6 +36,8 @@ const els = {
   successZoneValue: document.getElementById("success-zone-value"),
   rulesetSelect: document.getElementById("ruleset-select"),
   scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
+  setupMenuBtn: document.getElementById("setup-menu-btn"),
+  setupMenuPanel: document.getElementById("setup-menu-panel"),
   setupHelpBtn: document.getElementById("setup-help-btn"),
   startBtn: document.getElementById("start-btn"),
   backSetupBtn: document.getElementById("back-setup-btn"),
@@ -135,6 +137,7 @@ const presets = {
   nature: [20, 15, 10, 0],
   campagne: [6, 5, 4, 3, 2, 1, 0],
   "3d": [11, 10, 8, 5, 0],
+  field: [5, 4, 3, 0],
   "3d2": [10, 8, 5, 0],
   "3dh": [20, 16, 10, 0],
   ar: [20, 18, 16, 14, 12, 10, 0],
@@ -144,6 +147,7 @@ const defaultTargetsByRuleset = {
   nature: 21,
   campagne: 24,
   "3d": 24,
+  field: 14,
   "3d2": 14,
   "3dh": 14,
   ar: 14,
@@ -155,6 +159,7 @@ const appConfig = {
   missLimit_team: 5,
   missLimit_individual: 3,
   successZoneByRuleset: {},
+  enabledRulesets: ["nature", "campagne", "3d", "3d2", "3dh", "ar", "field"],
 };
 
 function loadConfig() {
@@ -177,6 +182,9 @@ function loadConfig() {
       if (Number.isFinite(saved.missLimit_individual)) appConfig.missLimit_individual = saved.missLimit_individual;
       if (saved.successZoneByRuleset && typeof saved.successZoneByRuleset === "object") {
         Object.assign(appConfig.successZoneByRuleset, saved.successZoneByRuleset);
+      }
+      if (Array.isArray(saved.enabledRulesets)) {
+        appConfig.enabledRulesets = saved.enabledRulesets;
       }
     }
   } catch { /* ignore */ }
@@ -215,11 +223,96 @@ function openConfigModal() {
   els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
   els.configMissLimitIndiv.value = String(appConfig.missLimit_individual);
   els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
+  syncRulesetCheckboxes();
   els.configModal.classList.remove("hidden");
 }
 
 function closeConfigModal() {
   els.configModal.classList.add("hidden");
+  updateRulesetSelectOptions();
+}
+
+function closeSetupMenu() {
+  if (!els.setupMenuPanel || !els.setupMenuBtn) return;
+  els.setupMenuPanel.classList.add("hidden");
+  els.setupMenuBtn.setAttribute("aria-expanded", "false");
+}
+
+function toggleSetupMenu() {
+  if (!els.setupMenuPanel || !els.setupMenuBtn) return;
+  const shouldOpen = els.setupMenuPanel.classList.contains("hidden");
+  els.setupMenuPanel.classList.toggle("hidden", !shouldOpen);
+  els.setupMenuBtn.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+}
+
+function syncRulesetCheckboxes() {
+  const rulesetCheckboxes = document.querySelectorAll(".config-ruleset-cb");
+  rulesetCheckboxes.forEach((cb) => {
+    cb.checked = appConfig.enabledRulesets.includes(cb.value);
+  });
+  syncFederationCheckboxes();
+}
+
+function syncFederationCheckboxes() {
+  const fftaCheckboxes = document.querySelectorAll('.config-ruleset-cb[data-federation="FFTA"]');
+  const fftlCheckboxes = document.querySelectorAll('.config-ruleset-cb[data-federation="FFTL"]');
+  const fftaCheckbox = document.getElementById("config-fed-ffta");
+  const fftlCheckbox = document.getElementById("config-fed-fftl");
+  
+  if (fftaCheckbox) {
+    const allFFTAChecked = Array.from(fftaCheckboxes).every((cb) => cb.checked);
+    const someFFTAChecked = Array.from(fftaCheckboxes).some((cb) => cb.checked);
+    fftaCheckbox.checked = allFFTAChecked;
+    fftaCheckbox.indeterminate = someFFTAChecked && !allFFTAChecked;
+  }
+  
+  if (fftlCheckbox) {
+    const allFFTLChecked = Array.from(fftlCheckboxes).every((cb) => cb.checked);
+    const someFFTLChecked = Array.from(fftlCheckboxes).some((cb) => cb.checked);
+    fftlCheckbox.checked = allFFTLChecked;
+    fftlCheckbox.indeterminate = someFFTLChecked && !allFFTLChecked;
+  }
+}
+
+function updateRulesetSelectOptions() {
+  const select = els.rulesetSelect;
+  if (!select) return;
+  
+  const currentValue = select.value;
+  const allOptions = select.querySelectorAll("option");
+  
+  allOptions.forEach((option) => {
+    const value = option.value;
+    if (value && appConfig.enabledRulesets.includes(value)) {
+      option.disabled = false;
+      option.style.display = "";
+    } else if (value) {
+      option.disabled = true;
+      option.style.display = "none";
+    }
+  });
+  
+  // Masquer les optgroups vides
+  const optgroups = select.querySelectorAll("optgroup");
+  optgroups.forEach((optgroup) => {
+    const visibleOptions = Array.from(optgroup.querySelectorAll("option")).filter(
+      (opt) => opt.value && appConfig.enabledRulesets.includes(opt.value)
+    );
+    if (visibleOptions.length === 0) {
+      optgroup.style.display = "none";
+    } else {
+      optgroup.style.display = "";
+    }
+  });
+  
+  // Si l'option actuelle est désactivée, sélectionner la première option activée
+  if (currentValue && !appConfig.enabledRulesets.includes(currentValue)) {
+    const firstEnabled = appConfig.enabledRulesets[0];
+    if (firstEnabled) {
+      select.value = firstEnabled;
+      select.dispatchEvent(new Event("change"));
+    }
+  }
 }
 
 const maxShootTotalByRuleset = {
@@ -233,6 +326,7 @@ const maxShootTotalByRuleset = {
 const targetGroupsByRuleset = {
   nature: ["PA", "PG", "MG", "GG"],
   "3d": ["G1", "G2", "G3", "G4"],
+  field: ["65", "50", "35", "20"],
   "3d2": ["G1", "G2", "G3", "G4"],
   "3dh": ["G1", "G2", "G3", "G4"],
   ar: ["G1", "G2", "G3", "G4"],
@@ -266,21 +360,47 @@ function getGroupsForRuleset(ruleset) {
   return targetGroupsByRuleset[ruleset] || [];
 }
 
+const weaponsByFederation = {
+  FFTA: [
+    { code: "AC", libelle: "Arc de chasse" },
+    { code: "AD", libelle: "Arc droit" },
+    { code: "BB", libelle: "Barebow" },
+    { code: "CL", libelle: "Classique" },
+    { code: "CO", libelle: "Compound" },
+    { code: "TL", libelle: "Tir libre" },
+  ],
+  FFTL: [
+    { code: "BB-C", libelle: "Barebow compound" },
+    { code: "BB-R", libelle: "Barebow recurve" },
+    { code: "BH-C", libelle: "Bowhunter compound" },
+    { code: "BH-R", libelle: "Bowhunter recurve" },
+    { code: "BL", libelle: "Bowhunter limited" },
+    { code: "BU", libelle: "Bowhunter unlimited" },
+    { code: "FS", libelle: "Freestyle limited" },
+    { code: "FU", libelle: "Freestyle unlimited" },
+    { code: "HB", libelle: "Historical bow" },
+    { code: "LB", libelle: "Longbow" },
+    { code: "TR", libelle: "Traditional recurve" },
+  ],
+};
+
+function getFederationByRuleset(ruleset) {
+  return isFFTLRuleset(ruleset) ? "FFTL" : "FFTA";
+}
+
 function formatWeaponLabel(code) {
-  if (code === "AC") return "Arc de Chasse";
-  if (code === "AD") return "Arc Droit";
-  if (code === "BB") return "Barebow";
-  if (code === "CL") return "Classique Viseur";
-  if (code === "CO") return "Compound";
-  if (code === "TL") return "Tir Libre";
+  for (const weapon of weaponsByFederation.FFTA) {
+    if (weapon.code === code) return weapon.libelle;
+  }
+  for (const weapon of weaponsByFederation.FFTL) {
+    if (weapon.code === code) return weapon.libelle;
+  }
   return code || "";
 }
 
 function getWeaponsForRuleset(ruleset) {
-  if (ruleset === "campagne") {
-    return ["AD", "BB", "TL", "CL"];
-  }
-  return ["AC", "AD", "BB", "CO", "TL"];
+  const federation = getFederationByRuleset(ruleset);
+  return (weaponsByFederation[federation] || []).map((weapon) => weapon.code);
 }
 
 function isWeaponAllowedForRuleset(weapon, ruleset) {
@@ -290,12 +410,14 @@ function isWeaponAllowedForRuleset(weapon, ruleset) {
 function syncWeaponSelectOptions(preferredWeapon = null) {
   if (!els.weaponSelect) return;
   const ruleset = els.rulesetSelect.value;
+  const federation = getFederationByRuleset(ruleset);
+  const federationWeapons = weaponsByFederation[federation] || [];
   const allowedWeapons = getWeaponsForRuleset(ruleset);
   const currentWeapon = preferredWeapon || els.weaponSelect.value;
   const selectedWeapon = allowedWeapons.includes(currentWeapon) ? currentWeapon : allowedWeapons[0];
 
-  els.weaponSelect.innerHTML = allowedWeapons
-    .map((weapon) => `<option value="${weapon}">${weapon} - ${formatWeaponLabel(weapon)}</option>`)
+  els.weaponSelect.innerHTML = federationWeapons
+    .map((weapon) => `<option value="${weapon.code}">${weapon.code} - ${weapon.libelle}</option>`)
     .join("");
   els.weaponSelect.value = selectedWeapon;
 }
@@ -881,12 +1003,13 @@ function getTargetCountForRuleset(ruleset) {
 }
 
 function isFFTLRuleset(ruleset) {
-  return ruleset === "3d2" || ruleset === "3dh" || ruleset === "ar";
+  return ruleset === "3d2" || ruleset === "3dh" || ruleset === "ar" || ruleset === "field";
 }
 
 function getArrowsPerVolley(ruleset, scoringMode) {
   if (ruleset === "3dh") return 1;
   if (ruleset === "ar") return 3;
+  if (ruleset === "field") return 4;
   if (ruleset === "campagne") return 3;
   return scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
 }
@@ -1615,14 +1738,19 @@ function renderHistoryList() {
     if (value === "nature") return "Nature";
     if (value === "campagne") return "Campagne";
     if (value === "3d") return "3D";
+    if (value === "field") return "Field / Hunter";
     if (value === "3d2") return "3D Two Shoots";
     if (value === "3dh") return "3D Hunting";
     if (value === "ar") return "Animal Rounds";
     return "-";
   };
-  const formatModeLabel = (value) => {
-    if (value === "team") return "Équipe";
-    if (value === "individual") return "Individuel";
+  const formatModeWithIcon = (value) => {
+    if (value === "team") {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="18" height="18" style="vertical-align: middle;"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3Zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3Zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13Zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.96 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5Z" fill="currentColor"/></svg>`;
+    }
+    if (value === "individual") {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="16" height="16" style="vertical-align: middle;"><path d="M12 12c2.76 0 5-2.24 5-5S14.76 2 12 2 7 4.24 7 7s2.24 5 5 5Zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5Z" fill="currentColor"/></svg>`;
+    }
     return "-";
   };
 
@@ -1670,7 +1798,7 @@ function renderHistoryList() {
       <div class="history-item-body">
         <div class="history-item-info">
           <strong class="history-total-score">${entry.total ?? 0} pts</strong>
-          <span class="history-mode">${formatParcoursLabel(entry.ruleset)} en ${formatModeLabel(entry.scoringMode)}${entry.weapon ? " • " + formatWeaponLabel(entry.weapon) : ""}</span>
+          <span class="history-mode">${formatParcoursLabel(entry.ruleset)}<br>${formatModeWithIcon(entry.scoringMode)}${entry.weapon ? " • " + entry.weapon : ""}</span>
         </div>
         <div class="history-item-actions">
           <button class="btn btn-icon history-list-btn" aria-label="Détail des volées">
@@ -1937,7 +2065,29 @@ els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", pe
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
 els.historyBtn.addEventListener("click", openHistoryModal);
-els.setupHelpBtn.addEventListener("click", openHelpModal);
+if (els.setupMenuBtn) {
+  els.setupMenuBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleSetupMenu();
+  });
+}
+if (els.setupMenuPanel) {
+  els.setupMenuPanel.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+}
+document.addEventListener("click", () => {
+  closeSetupMenu();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeSetupMenu();
+  }
+});
+els.setupHelpBtn.addEventListener("click", () => {
+  closeSetupMenu();
+  openHelpModal();
+});
 els.helpBtn.addEventListener("click", openHelpModal);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
 els.statsBtn.addEventListener("click", openStatsModal);
@@ -1960,7 +2110,10 @@ els.historyResetFiltersBtn.addEventListener("click", () => {
   historyCurrentPage = 1;
   renderHistoryList();
 });
-els.configBtn.addEventListener("click", openConfigModal);
+els.configBtn.addEventListener("click", () => {
+  closeSetupMenu();
+  openConfigModal();
+});
 els.configModalOverlay.addEventListener("click", closeConfigModal);
 els.configCloseBtn.addEventListener("click", closeConfigModal);
 els.configExportHistoryBtn.addEventListener("click", exportHistory);
@@ -1991,8 +2144,63 @@ els.configMissLimitIndiv.addEventListener("input", () => {
   els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
   saveConfig();
 });
+
+const configFedFFTA = document.getElementById("config-fed-ffta");
+const configFedFFTL = document.getElementById("config-fed-fftl");
+
+if (configFedFFTA) {
+  configFedFFTA.addEventListener("change", (e) => {
+    const checked = e.target.checked;
+    const fftaCheckboxes = document.querySelectorAll('.config-ruleset-cb[data-federation="FFTA"]');
+    fftaCheckboxes.forEach((cb) => {
+      cb.checked = checked;
+      if (checked && !appConfig.enabledRulesets.includes(cb.value)) {
+        appConfig.enabledRulesets.push(cb.value);
+      } else if (!checked) {
+        appConfig.enabledRulesets = appConfig.enabledRulesets.filter((r) => r !== cb.value);
+      }
+    });
+    saveConfig();
+    syncFederationCheckboxes();
+  });
+}
+
+if (configFedFFTL) {
+  configFedFFTL.addEventListener("change", (e) => {
+    const checked = e.target.checked;
+    const fftlCheckboxes = document.querySelectorAll('.config-ruleset-cb[data-federation="FFTL"]');
+    fftlCheckboxes.forEach((cb) => {
+      cb.checked = checked;
+      if (checked && !appConfig.enabledRulesets.includes(cb.value)) {
+        appConfig.enabledRulesets.push(cb.value);
+      } else if (!checked) {
+        appConfig.enabledRulesets = appConfig.enabledRulesets.filter((r) => r !== cb.value);
+      }
+    });
+    saveConfig();
+    syncFederationCheckboxes();
+  });
+}
+
+const rulesetCheckboxes = document.querySelectorAll(".config-ruleset-cb");
+rulesetCheckboxes.forEach((cb) => {
+  cb.addEventListener("change", (e) => {
+    const value = e.target.value;
+    if (e.target.checked) {
+      if (!appConfig.enabledRulesets.includes(value)) {
+        appConfig.enabledRulesets.push(value);
+      }
+    } else {
+      appConfig.enabledRulesets = appConfig.enabledRulesets.filter((r) => r !== value);
+    }
+    saveConfig();
+    syncFederationCheckboxes();
+  });
+});
+
 els.rulesetSelect.addEventListener("change", () => syncConfigSliderMax());
 loadConfig();
+updateRulesetSelectOptions();
 syncWeaponSelectOptions();
 updateWeaponSelectVisibility();
 els.appVersion.textContent = APP_VERSION;
