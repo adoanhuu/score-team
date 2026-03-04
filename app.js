@@ -1,5 +1,5 @@
 const ARROWS_PER_shoot = 6;
-const APP_VERSION = "v1.5.0";
+const APP_VERSION = "v1.5.1";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -376,7 +376,8 @@ const weaponsByFederation = {
     { code: "BH-R", libelle: "Bowhunter recurve" },
     { code: "BL", libelle: "Bowhunter limited" },
     { code: "BU", libelle: "Bowhunter unlimited" },
-    { code: "FS", libelle: "Freestyle limited" },
+    { code: "FS-R", libelle: "Freestyle recurve" },
+    { code: "FS-C", libelle: "Freestyle compound" },
     { code: "FU", libelle: "Freestyle unlimited" },
     { code: "HB", libelle: "Historical bow" },
     { code: "LB", libelle: "Longbow" },

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Analyser vos statistiques de tir à l'arc - Graphiques, tendances et historique de vos sessions.">
+  <meta name="keywords" content="statistiques, analyse, graphiques, historique, progression archery">
+  <meta name="author" content="Archery Team Score">
+  <meta property="og:title" content="Statistiques - Archery Team Score">
+  <meta property="og:description" content="Analysez votre performance avec des statistiques détaillées et des graphiques.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://archery-team-score.com/statistiques">
+  <meta property="og:image" content="../icons/icon-192.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Statistiques - Archery Team Score">
+  <meta name="twitter:description" content="Analysez votre progression et vos performances">
+  <title>Statistiques - Archery Team Score</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .stat-example {
+      background: #f9f6f1;
+      border-left: 4px solid var(--accent);
+      padding: 12px;
+      margin: 12px 0;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="site-wrapper">
+    <!-- En-tête -->
+    <header class="site-header">
+      <div class="header-content">
+        <a href="index.html" class="header-logo">
+          <img src="../icons/icon-192.png" alt="Archery Team Score">
+          Archery Team Score
+        </a>
+        <button class="menu-toggle" aria-label="Toggle menu">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z"/>
+          </svg>
+        </button>
+        <nav class="site-nav">
+          <a href="index.html">Accueil</a>
+          <a href="nouvelle-session.html">Nouvelle session</a>
+          <a href="saisie-scores.html">Saisie des scores</a>
+          <a href="statistiques.html">Statistiques</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Contenu principal -->
+    <main class="site-main">
+      <div class="page-content">
+        <h1>
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2V17zm4 0h-2V7h2V17zm4 0h-2v-4h2V17z"/>
+          </svg>
+          Lire et analyser les statistiques
+        </h1>
+
+        <p>À la fin de votre session, découvrez comment interpréter les statistiques et analyse détaillée de votre performance.</p>
+
+        <h2>Accès aux statistiques</h2>
+        <p>Une fois que vous avez saisi tous les scores de votre parcours, cliquez sur le bouton <strong>« Statistiques »</strong> pour accéder au panneau d'analyse. Les statistiques offrent une vue holistique de votre performance.</p>
+
+        <h2>Vue d'ensemble (Onglet Résumé)</h2>
+
+        <h3>Score total</h3>
+        <p>Le score total cumulé pour la session entière. C'est la somme de tous les points obtenus à chaque cible.</p>
+
+        <div class="stat-example">
+          <strong>Exemple</strong> : Si vous avez marqué 20 points à chacune des 21 cibles, votre score total serait 420 points.
+        </div>
+
+        <h3>Zone de succès atteinte</h3>
+        <p>Pourcentage de flèches qui ont atteint ou dépassé le seuil de succès défini au démarrage de la session.</p>
+
+        <div class="stat-example">
+          <strong>Exemple</strong> : Si vous avez défini une zone de succès de 10 points et marqué 126 flèches sur 126 avec au moins 10 points, le pourcentage est 100%.
+        </div>
+
+        <h3>Meilleure volée (Meilleure cible)</h3>
+        <p>Le score le plus élevé obtenu sur une seule cible. Identifie votre meilleure performance.</p>
+
+        <h3>Pire volée (Pire cible)</h3>
+        <p>Le score le plus faible obtenu sur une seule cible. Aide à identifier les zones de progression.</p>
+
+        <h2>Diagrammes et graphiques</h2>
+
+        <h3>Distribution des scores (Barre 1)</h3>
+        <p>Affiche la fréquence des différents scores marqués pendant la session. Montre votre cohérence et votre distribution statistique.</p>
+
+        <div class="stat-example">
+          <strong>Interprétation</strong> : Une barre la plus haute à 20 points indique que vous marquez régulièrement 20 points.
+        </div>
+
+        <h3>Volées complètes (Barre 2)</h3>
+        <p>Nombre de cibles où vous avez marqué le maximum de points possible (par exemple, 60/60 pour 3 flèches à 20 points).</p>
+
+        <h3>Double zéro (Barre 3)</h3>
+        <p>Nombre de cibles où vous avez marqué deux flèches à zéro. Indique les moments de difficulté.</p>
+
+        <h2>Évolution pendant la session</h2>
+
+        <h3>Courbe d'évolution</h3>
+        <p>Graphique en courbe montrant votre score cumulatif le long de la session. Permet de voir si vous vous améliorez ou vous fatiguez.</p>
+
+        <h3>Zone de succès (ligne horizontale)</h3>
+        <p>Ligne de référence montrant le seuil de succès défini. Les flèches au-dessus sont dans la zone de succès.</p>
+
+        <h3>Plage optimale</h3>
+        <p>Zone en surbrillance montrant la plage idéale de scoring selon le parcours. Aide à évaluer votre performance relative.</p>
+
+        <h2>Indicateurs clés (KPI)</h2>
+
+        <h3>Moyenne globale</h3>
+        <p>Score moyen par flèche sur l'ensemble de la session. Donne une vue d'ensemble rapide de votre niveau.</p>
+
+        <div class="stat-example">
+          <strong>Formule</strong> : Score total ÷ Nombre total de flèches
+        </div>
+
+        <h3>Flèches parfaites</h3>
+        <p>Nombre de flèches marquant le maximum possible selon le parcours.</p>
+
+        <h3>Flèches à zéro</h3>
+        <p>Nombre total de flèches qui n'ont marqué aucun point. Plus bas est mieux.</p>
+
+        <h3>Distribution des scores</h3>
+        <p>Tableau montrant combien de fois chaque score a été marqué pendant la session.</p>
+
+        <h2>Historique des sessions</h2>
+
+        <h3>Accès à l'historique</h3>
+        <p>Cliquez sur « Historique » pour consulter toutes vos sessions précédentes. Vous pouvez filtrer par :</p>
+        <ul>
+          <li><strong>Mode</strong> : Équipe ou Individuel</li>
+          <li><strong>Parcours</strong> : Nature, Campagne, 3D, etc.</li>
+        </ul>
+
+        <h3>Comparaison entre sessions</h3>
+        <p>En consultant votre historique, vous pouvez comparer votre progression au fil du temps. Prenez note de votre moyenne par session pour suivre votre amélioration.</p>
+
+        <h2>Conseils d'analyse</h2>
+
+        <ul>
+          <li><strong>Identifiez les tendances</strong> : Regardez si votre score s'améliore au fil des sessions</li>
+          <li><strong>Analysez les baisses</strong> : Notez si votre performance diminue vers la fin des sessions (fatigue)</li>
+          <li><strong>Comparez les parcours</strong> : Utilisez l'historique pour voir vos résultats sur différents parcours</li>
+          <li><strong>Définissez des objectifs</strong> : Calculez votre moyenne actuelle et fixez un objectif pour l'augmenter</li>
+          <li><strong>Documentez les conditions</strong> : Notez mentalement les conditions (vent, soleil, etc.) pour contextualiser les résultats</li>
+        </ul>
+
+        <h2>Export et partage</h2>
+        <p>Les résultats de votre session sont automatiquement sauvegardés localement. Vous pouvez les consulter ultérieurement via l'onglet « Historique » sans avoir besoin d'une connexion Internet.</p>
+
+        <div style="background: #e8f5e9; padding: 16px; border-radius: 12px; margin: 24px 0; border-left: 4px solid var(--accent);">
+          <p style="margin-top: 0;"><strong>💡 Conseil</strong> : Suivez régulièrement vos statistiques pour identifier les domaines d'amélioration et motivez-vous en voyant votre progression au fil du temps !</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Pied de page -->
+    <footer class="site-footer">
+      <div class="footer-content">
+        <p>&copy; 2026 Archery Team Score. Application dédiée aux archers de la FFTA et FFTL.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="shared.js"></script>
+</body>
+</html>

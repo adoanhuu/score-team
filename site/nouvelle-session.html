@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Créer une nouvelle session de notation pour vos parcours de tir à l'arc. Configurez le type de parcours, le nombre de cibles et le mode de saisie.">
+  <meta name="keywords" content="nouvelle session, parcours FFTA, parcours FFTL, configuration, archery">
+  <meta name="author" content="Archery Team Score">
+  <meta property="og:title" content="Créer une nouvelle session - Archery Team Score">
+  <meta property="og:description" content="Guide complet pour démarrer une nouvelle session de notation de tir à l'arc.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://archery-team-score.com/nouvelle-session">
+  <meta property="og:image" content="../icons/icon-192.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Nouvelle session - Archery Team Score">
+  <meta name="twitter:description" content="Configurez votre session de notation">
+  <title>Nouvelle Session - Archery Team Score</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <div class="site-wrapper">
+    <!-- En-tête -->
+    <header class="site-header">
+      <div class="header-content">
+        <a href="index.html" class="header-logo">
+          <img src="../icons/icon-192.png" alt="Archery Team Score">
+          Archery Team Score
+        </a>
+        <button class="menu-toggle" aria-label="Toggle menu">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z"/>
+          </svg>
+        </button>
+        <nav class="site-nav">
+          <a href="index.html">Accueil</a>
+          <a href="nouvelle-session.html">Nouvelle session</a>
+          <a href="saisie-scores.html">Saisie des scores</a>
+          <a href="statistiques.html">Statistiques</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Contenu principal -->
+    <main class="site-main">
+      <div class="page-content">
+        <h1>
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2Zm-2-7V3.5L18.5 8H14Z"/>
+          </svg>
+          Créer une nouvelle session
+        </h1>
+
+        <p>Découvrez comment configurer une nouvelle session de notation pour votre parcours de tir à l'arc.</p>
+
+        <h2>Étape 1 : Choisir votre parcours</h2>
+        <p>La première étape consiste à sélectionner le type de parcours que vous allez tirer. <strong>Archery Team Score</strong> supporte plusieurs parcours selon votre fédération :</p>
+
+        <h3>Parcours FFTA (Fédération Française de Tir à l'Arc)</h3>
+        <table class="codes-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Nom du parcours</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="code-badge">Nature</span></td>
+              <td>Nature (20 / 15 / 10)</td>
+              <td>Parcours nature classique avec 3 zones de scoring</td>
+            </tr>
+            <tr>
+              <td><span class="code-badge">Campagne</span></td>
+              <td>Campagne (6 / 5 / 4 / 3 / 2 / 1)</td>
+              <td>Parcours campagne avec 6 zones de scoring</td>
+            </tr>
+            <tr>
+              <td><span class="code-badge">3D</span></td>
+              <td>3D (11 / 10 / 8 / 5)</td>
+              <td>Parcours 3D avec cibles en relief</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Parcours FFTL (Fédération Française de Tir sur Loisir)</h3>
+        <table class="codes-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Nom du parcours</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="code-badge">3D2</span></td>
+              <td>3D Two Shoots (10 / 8 / 5)</td>
+              <td>Parcours 3D avec deux tirs par cible</td>
+            </tr>
+            <tr>
+              <td><span class="code-badge">3DH</span></td>
+              <td>3D Hunting (20 / 16 / 10)</td>
+              <td>Parcours 3D style chasse</td>
+            </tr>
+            <tr>
+              <td><span class="code-badge">AR</span></td>
+              <td>Animal Rounds (3 flèches)</td>
+              <td>Parcours animaux avec 3 flèches par cible</td>
+            </tr>
+            <tr>
+              <td><span class="code-badge">Field</span></td>
+              <td>Field / Hunter (5 / 4 / 3)</td>
+              <td>Parcours Field avec 3 zones</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Étape 2 : Configurer le nombre de cibles</h2>
+        <p>Une fois votre parcours choisi, vous pouvez ajuster le nombre de cibles si nécessaire (par défaut 21 cibles). Cette valeur déterminera le nombre total de lignes de notation dans votre session.</p>
+
+        <h2>Étape 3 : Zone de succès</h2>
+        <p>Définissez la zone de succès minimale. Cette valeur établit le score minimum considéré comme une notation réussie. Les flèches en dessous de ce seuil seront mises en évidence différemment.</p>
+
+        <h2>Étape 4 : Mode de saisie</h2>
+        <p>Choisissez entre deux modes :</p>
+        <ul>
+          <li><strong>Mode Équipe</strong> : Enregistrez les scores collectifs de votre équipe</li>
+          <li><strong>Mode Individuel</strong> : Suivez les scores individuels de chaque archer</li>
+        </ul>
+
+        <h2>Étape 5 : Sélection de l'arme</h2>
+        <p>Selon le parcours sélectionné, vous devrez choisir le type d'arme utilisé. Cela affecte les options disponibles pour votre session.</p>
+
+        <h2>Étape 6 : Utiliser les groupes de cibles</h2>
+        <p>L'option "Utiliser les groupes de cibles" vous permet de trier les cibles dans le formulaire de notation. Activez cette option si vos cibles sont regroupées logiquement sur le parcours.</p>
+
+        <h2>Démarrage</h2>
+        <p>Une fois tous les paramètres configurés, cliquez sur le bouton <strong>« Démarrer »</strong> pour commencer à saisir vos scores. Vous arriverez alors à l'écran de notation.</p>
+
+        <div style="background: #f0f7f4; padding: 16px; border-radius: 12px; margin: 24px 0;">
+          <p style="margin-top: 0;"><strong>💡 Conseil</strong> : L'application sauvegarde automatiquement votre session. Vous pouvez donc quitter et revenir plus tard sans perdre vos données.</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Pied de page -->
+    <footer class="site-footer">
+      <div class="footer-content">
+        <p>&copy; 2026 Archery Team Score. Application dédiée aux archers de la FFTA et FFTL.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="shared.js"></script>
+</body>
+</html>
