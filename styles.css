@@ -1449,7 +1449,7 @@ select {
 }
 
 .stats-dist-card {
-  text-align: left;
+  text-align: center;
 }
 
 .stats-score-dist {
