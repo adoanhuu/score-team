@@ -237,7 +237,6 @@ a {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
 .explanation-card:hover {
@@ -470,32 +469,33 @@ a {
   gap: 24px;
 }
 
+/* Grille pour la section résumé des statistiques */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin: 24px 0;
+}
+
+.summary-grid .avg-by-game {
+  grid-column: span 2;
+}
+
+.summary-grid .global-avg {
+  grid-column: span 1;
+}
+
 @media (max-width: 768px) {
   .points-grid {
     grid-template-columns: 1fr;
   }
-}
-
-@media (max-width: 480px) {
-  .site-main {
-    padding: 16px 8px;
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
   }
-
-  .page-content {
-    padding: 16px;
-    border-radius: 12px;
-  }
-
-  .page-content h1 {
-    font-size: 1.4rem;
-  }
-
-  .codes-table {
-    font-size: 0.9rem;
-  }
-
-  .codes-table th,
-  .codes-table td {
-    padding: 8px;
+  
+  .summary-grid .avg-by-game,
+  .summary-grid .global-avg {
+    grid-column: span 1;
   }
 }
