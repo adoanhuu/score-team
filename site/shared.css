@@ -277,21 +277,11 @@ a {
 
 .codes-table th {
   color: #000;
-  background-color: rgb(223, 215, 215);
-  padding: 12px;
+  background-color: var(--light-blue);
+  padding: 6px 12px;
   text-align: left;
-  font-weight: 700;
+  font-weight: 500;
   border-bottom: 3px solid var(--blue);
-}
-
-@media screen and (min-width: 768px) {
-  .codes-table th:first-of-type {
-    border-top-left-radius: 12px;
-  }
-
-  .codes-table th:last-of-type {
-    border-top-right-radius: 12px;
-  }
 }
 
 .codes-table td {
@@ -305,15 +295,7 @@ a {
 
 .code-badge {
   display: inline-block;
-  background: var(--blue);
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.8rem;
-  font-family: monospace;
-  width: 80px;
-  text-align: center;
+  font-weight: bold;
 }
 
 /* Milestones/Timeline */
