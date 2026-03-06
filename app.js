@@ -118,6 +118,7 @@ const els = {
   configImportHistoryInput: document.getElementById("config-import-history-input"),
   weaponSelect: document.getElementById("weapon-select"),
   volleyTitleText: document.getElementById("volley-title-text"),
+  volleyCounter: document.getElementById("volley-counter"),
   volleyWeaponLabel: document.getElementById("volley-weapon-label"),
   segmentStats: document.getElementById("segment-stats"),
   configFullTargetTeam: document.getElementById("config-full-target-team"),
@@ -413,6 +414,17 @@ function formatWeaponLabel(code) {
   return code || "";
 }
 
+function formatRulesetLabel(value) {
+  if (value === "nature") return "Nature";
+  if (value === "campagne") return "Campagne";
+  if (value === "3d") return "3D";
+  if (value === "field") return "Field / Hunter";
+  if (value === "3d2") return "3D Two Shoots";
+  if (value === "3dh") return "3D Hunting";
+  if (value === "ar") return "Animal round";
+  return value || "-";
+}
+
 function getWeaponsForRuleset(ruleset) {
   const federation = getFederationByRuleset(ruleset);
   return (weaponsByFederation[federation] || []).map((weapon) => weapon.code);
@@ -643,7 +655,8 @@ function renderPad() {
 
 function updateScoringHeader() {
   const shootNumber = state.shoots.length + 1;
-  els.volleyTitleText.textContent = `Volée ${Math.min(shootNumber, state.targetCount)} sur ${state.targetCount}`;
+  els.volleyTitleText.textContent = formatRulesetLabel(state.activeRuleset);
+  els.volleyCounter.textContent = `${Math.min(shootNumber, state.targetCount)}/${state.targetCount}`;
   els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
   if (Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0) {
     els.progressText.textContent = `Modification de la volée ${state.editingVolleyIndex + 1}`;
@@ -1758,16 +1771,7 @@ function renderHistoryList() {
   const startIdx = (historyCurrentPage - 1) * HISTORY_PER_PAGE;
   const pageEntries = entries.slice(startIdx, startIdx + HISTORY_PER_PAGE);
 
-  const formatParcoursLabel = (value) => {
-    if (value === "nature") return "Nature";
-    if (value === "campagne") return "Campagne";
-    if (value === "3d") return "3D";
-    if (value === "field") return "Field / Hunter";
-    if (value === "3d2") return "3D Two Shoots";
-    if (value === "3dh") return "3D Hunting";
-    if (value === "ar") return "Animal Rounds";
-    return "-";
-  };
+  const formatParcoursLabel = formatRulesetLabel;
   const formatModeWithIcon = (value) => {
     if (value === "team") {
       return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="18" height="18" style="vertical-align: middle;"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3Zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3Zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13Zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.96 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5Z" fill="currentColor"/></svg>`;
