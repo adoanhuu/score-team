@@ -133,15 +133,29 @@ const els = {
   statsTabGroupsBtn: document.getElementById("stats-tab-groups-btn"),
 };
 
+// Sentinel for "X" score (Field/Hunter: inner-bull, counted as 5 pts)
+const FIELD_X = 5.5;
+
 const presets = {
   nature: [20, 15, 10, 0],
   campagne: [6, 5, 4, 3, 2, 1, 0],
   "3d": [11, 10, 8, 5, 0],
-  field: [5, 4, 3, 0],
+  field: [FIELD_X, 5, 4, 3, 0],
   "3d2": [10, 8, 5, 0],
   "3dh": [20, 16, 10, 0],
   ar: [20, 18, 16, 14, 12, 10, 0],
 };
+
+function scoreToValue(s) {
+  return s === FIELD_X ? 5 : (s ?? 0);
+}
+
+function scoreLabel(s) {
+  if (s === null) return "-";
+  if (s === 0) return "M";
+  if (s === FIELD_X) return "X";
+  return String(s);
+}
 
 const defaultTargetsByRuleset = {
   nature: 21,
@@ -549,6 +563,10 @@ function restorePersistedState() {
   state.arrowsPerVolley = getArrowsPerVolley(saved.activeRuleset, state.scoringMode);
   state.activeRuleset = saved.activeRuleset;
   state.allowedPoints = Array.isArray(saved.allowedPoints) && saved.allowedPoints.length ? [...saved.allowedPoints] : [...presets[saved.activeRuleset]];
+  // Ensure FIELD_X is present for field sessions (handles stale saved data from before X was added)
+  if (saved.activeRuleset === "field" && !state.allowedPoints.includes(FIELD_X)) {
+    state.allowedPoints = [...presets.field];
+  }
   state.shootGroups = Array.isArray(saved.shootGroups) ? [...saved.shootGroups] : [];
   state.editingVolleyIndex = Number.isInteger(saved.editingVolleyIndex) ? saved.editingVolleyIndex : null;
   state.shoots = Array.isArray(saved.shoots) ? saved.shoots.map((shoot) => (Array.isArray(shoot) ? [...shoot] : [])).filter((shoot) => shoot.length === state.arrowsPerVolley) : [];
@@ -578,14 +596,11 @@ function resetRoundBuffer() {
 }
 
 function roundTotal(round) {
-  return round.reduce((sum, value) => sum + value, 0);
+  return round.reduce((sum, value) => sum + scoreToValue(value), 0);
 }
 
 function formatScore(value) {
-  if (value === null) {
-    return "-";
-  }
-  return value === 0 ? "M" : value;
+  return scoreLabel(value);
 }
 
 function globalTotal() {
@@ -605,6 +620,9 @@ function renderPad() {
     if (score === 0) {
       button.classList.add("zero");
     }
+    if (score === FIELD_X) {
+      button.classList.add("x-score");
+    }
     const isValidForSequence = isScoreAllowedForCurrentArrow(score);
     if (locked) {
       button.classList.add("lock-disabled");
@@ -615,7 +633,7 @@ function renderPad() {
         button.classList.add("disabled-score");
       }
     }
-    button.textContent = score === 0 ? "M" : score;
+    button.textContent = scoreLabel(score);
     if (!locked && isValidForSequence) {
       button.addEventListener("click", () => registerScore(score));
     }
@@ -646,7 +664,9 @@ function updateCurrentShootDisplay() {
         ? "is-empty"
         : value === 0
           ? "is-miss"
-          : "is-hit";
+          : value === FIELD_X
+            ? "is-x"
+            : "is-hit";
       return `<span class="current-shoot-pill ${scoreClass}">${label}</span>`;
     })
     .join("");
@@ -773,7 +793,7 @@ function getSelectablePointsForCurrentArrow() {
 }
 
 function getCurrentShootPartialTotal() {
-  return state.currentshoot.reduce((sum, value) => sum + (value ?? 0), 0);
+  return state.currentshoot.reduce((sum, value) => sum + scoreToValue(value), 0);
 }
 
 function getMaxShootTotalForRuleset() {
@@ -785,7 +805,7 @@ function getMaxVolleyForCurrentConfig() {
   if (byRuleset !== null) {
     return state.scoringMode === "individual" ? Math.floor(byRuleset / 3) : byRuleset;
   }
-  return state.arrowsPerVolley * Math.max(...state.allowedPoints, 0);
+  return state.arrowsPerVolley * Math.max(...state.allowedPoints.map(scoreToValue), 0);
 }
 
 function isDoubleZeroVolley(shoot) {
@@ -995,7 +1015,7 @@ function getCurrentConfigForSetup() {
 
   const points = presets[ruleset];
 
-  const maxPoint = Math.max(...points.filter((p) => Number.isFinite(p)), 0);
+  const maxPoint = Math.max(...points.filter((p) => Number.isFinite(p)).map(scoreToValue), 0);
   return { arrowsPerVolley, maxPoint };
 }
 
@@ -1251,7 +1271,7 @@ function getMaxVolleyFromPayload(payload) {
     return payload.scoringMode === "individual" ? Math.floor(byRuleset / 3) : byRuleset;
   }
   const sourcePoints = Array.isArray(payload.allowedPoints) && payload.allowedPoints.length ? payload.allowedPoints : [0];
-  const maxPoint = Math.max(...sourcePoints);
+  const maxPoint = Math.max(...sourcePoints.map(scoreToValue));
   return (payload.arrowsPerVolley || 0) * Math.max(0, maxPoint);
 }
 
@@ -1338,7 +1358,7 @@ function renderScoreDistribution(allowedPoints, volleys) {
     .map((score, index) => {
       const count = counts.get(score) || 0;
       const pct = totalArrows > 0 ? (count / totalArrows) * 100 : 0;
-      const label = score === 0 ? "M" : String(score);
+      const label = scoreLabel(score);
       const barColor = getDistributionBarColor(count, totalArrows, score === 0);
       return `
         <div class="stats-dist-row-item">
@@ -1458,7 +1478,7 @@ function renderGroupDistribution(payload) {
 
   const legendColors = getPieColorsFromCounts(globalCounts, orderedScores);
   const legendItems = orderedScores.map((score) => {
-    const label = score === 0 ? 'M' : String(score);
+    const label = scoreLabel(score);
     const color = legendColors[score] || '#b0b6c0';
     return `<div class="stats-pie-legend-item"><span class="stats-pie-swatch" style="background:${color}"></span><span>${label}</span></div>`;
   }).join('');

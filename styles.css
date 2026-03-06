@@ -543,6 +543,11 @@ select {
   color: #fff;
 }
 
+.current-shoot-pill.is-x {
+  background: #b8860b;
+  color: #fff;
+}
+
 .points-pad {
   flex: 1;
   display: flex;
@@ -634,6 +639,12 @@ select {
 .point-btn.zero {
   background: var(--danger);
   border-color: #7d1a1d;
+  color: #fff;
+}
+
+.point-btn.x-score {
+  background: #1558c0;
+  border-color: #0e4291;
   color: #fff;
 }
 
