@@ -10,21 +10,12 @@
   <meta property="og:description" content="Analysez votre performance avec des statistiques détaillées et des graphiques.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://archery-team-score.com/statistiques">
-  <meta property="og:image" content="../icons/icon-192.png">
+  <meta property="og:image" content="../icons/icon-maskable-192.png">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Statistiques - Archery Team Score">
   <meta name="twitter:description" content="Analysez votre progression et vos performances">
   <title>Statistiques - Archery Team Score</title>
   <link rel="stylesheet" href="shared.css">
-  <style>
-    .stat-example {
-      background: #f9f6f1;
-      border-left: 4px solid var(--accent);
-      padding: 12px;
-      margin: 12px 0;
-      border-radius: 6px;
-    }
-  </style>
 </head>
 <body>
   <div class="site-wrapper">
@@ -32,7 +23,7 @@
     <header class="site-header">
       <div class="header-content">
         <a href="index.html" class="header-logo">
-          <img src="../icons/icon-192.png" alt="Archery Team Score">
+          <img src="../icons/icon-maskable-192.png" alt="Archery Team Score">
           Archery Team Score
         </a>
         <button class="menu-toggle" aria-label="Toggle menu">
@@ -64,79 +55,72 @@
         <h2>Accès aux statistiques</h2>
         <p>Une fois que vous avez saisi tous les scores de votre parcours, cliquez sur le bouton <strong>« Statistiques »</strong> pour accéder au panneau d'analyse. Les statistiques offrent une vue holistique de votre performance.</p>
 
-        <h2>Vue d'ensemble (Onglet Résumé)</h2>
+        <h2>Résumé</h2>
 
-        <h3>Score total</h3>
-        <p>Le score total cumulé pour la session entière. C'est la somme de tous les points obtenus à chaque cible.</p>
+        <div class="summary-grid">
+          <div>
+            <h3>Zone de réussite</h3>
+            <p>Pourcentage de flèches qui ont atteint ou dépassé le seuil de réussite défini au démarrage de la session.</p>
+          </div>
 
-        <div class="stat-example">
-          <strong>Exemple</strong> : Si vous avez marqué 20 points à chacune des 21 cibles, votre score total serait 420 points.
+          <div>
+            <h3>Meilleur score</h3>
+            <p>Le score le plus élevé obtenu sur une seule cible. Il identifie votre meilleure performance sur l'ensemble de la session.</p>
+          </div>
+
+          <div>
+            <h3>Pire score</h3>
+            <p>Le score le plus faible obtenu sur une seule cible. En identifiant le catégorie de cibles avec les scores les plus bas, vous pouvez cibler, il permet de definir son axe de travail.</p>
+          </div>
+
+          <div class="avg-by-game">
+            <h3>Moyenne par partie</h3>
+            <p>Le parcours est subdivisé en 2/3 parties, et la moyenne par partie montre le score moyen obtenu dans chaque section. Un graphique important si votre objectif est d'améliorer votre constance</p>
+            <ul>
+              <li>Couleur verte: zone de réussite atteinte</li>
+              <li>Couleur orange: légèrement en dessous de la zone de réussite</li>
+              <li>Couleur rouge: zone de réussite non atteinte</li>
+            </ul>
+
+            <div class="stat-example">
+              <strong>Interprétation</strong> : 
+              <ul>
+                <li>Si les barres sont majoritairement vertes, cela indique que vous atteignez régulièrement la zone de réussite.</li>
+                <li>Par contre, des barres rouges indiquent des zones d'amélioration potentielles.</li>
+                <li>Si c'est vers au début, puis régulièrement vers la fin, cela peut indiquer une fatigue progressive.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="global-avg">
+            <h3>Moyenne globale</h3>
+            <p>Score moyen par flèche sur l'ensemble de la session. Donne une vue d'ensemble rapide de votre niveau.</p>
+          </div>
         </div>
-
-        <h3>Zone de succès atteinte</h3>
-        <p>Pourcentage de flèches qui ont atteint ou dépassé le seuil de succès défini au démarrage de la session.</p>
-
-        <div class="stat-example">
-          <strong>Exemple</strong> : Si vous avez défini une zone de succès de 10 points et marqué 126 flèches sur 126 avec au moins 10 points, le pourcentage est 100%.
-        </div>
-
-        <h3>Meilleure volée (Meilleure cible)</h3>
-        <p>Le score le plus élevé obtenu sur une seule cible. Identifie votre meilleure performance.</p>
-
-        <h3>Pire volée (Pire cible)</h3>
-        <p>Le score le plus faible obtenu sur une seule cible. Aide à identifier les zones de progression.</p>
-
-        <h2>Diagrammes et graphiques</h2>
-
-        <h3>Distribution des scores (Barre 1)</h3>
-        <p>Affiche la fréquence des différents scores marqués pendant la session. Montre votre cohérence et votre distribution statistique.</p>
-
-        <div class="stat-example">
-          <strong>Interprétation</strong> : Une barre la plus haute à 20 points indique que vous marquez régulièrement 20 points.
-        </div>
-
-        <h3>Volées complètes (Barre 2)</h3>
-        <p>Nombre de cibles où vous avez marqué le maximum de points possible (par exemple, 60/60 pour 3 flèches à 20 points).</p>
-
-        <h3>Double zéro (Barre 3)</h3>
-        <p>Nombre de cibles où vous avez marqué deux flèches à zéro. Indique les moments de difficulté.</p>
-
-        <h2>Évolution pendant la session</h2>
-
+  
         <h3>Courbe d'évolution</h3>
-        <p>Graphique en courbe montrant votre score cumulatif le long de la session. Permet de voir si vous vous améliorez ou vous fatiguez.</p>
+        <p>Graphique en courbe montrant votre score cumulatif le long de la session. Permet de voir si vous vous améliorez ou vous fatiguez. Il permet également de voir la régularité de vos scores.</p>
+        <p>Ligne de référence montrant la zone de réussite définie en début de session. Vous voyez la progression de vos scores par rapport à cette zone.</p>
 
-        <h3>Zone de succès (ligne horizontale)</h3>
-        <p>Ligne de référence montrant le seuil de succès défini. Les flèches au-dessus sont dans la zone de succès.</p>
+        <h3>Comptes des pleins et des double pailles</h3>
+        <p>Les pleins mettent en évidence les moments où vous avez atteint le score maximum sur une cible. Ce sont vos points forts où il faut continuer à maintenir la même exigence de tir. Il  vous servira pour déterminer votre objectif de pleins pour les prochaines sessions.</p>
+        <p>Les doubles pailles mettent en exergue les moments où vous n'avez pas pu corriger la deuxième flèche. Cela vous indique les cibles/distances nécessitant une attention particulière. A renseigner impérativement de votre objectif maximum de double pailles par session.</p>
 
-        <h3>Plage optimale</h3>
-        <p>Zone en surbrillance montrant la plage idéale de scoring selon le parcours. Aide à évaluer votre performance relative.</p>
+        <h2>Répartition</h2>
 
-        <h2>Indicateurs clés (KPI)</h2>
+        <h3>Répartition des scores par catégorie de cibles</h3>
+        <p>Les camemberts montrent la répartition des flèches par catégorie de cibles. Les couleurs déterminent les scores affectés à chaque catégorie de cible. Il vous permet de voir la moyenne des scores et vous donne des axes d'amélioration.</p>
 
-        <h3>Moyenne globale</h3>
-        <p>Score moyen par flèche sur l'ensemble de la session. Donne une vue d'ensemble rapide de votre niveau.</p>
-
-        <div class="stat-example">
-          <strong>Formule</strong> : Score total ÷ Nombre total de flèches
-        </div>
-
-        <h3>Flèches parfaites</h3>
-        <p>Nombre de flèches marquant le maximum possible selon le parcours.</p>
-
-        <h3>Flèches à zéro</h3>
-        <p>Nombre total de flèches qui n'ont marqué aucun point. Plus bas est mieux.</p>
-
-        <h3>Distribution des scores</h3>
-        <p>Tableau montrant combien de fois chaque score a été marqué pendant la session.</p>
+        <h3>Répartition par score</h3>
+        <p>Tableau montrant combien de fois chaque score a été marqué pendant la session. Il vous permet de voir la distribution des scores et d'identifier les tendances. Chaque couleur un poucentage de palier atteint dans les volées.</p>
 
         <h2>Historique des sessions</h2>
 
         <h3>Accès à l'historique</h3>
         <p>Cliquez sur « Historique » pour consulter toutes vos sessions précédentes. Vous pouvez filtrer par :</p>
         <ul>
-          <li><strong>Mode</strong> : Équipe ou Individuel</li>
-          <li><strong>Parcours</strong> : Nature, Campagne, 3D, etc.</li>
+          <li><strong>Mode de parcours</strong> : Équipe ou Individuel</li>
+          <li><strong>Type de parcours</strong> : Nature, Campagne, 3D, etc.</li>
         </ul>
 
         <h3>Comparaison entre sessions</h3>
@@ -155,7 +139,7 @@
         <h2>Export et partage</h2>
         <p>Les résultats de votre session sont automatiquement sauvegardés localement. Vous pouvez les consulter ultérieurement via l'onglet « Historique » sans avoir besoin d'une connexion Internet.</p>
 
-        <div style="background: #e8f5e9; padding: 16px; border-radius: 12px; margin: 24px 0; border-left: 4px solid var(--accent);">
+        <div style="background: var(--light-blue); padding: 16px; border-radius: 12px; margin: 24px 0; border-left: 4px solid var(--accent);">
           <p style="margin-top: 0;"><strong>💡 Conseil</strong> : Suivez régulièrement vos statistiques pour identifier les domaines d'amélioration et motivez-vous en voyant votre progression au fil du temps !</p>
         </div>
       </div>
@@ -164,7 +148,7 @@
     <!-- Pied de page -->
     <footer class="site-footer">
       <div class="footer-content">
-        <p>&copy; 2026 Archery Team Score. Application dédiée aux archers de la FFTA et FFTL.</p>
+        <p>&copy; 2026 Archery Team Score. Application dédiée aux archers de parcours.</p>
       </div>
     </footer>
   </div>

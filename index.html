@@ -10,7 +10,7 @@
     <title>Archery Team Score</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.png" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="icons/icon-maskable-192.png" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -64,8 +64,8 @@
                 <optgroup label="FFTL">
                   <option value="3d2">3D Two Shoots (10 / 8 / 5)</option>
                   <option value="3dh">3D Hunting (20 / 16 / 10)</option>
-                  <option value="ar">Animal Rounds (3 flèches)</option>
-                  <option value="field">Field / Hunter (5 / 4 / 3)</option>
+                  <option value="ar">Animal round (3 flèches)</option>
+                  <option value="field">Field / Hunter (X / 5 / 4 / 3)</option>
                 </optgroup>
               </select>
             </label>
@@ -94,7 +94,7 @@
           </div>
           <label class="checkbox-label use-target-groups-label">
             <input type="checkbox" id="use-target-groups" checked />
-            <span>Utiliser les groupes de cibles</span>
+            <span>Utiliser les catégories de cibles</span>
           </label>
         </div>
         <label>
@@ -103,6 +103,10 @@
             <input id="success-zone-input" type="range" min="1" max="120" step="1" value="1" />
             <strong id="success-zone-value">1</strong>
           </div>
+        </label>
+        <label>
+          Lieu
+          <input id="lieu-input" type="text" placeholder="Ex : Forêt de Rambouillet" autocomplete="off" maxlength="30" />
         </label>
         <div class="start-action">
           <button id="start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer la saisie">
@@ -124,9 +128,7 @@
         <div class="scoring-head">
           <div>
             <h2 id="volley-title" class="volley-title-row">
-              <svg class="volley-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm0-14a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" fill="currentColor"/>
-              </svg>
+              <span id="volley-counter" class="volley-counter"></span>
               <span id="volley-title-text">Volée 1</span>
             </h2>
             <p id="volley-weapon-label" class="volley-weapon-text"></p>
@@ -161,7 +163,7 @@
         <div id="score-entry-panel" class="score-entry-sticky">
           <div id="current-shoot-display" class="current-shoot-display"></div>
           <div class="score-actions-row">
-            <div id="target-group-select" class="target-group-radios" role="radiogroup" aria-label="Groupe de cible"></div>
+            <div id="target-group-select" class="target-group-radios" role="radiogroup" aria-label="catégorie de cible"></div>
           </div>
           <div class="points-pad-container">
             <div id="points-pad" class="points-pad"></div>
@@ -256,7 +258,7 @@
           </div>
           <nav class="stats-tabs" role="tablist">
             <button class="stats-tab active" role="tab" aria-selected="true" data-stats-tab="summary">Résumé</button>
-            <button id="stats-tab-groups-btn" class="stats-tab" role="tab" aria-selected="false" data-stats-tab="groups">Par groupe</button>
+            <button id="stats-tab-groups-btn" class="stats-tab" role="tab" aria-selected="false" data-stats-tab="groups">Répartition</button>
           </nav>
           <div id="stats-tab-summary" class="stats-tab-panel">
           <div class="stats-grid-3">
@@ -324,13 +326,13 @@
           <div id="stats-tab-groups" class="stats-tab-panel hidden">
             <div class="stats-grid-1">
               <article id="stats-group-dist-card" class="stats-dist-card">
-                <span>Répartition des scores par groupe</span>
+                <span>Répartition par catégorie</span>
                 <div id="stats-group-dist" class="stats-group-dist"></div>
               </article>
             </div>
             <div class="stats-grid-1 stats-dist-row">
               <article class="stats-dist-card">
-                <span>Répartition des flèches</span>
+                <span>Répartition par score</span>
                 <div id="stats-score-dist" class="stats-score-dist"></div>
               </article>
             </div>
@@ -359,7 +361,7 @@
             <section class="help-block">
               <h4>Création d'une session</h4>
               <ul>
-                <li>Sélection du type de parcours (nature/Campagne/3D/3D Two Shoots/3D Hunting/Animal Rounds).</li>
+                <li>Sélection du type de parcours (nature/Campagne/3D/3D Two Shoots/3D Hunting/Animal round).</li>
                 <li>Mode de parcours (équipe/individuel).</li>
                 <li>Définition de la zone de réussite</li>
               </ul>
@@ -391,7 +393,8 @@
                   <ul>
                     <li>3D Two Shoots: 10 / 8 / 5 / M.</li>
                     <li>3D Hunting: 20 / 16 / 10 / M.</li>
-                    <li>Animal Rounds: 20/18/M, 16/14/M, 12/10/M.</li>
+                    <li>Animal round: 20/18/M, 16/14/M, 12/10/M.</li>
+                    <li>Field / Hunter: X / 5 / 4 / 3 / M.</li>
                   </ul>
                 </li>
               </ul>
@@ -536,7 +539,7 @@
                 <div class="config-ruleset-group">
                   <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTL" value="3d2" checked> 3D Two Shoots</label>
                   <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTL" value="3dh" checked> 3D Hunting</label>
-                  <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTL" value="ar" checked> Animal Rounds</label>
+                  <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTL" value="ar" checked> Animal round</label>
                   <label class="config-ruleset-label"><input type="checkbox" class="config-ruleset-cb" data-federation="FFTL" value="field" checked> Field / Hunter</label>
                 </div>
               </fieldset>
@@ -593,7 +596,7 @@
               <optgroup label="FFTL">
                 <option value="3d2">3D Two Shoots</option>
                 <option value="3dh">3D Hunting</option>
-                <option value="ar">Animal Rounds</option>
+                <option value="ar">Animal round</option>
                 <option value="field">Field / Hunter</option>
               </optgroup>
             </select>

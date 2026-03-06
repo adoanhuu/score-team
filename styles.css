@@ -188,6 +188,12 @@ label {
   white-space: nowrap;
 }
 
+.label-optional {
+  font-weight: 500;
+  color: #9ca3af;
+  font-size: 0.85em;
+}
+
 .label-inline {
   display: inline-flex;
   align-items: baseline;
@@ -379,11 +385,33 @@ select {
 }
 
 .volley-title-row {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 0;
+  line-height: 1;
+}
+
+.volley-counter {
+  font-size: 1.2rem;
+  font-weight: 700;
+  background-color: #1a4fa0;
+  color: #fff;
+  padding: 4px 8px 2px;
+  border-radius: 6px;
+}
+
+#volley-title-text {
+  color: #1a4fa0;
+}
+
+#volley-weapon-label {
+  margin: 6px 0 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-align: center;
 }
 
 .volley-icon {
@@ -404,6 +432,12 @@ select {
   display: none;
 }
 
+.label-optional {
+  display: inline-block;
+  font-weight: 500;
+  color: #9ca3af;
+  font-size: 0.85em;
+}
 .head-actions {
   display: flex;
   align-items: center;
@@ -543,6 +577,11 @@ select {
   color: #fff;
 }
 
+.current-shoot-pill.is-x {
+  background: #1558c0;
+  color: #fff;
+}
+
 .points-pad {
   flex: 1;
   display: flex;
@@ -634,6 +673,12 @@ select {
 .point-btn.zero {
   background: var(--danger);
   border-color: #7d1a1d;
+  color: #fff;
+}
+
+.point-btn.x-score {
+  background: #1558c0;
+  border-color: #0e4291;
   color: #fff;
 }
 
@@ -871,14 +916,21 @@ select {
   font-size: 0.9rem;
   color: #000;
   background-color: var(--line);
-  padding: 8px 20px;
+  padding: 8px 12px;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
 }
 
 .history-item-head .history-date {
+  font-weight: bold;
   font-size: 1.1rem;
   color: #000;
+}
+
+.history-item-head .history-date .city {
+  font-weight: normal;
+  font-size: 1rem;
+  color: var(--ink);
 }
 
 .history-item-head .history-time {
@@ -1449,7 +1501,7 @@ select {
 }
 
 .stats-dist-card {
-  text-align: left;
+  text-align: center;
 }
 
 .stats-score-dist {

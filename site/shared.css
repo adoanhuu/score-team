@@ -3,9 +3,10 @@
   --bg: #f4efe6;
   --bg-soft: #fff8ee;
   --ink: #1f2a24;
-  --accent: #1558c0;
-  --accent-2: #d68c45;
-  --line: #d6c8b8;
+  --blue: #1558c0;
+  --light-blue: #8fb0e0;
+  --orange: #d68c45;
+  --light-grey: #d6c8b8;
   --danger: #9b2226;
 }
 
@@ -21,15 +22,15 @@ html, body {
 
 body {
   font-family: "Nunito", "Trebuchet MS", sans-serif;
-  background: #3a3a3a;
+  background: white;
   color: var(--ink);
   display: flex;
   flex-direction: column;
 }
 
 a {
-  color: var(--accent);
-    text-decoration: none;
+  color: var(--blue);
+  text-decoration: none;
   
   @media screen and (max-width: 768px) {
     text-decoration: underline;
@@ -45,10 +46,8 @@ a {
 
 /* En-tête */
 .site-header {
-  background: var(--bg-soft);
-  border-bottom: 12px solid #3a3a3a;
+  background: var(--blue);
   padding: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -57,7 +56,7 @@ a {
 }
 
 .header-content {
-  max-width: 1200px;
+  max-width: 1000px;
   width: 100%;
   margin: 0 auto;
   display: flex;
@@ -72,9 +71,10 @@ a {
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  color: var(--ink);
+  color: white;
   font-weight: 700;
-  font-size: 1.3rem;
+  font-size: 2.2rem;
+  transition: all 0.3s ease;
 }
 
 .header-logo img {
@@ -84,7 +84,7 @@ a {
 }
 
 .header-logo:hover {
-  color: #1558c0;
+  color: #8fb0e0;
 }
 
 /* Menu toggle button */
@@ -92,7 +92,7 @@ a {
   display: none;
   background: none;
   border: none;
-  color: var(--ink);
+  color: white;
   cursor: pointer;
   padding: 8px;
   border-radius: 8px;
@@ -103,8 +103,8 @@ a {
 }
 
 .menu-toggle svg {
-  width: 24px;
-  height: 24px;
+  width: 40px;
+  height: 40px;
   display: block;
 }
 
@@ -113,39 +113,52 @@ a {
   font-size: 14px;
   display: flex;
   gap: 4px;
+  padding-right: 2px;
   width: 600px;
   margin: 0 0 -70px auto;
-  background: var(--bg-soft);
+  background: white;
 }
 
 .site-nav a {
-  padding: 10px;
+  padding: 10px 0;
   text-decoration: none;
-  color: var(--ink);
+  color: var(--blue);
+  background-color: white;
   font-weight: 600;
-  border-bottom: none;
   transition: all 0.3s ease;
   flex: 1;
   text-align: center;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--light-grey);
   border-bottom: none;
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
 }
 
 .site-nav a:hover {
-  background: rgba(0, 0, 0, 0.05);
+  color: var(--blue);
+  background: var(--light-blue);
 }
 
 .site-nav a.active {
-  background: #3a3a3a;
-  color: #fff;
+  background: white;
+  color: var(--blue);
+}
+
+@media (min-width: 768px) {
+  .site-nav {
+    background-color: transparent;
+  }
+
+  .site-nav a {
+    color: white;
+    background-color: var(--blue);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+  }
 }
 
 /* Contenu principal */
 .site-main {
   flex: 1;
-  max-width: 1200px;
+  max-width: 1000px;
   width: 100%;
   margin: 0 auto;
   padding: 32px 16px;
@@ -153,30 +166,31 @@ a {
 
 /* Pied de page */
 .site-footer {
-  background: var(--bg-soft);
-  border-top: 2px solid var(--line);
+  color: white;
+  background: var(--ink);
+  border-top: 2px solid var(--light-grey);
   padding: 24px 16px;
   text-align: center;
-  color: #536357;
   font-size: 0.9rem;
 }
 
 .footer-content {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
 /* Contenu des pages */
 .page-content {
   background: var(--bg-soft);
-  border: 1px solid var(--line);
+  border: 1px solid var(--light-grey);
   border-radius: 16px;
   padding: 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .page-content h1 {
   margin-top: 0;
-  color: var(--accent);
+  color: var(--blue);
   font-size: 2rem;
   display: flex;
   align-items: center;
@@ -186,14 +200,14 @@ a {
 .page-content h1 svg {
   width: 36px;
   height: 36px;
-  color: var(--accent);
+  color: var(--blue);
 }
 
 .page-content h2 {
-  color: var(--accent);
+  color: var(--blue);
   margin-top: 28px;
   padding-top: 16px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--light-grey);
 }
 
 .page-content p {
@@ -218,13 +232,12 @@ a {
 
 .explanation-card {
   background: #fff;
-  border: 1px solid var(--line);
+  border: 1px solid var(--light-grey);
   border-radius: 12px;
   padding: 20px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
 .explanation-card:hover {
@@ -244,7 +257,7 @@ a {
 
 .explanation-card h3 {
   margin-top: 0;
-  color: var(--accent);
+  color: var(--blue);
   display: flex;
   align-items: center;
   gap: 16px;
@@ -265,24 +278,16 @@ a {
 
 .codes-table th {
   color: #000;
-  background-color: rgb(223, 215, 215);
-  padding: 12px;
+  background-color: var(--light-blue);
+  padding: 6px 12px;
   text-align: left;
-  font-weight: 700;
-  border-bottom: 3px solid var(--accent);
-}
-
-.codes-table th:first-of-type {
-  border-top-left-radius: 12px;
-}
-
-.codes-table th:last-of-type {
-  border-top-right-radius: 12px;
+  font-weight: 500;
+  border-bottom: 3px solid var(--blue);
 }
 
 .codes-table td {
   padding: 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--light-grey);
 }
 
 .codes-table tr:hover {
@@ -291,15 +296,7 @@ a {
 
 .code-badge {
   display: inline-block;
-  background: var(--accent);
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.8rem;
-  font-family: monospace;
-  width: 80px;
-  text-align: center;
+  font-weight: bold;
 }
 
 /* Milestones/Timeline */
@@ -320,18 +317,30 @@ a {
   position: relative;
 }
 
+@keyframes shake {
+  0%, 100% { transform: translateY(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateY(-3px); }
+  20%, 40%, 60%, 80% { transform: translateY(3px); }
+}
+
 .milestone-number {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 62px;
   height: 62px;
-  background: var(--accent);
-  color: #fff;
+  background: white;
+  border: 10px solid var(--blue);
+  color: var(--blue);
   border-radius: 50%;
   font-weight: 700;
   font-size: 2rem;
   flex-shrink: 0;
+  cursor: pointer;
+}
+
+.milestone-number:hover {
+  animation: shake 1.3s ease-in-out;
 }
 
 .milestone-content {
@@ -391,11 +400,12 @@ a {
     display: none;
     position: absolute;
     top: 100%;
-    left: 0;
-    right: 0;
+    left: 4px;
+    right: 4px;
     flex-direction: column;
-    background: var(--bg-soft);
-    border-top: 2px solid var(--line);
+    border-bottom: 2px solid var(--light-grey);
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
     padding: 8px 0;
     gap: 0;
     width: auto;
@@ -413,16 +423,10 @@ a {
     text-align: left;
   }
 
-  .site-nav a:hover {
-    background: rgba(0, 0, 0, 0.05);
-    border-left: none;
-  }
-
   .site-nav a.active {
-    border-left-color: #1558c0;
     border-bottom: none;
-    background: transparent;
-    color: var(--ink);
+    background: var(--blue);
+    color: white;
   }
 
   .site-main {
@@ -448,32 +452,33 @@ a {
   gap: 24px;
 }
 
+/* Grille pour la section résumé des statistiques */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin: 24px 0;
+}
+
+.summary-grid .avg-by-game {
+  grid-column: span 2;
+}
+
+.summary-grid .global-avg {
+  grid-column: span 1;
+}
+
 @media (max-width: 768px) {
   .points-grid {
     grid-template-columns: 1fr;
   }
-}
-
-@media (max-width: 480px) {
-  .site-main {
-    padding: 16px 8px;
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
   }
-
-  .page-content {
-    padding: 16px;
-    border-radius: 12px;
-  }
-
-  .page-content h1 {
-    font-size: 1.4rem;
-  }
-
-  .codes-table {
-    font-size: 0.9rem;
-  }
-
-  .codes-table th,
-  .codes-table td {
-    padding: 8px;
+  
+  .summary-grid .avg-by-game,
+  .summary-grid .global-avg {
+    grid-column: span 1;
   }
 }
