@@ -34,6 +34,7 @@ const els = {
   targetsCountText: document.getElementById("targets-count-text"),
   successZoneInput: document.getElementById("success-zone-input"),
   successZoneValue: document.getElementById("success-zone-value"),
+  lieuInput: document.getElementById("lieu-input"),
   rulesetSelect: document.getElementById("ruleset-select"),
   scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
   setupMenuBtn: document.getElementById("setup-menu-btn"),
@@ -494,6 +495,7 @@ function persistAppState() {
         ? {
             targetCount: state.targetCount,
             successZone: state.successZone,
+            lieu: state.lieu || "",
             scoringMode: state.scoringMode,
             weapon: state.weapon || "",
             useTargetGroups: state.useTargetGroups,
@@ -567,6 +569,7 @@ function restorePersistedState() {
 
   state.targetCount = Number.isInteger(saved.targetCount) ? saved.targetCount : getTargetCountForRuleset(saved.activeRuleset);
   state.successZone = Number.isInteger(saved.successZone) ? saved.successZone : 1;
+  state.lieu = saved.lieu || "";
   state.scoringMode = saved.scoringMode === "individual" ? "individual" : "team";
   state.weapon = isWeaponAllowedForRuleset(saved.weapon || "", saved.activeRuleset)
     ? saved.weapon
@@ -1127,6 +1130,7 @@ function startScoring() {
 
   state.targetCount = getTargetCountForRuleset(els.rulesetSelect.value);
   state.successZone = parsedSuccessZone;
+  state.lieu = els.lieuInput ? els.lieuInput.value.trim() : "";
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = getSelectedScoringMode();
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
@@ -1179,6 +1183,7 @@ function buildResultsPayload() {
     ruleset: state.activeRuleset,
     scoringMode: state.scoringMode,
     weapon: state.weapon || "",
+    lieu: state.lieu || "",
     useTargetGroups: state.useTargetGroups,
     targetCount: state.targetCount,
     arrowsPerVolley: state.arrowsPerVolley,

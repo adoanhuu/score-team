@@ -188,6 +188,12 @@ label {
   white-space: nowrap;
 }
 
+.label-optional {
+  font-weight: 500;
+  color: #9ca3af;
+  font-size: 0.85em;
+}
+
 .label-inline {
   display: inline-flex;
   align-items: baseline;
@@ -426,6 +432,12 @@ select {
   display: none;
 }
 
+.label-optional {
+  display: inline-block;
+  font-weight: 500;
+  color: #9ca3af;
+  font-size: 0.85em;
+}
 .head-actions {
   display: flex;
   align-items: center;
@@ -566,7 +578,7 @@ select {
 }
 
 .current-shoot-pill.is-x {
-  background: #b8860b;
+  background: #1558c0;
   color: #fff;
 }
 
