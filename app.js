@@ -1792,14 +1792,7 @@ function renderHistoryList() {
     const date = new Date(entry.generatedAt || entry.archivedAt);
     const isValidDate = !Number.isNaN(date.getTime());
     const dateLabel = isValidDate
-      ? date
-          .toLocaleDateString("fr-FR", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })
-          .replace(/^\p{L}/u, (letter) => letter.toUpperCase())
+      ? date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
       : "Date inconnue";
     const timeLabel = isValidDate
       ? `${date.toLocaleTimeString("fr-FR", {
@@ -1825,7 +1818,7 @@ function renderHistoryList() {
     }).join("");
     row.innerHTML = `
       <div class="history-item-head">
-        <span class="history-date">${dateLabel}</span>
+        <span class="history-date">${dateLabel}${entry.lieu ? ` · <span class="city">${entry.lieu}</span> ` : ""}</span>
         <span class="history-time">${timeLabel}</span>
       </div>
       <div class="history-item-body">
