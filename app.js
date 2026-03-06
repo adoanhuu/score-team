@@ -876,7 +876,10 @@ function registerScore(score) {
     const editingIndexSnapshot = isEditing ? state.editingVolleyIndex : null;
     const delay = isEditing ? 0 : LAST_SCORE_PREVIEW_MS;
     window.setTimeout(() => {
-      const newShoot = [...state.currentshoot];
+      const unsortedRulesets = ["nature", "ar"];
+      const newShoot = unsortedRulesets.includes(state.activeRuleset)
+        ? [...state.currentshoot]
+        : [...state.currentshoot].sort((a, b) => b - a);
       const selectedGroup = getSelectedTargetGroup();
       if (Number.isInteger(editingIndexSnapshot)) {
         const replaceIndex = Math.max(0, Math.min(editingIndexSnapshot, state.shoots.length - 1));
