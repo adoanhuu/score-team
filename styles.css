@@ -240,12 +240,27 @@ label {
   cursor: pointer;
 }
 
-.checkbox-label.use-target-groups-label {
-  display: block;
+.use-target-groups-fieldset {
   margin-top: 28px;
+  border: none;
+  padding: 0;
 }
 
-.checkbox-label input[type="checkbox"] {
+.use-target-groups-fieldset legend {
+  display: block;
+  margin-bottom: 12px;
+  padding: 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.use-target-groups-fieldset .checkbox-label {
+  display: inline-block;
+  margin-right: 20px;
+}
+
+.checkbox-label input[type="checkbox"],
+.checkbox-label input[type="radio"] {
   width: auto;
   cursor: pointer;
   accent-color: var(--primary);
@@ -1130,6 +1145,12 @@ select {
 .help-modal-card {
   max-height: min(80vh, 760px);
   overflow-y: auto;
+}
+
+.stats-modal-card {
+  display: flex;
+  flex-direction: column;
+  min-height: min(70vh, 600px);
 }
 
 .confirm-modal-card {

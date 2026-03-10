@@ -96,10 +96,17 @@
               </select>
             </label>
           </div>
-          <label class="checkbox-label use-target-groups-label">
-            <input type="checkbox" id="use-target-groups" checked />
-            <span>Utiliser les catégories de cibles</span>
-          </label>
+          <fieldset class="use-target-groups-fieldset">
+            <legend>Utiliser les catégories de cibles</legend>
+            <label class="checkbox-label">
+              <input type="radio" name="use-target-groups" value="yes" checked />
+              <span>Oui</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" name="use-target-groups" value="no" />
+              <span>Non</span>
+            </label>
+          </fieldset>
         </div>
         <label>
           Zone de réussite (pts / volée)
@@ -248,7 +255,7 @@
 
       <section id="stats-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="stats-modal-title">
         <div class="modal-overlay" id="stats-modal-overlay"></div>
-        <div class="modal-card">
+        <div class="modal-card stats-modal-card">
           <div class="modal-head">
             <div class="stats-head-title">
               <h3 id="stats-modal-title">Statistiques</h3>
