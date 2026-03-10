@@ -1419,6 +1419,17 @@ select {
   color: #536357;
 }
 
+.stats-bar-col .stats-points-note {
+  font-size: 0.66rem;
+  color: #7b867d;
+  line-height: 1;
+}
+
+.stats-unit {
+  font-weight: 400;
+  margin-left: 0;
+}
+
 .stats-evolution-row {
   margin-top: 8px;
 }

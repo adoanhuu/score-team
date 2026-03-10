@@ -89,7 +89,11 @@ const els = {
   statsBar1Value: document.getElementById("stats-bar-1-value"),
   statsBar2Value: document.getElementById("stats-bar-2-value"),
   statsBar3Value: document.getElementById("stats-bar-3-value"),
+  statsBar1Points: document.getElementById("stats-bar-1-points"),
+  statsBar2Points: document.getElementById("stats-bar-2-points"),
+  statsBar3Points: document.getElementById("stats-bar-3-points"),
   statsGlobalAvg: document.getElementById("stats-global-avg"),
+  statsGlobalPoints: document.getElementById("stats-global-points"),
   statsGlobalBar: document.getElementById("stats-global-bar"),
   statsEvolutionPath: document.getElementById("stats-evolution-path"),
   statsEvolutionSuccessLine: document.getElementById("stats-evolution-success-line"),
@@ -340,6 +344,7 @@ const maxArrowValuesByRuleset = {
   "3d": {
     team: [11, 11, 11, 11, 11, 11],
     individual: [11, 11],
+    mixed: [11, 11, 11, 11],
   },
   field: [5, 5, 5, 5],
   "3d2": [10, 10],
@@ -547,8 +552,10 @@ function restorePersistedState() {
   if (setup.ruleset && presets[setup.ruleset]) {
     els.rulesetSelect.value = setup.ruleset;
   }
+  syncScoringModeFieldset();
   syncWeaponSelectOptions(setup.weapon || null);
-  if (setup.scoringMode === "team" || setup.scoringMode === "individual") {
+  if ((setup.scoringMode === "team" || setup.scoringMode === "individual" || setup.scoringMode === "mixed")
+    && isScoringModeAllowedForRuleset(setup.scoringMode, els.rulesetSelect.value)) {
     els.scoringModeInputs.forEach((input) => {
       input.checked = input.value === setup.scoringMode;
     });
@@ -578,7 +585,7 @@ function restorePersistedState() {
   state.targetCount = Number.isInteger(saved.targetCount) ? saved.targetCount : getTargetCountForRuleset(saved.activeRuleset);
   state.successZone = Number.isInteger(saved.successZone) ? saved.successZone : 1;
   state.lieu = saved.lieu || "";
-  state.scoringMode = saved.scoringMode === "individual" ? "individual" : "team";
+  state.scoringMode = normalizeScoringMode(saved.scoringMode, saved.activeRuleset);
   state.weapon = isWeaponAllowedForRuleset(saved.weapon || "", saved.activeRuleset)
     ? saved.weapon
     : getWeaponsForRuleset(saved.activeRuleset)[0];
@@ -681,8 +688,8 @@ function updateScoringHeader() {
   } else {
     els.progressText.textContent = "";
   }
-  els.teamTotal.textContent = `${globalTotal()} pts`;
-  els.successZoneDisplay.textContent = `${state.successZone} pts`;
+  els.teamTotal.innerHTML = `${globalTotal()}<span class="stats-unit">pts</span>`;
+  els.successZoneDisplay.innerHTML = `${state.successZone}<span class="stats-unit">pts</span>`;
   renderSegmentStats();
 }
 
@@ -1065,7 +1072,8 @@ function stepBackOneArrow() {
 
 function getSelectedScoringMode() {
   const checked = [...els.scoringModeInputs].find((input) => input.checked);
-  return checked ? checked.value : "team";
+  const rawMode = checked ? checked.value : "team";
+  return normalizeScoringMode(rawMode, els.rulesetSelect.value);
 }
 
 function updateWeaponSelectVisibility() {
@@ -1096,6 +1104,23 @@ function getTargetCountForRuleset(ruleset) {
   return defaultTargetsByRuleset[ruleset] ?? 21;
 }
 
+function isScoringModeAllowedForRuleset(mode, ruleset) {
+  if (mode === "mixed") {
+    return ruleset === "3d";
+  }
+  if (mode === "team") {
+    return !isFFTLRuleset(ruleset);
+  }
+  return mode === "individual";
+}
+
+function normalizeScoringMode(mode, ruleset) {
+  if (isScoringModeAllowedForRuleset(mode, ruleset)) {
+    return mode;
+  }
+  return isFFTLRuleset(ruleset) ? "individual" : "team";
+}
+
 function isFFTLRuleset(ruleset) {
   return ruleset === "3d2" || ruleset === "3dh" || ruleset === "ar" || ruleset === "field";
 }
@@ -1105,22 +1130,30 @@ function getArrowsPerVolley(ruleset, scoringMode) {
   if (ruleset === "ar") return 3;
   if (ruleset === "field") return 4;
   if (ruleset === "campagne") return 3;
+  if (ruleset === "3d" && scoringMode === "mixed") return 4;
   return scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
 }
 
 function syncScoringModeFieldset() {
-  const fftl = isFFTLRuleset(els.rulesetSelect.value);
+  const ruleset = els.rulesetSelect.value;
+  const fallbackMode = normalizeScoringMode(getSelectedScoringMode(), ruleset);
+  let hasCheckedAllowed = false;
+
   els.scoringModeInputs.forEach((input) => {
-    if (input.value === "team") {
-      input.disabled = fftl;
-      input.closest("label").classList.toggle("disabled", fftl);
-      if (fftl && input.checked) {
-        input.checked = false;
-        const indivInput = [...els.scoringModeInputs].find((i) => i.value === "individual");
-        if (indivInput) indivInput.checked = true;
-      }
+    const allowed = isScoringModeAllowedForRuleset(input.value, ruleset);
+    input.disabled = !allowed;
+    input.closest("label").classList.toggle("disabled", !allowed);
+    if (input.checked && allowed) {
+      hasCheckedAllowed = true;
     }
   });
+
+  if (!hasCheckedAllowed) {
+    const targetInput = [...els.scoringModeInputs].find((input) => input.value === fallbackMode && !input.disabled);
+    if (targetInput) {
+      targetInput.checked = true;
+    }
+  }
 }
 
 function syncTargetCountDisplay() {
@@ -1280,14 +1313,15 @@ function updateResultsAvailability() {
   els.statsBtn.disabled = !done;
 }
 
-function getSegmentCount(targetCount) {
+function getSegmentCount(targetCount, ruleset = state.activeRuleset) {
+  if (isFFTLRuleset(ruleset)) return 2;
   if (targetCount >= 18) return 3;
   if (targetCount >= 10) return 2;
   return 1;
 }
 
-function getSegmentTotals(shoots, targetCount) {
-  const segmentCount = getSegmentCount(targetCount);
+function getSegmentTotals(shoots, targetCount, ruleset = state.activeRuleset) {
+  const segmentCount = getSegmentCount(targetCount, ruleset);
   const totals = [];
   for (let i = 0; i < segmentCount; i++) {
     const start = Math.floor((i * targetCount) / segmentCount);
@@ -1302,8 +1336,8 @@ function getSegmentTotals(shoots, targetCount) {
 }
 
 function renderSegmentStats() {
-  const segmentCount = getSegmentCount(state.targetCount);
-  const segTotals = getSegmentTotals(state.shoots, state.targetCount);
+  const segmentCount = getSegmentCount(state.targetCount, state.activeRuleset);
+  const segTotals = getSegmentTotals(state.shoots, state.targetCount, state.activeRuleset);
   els.segmentStats.style.gridTemplateColumns = `repeat(${segmentCount}, 1fr)`;
   els.segmentStats.innerHTML = "";
   for (let i = 0; i < segmentCount; i++) {
@@ -1318,7 +1352,7 @@ function renderSegmentStats() {
       ? (i === 0 ? "1ère moitié" : "2e moitié")
       : ["1er tiers", "2e tiers", "3e tiers"][i];
     const strong = document.createElement("strong");
-    strong.textContent = `${segTotals[i]} pts`;
+    strong.innerHTML = `${segTotals[i]}<span class="stats-unit">pts</span>`;
 
     if (isComplete && segSize > 0) {
       const avgVolley = segTotals[i] / segSize;
@@ -1576,32 +1610,60 @@ function openStatsModalFromPayload(payload) {
   const avgVolley = totals.reduce((sum, value) => sum + value, 0) / totals.length;
   const best = Math.max(...totals);
   const worst = Math.min(...totals);
-  const partAverages = getSegmentAverages(totals, 3);
+  const segmentCount = getSegmentCount(payload.targetCount || totals.length, payload.ruleset);
+  const partAverages = getSegmentAverages(totals, segmentCount);
   const maxVolley = getMaxVolleyFromPayload(payload);
   const successZone = Number.isInteger(payload.successZone) ? payload.successZone : 0;
   const ratioFor = (value) => {
     if (maxVolley <= 0) return 0;
     return Math.max(0, Math.min(100, (value / maxVolley) * 100));
   };
+  const percentOfSuccessZone = (value) => {
+    if (successZone <= 0) return 0;
+    return Math.ceil((value / successZone) * 100);
+  };
 
-  els.statsSuccessZone.textContent = `${successZone} pts`;
+  els.statsSuccessZone.innerHTML = `${successZone}<span class="stats-unit">pts</span>`;
   const successZoneArticle = els.statsSuccessZone.closest("article");
   if (successZoneArticle) {
     successZoneArticle.classList.toggle("zone-achieved", avgVolley >= successZone);
   }
-  els.statsTotalPoints.textContent = `${totalPoints} pts`;
-  els.statsBestVolley.textContent = `${best} pts`;
-  els.statsWorstVolley.textContent = `${worst} pts`;
-  els.statsBar1.style.height = `${ratioFor(partAverages[0])}%`;
-  els.statsBar2.style.height = `${ratioFor(partAverages[1])}%`;
-  els.statsBar3.style.height = `${ratioFor(partAverages[2])}%`;
-  els.statsBar1.style.background = getBarColorByZoneRatio(partAverages[0], successZone);
-  els.statsBar2.style.background = getBarColorByZoneRatio(partAverages[1], successZone);
-  els.statsBar3.style.background = getBarColorByZoneRatio(partAverages[2], successZone);
-  els.statsBar1Value.textContent = partAverages[0].toFixed(2);
-  els.statsBar2Value.textContent = partAverages[1].toFixed(2);
-  els.statsBar3Value.textContent = partAverages[2].toFixed(2);
-  els.statsGlobalAvg.textContent = avgVolley.toFixed(2);
+  els.statsTotalPoints.innerHTML = `${totalPoints}<span class="stats-unit">pts</span>`;
+  els.statsBestVolley.innerHTML = `${best}<span class="stats-unit">pts</span>`;
+  els.statsWorstVolley.innerHTML = `${worst}<span class="stats-unit">pts</span>`;
+  const part1 = partAverages[0] ?? 0;
+  const part2 = partAverages[1] ?? 0;
+  const part3 = partAverages[2] ?? 0;
+  els.statsBar1.style.height = `${ratioFor(part1)}%`;
+  els.statsBar2.style.height = `${ratioFor(part2)}%`;
+  els.statsBar3.style.height = `${ratioFor(part3)}%`;
+  els.statsBar1.style.background = getBarColorByZoneRatio(part1, successZone);
+  els.statsBar2.style.background = getBarColorByZoneRatio(part2, successZone);
+  els.statsBar3.style.background = getBarColorByZoneRatio(part3, successZone);
+  els.statsBar1Value.innerHTML = `${part1.toFixed(1)}<span class="stats-unit">pts</span>`;
+  els.statsBar2Value.innerHTML = `${part2.toFixed(1)}<span class="stats-unit">pts</span>`;
+  els.statsBar3Value.innerHTML = `${part3.toFixed(1)}<span class="stats-unit">pts</span>`;
+  if (els.statsBar1Points) els.statsBar1Points.textContent = `${percentOfSuccessZone(part1)}%`;
+  if (els.statsBar2Points) els.statsBar2Points.textContent = `${percentOfSuccessZone(part2)}%`;
+  if (els.statsBar3Points) els.statsBar3Points.textContent = `${percentOfSuccessZone(part3)}%`;
+  const bar1Col = els.statsBar1.closest(".stats-bar-col");
+  const bar2Col = els.statsBar2.closest(".stats-bar-col");
+  const bar3Col = els.statsBar3.closest(".stats-bar-col");
+  const bar1Label = bar1Col ? bar1Col.querySelector("small") : null;
+  const bar2Label = bar2Col ? bar2Col.querySelector("small") : null;
+  const bar3Label = bar3Col ? bar3Col.querySelector("small") : null;
+  if (segmentCount === 2) {
+    if (bar1Label) bar1Label.textContent = "1ère moitié";
+    if (bar2Label) bar2Label.textContent = "2e moitié";
+    if (bar3Col) bar3Col.style.display = "none";
+  } else {
+    if (bar1Label) bar1Label.textContent = "1er tiers";
+    if (bar2Label) bar2Label.textContent = "2e tiers";
+    if (bar3Label) bar3Label.textContent = "3e tiers";
+    if (bar3Col) bar3Col.style.display = "";
+  }
+  els.statsGlobalAvg.innerHTML = `${avgVolley.toFixed(1)}<span class="stats-unit">pts</span>`;
+  if (els.statsGlobalPoints) els.statsGlobalPoints.textContent = `${percentOfSuccessZone(avgVolley)}%`;
   els.statsGlobalBar.style.height = `${ratioFor(avgVolley)}%`;
   els.statsGlobalBar.style.background = getBarColorByZoneRatio(avgVolley, successZone);
   renderEvolutionChart(totals, maxVolley, successZone, payload.targetCount || totals.length);
@@ -1842,6 +1904,9 @@ function renderHistoryList() {
     if (value === "individual") {
       return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="16" height="16" style="vertical-align: middle;"><path d="M12 12c2.76 0 5-2.24 5-5S14.76 2 12 2 7 4.24 7 7s2.24 5 5 5Zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5Z" fill="currentColor"/></svg>`;
     }
+    if (value === "mixed") {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="18" height="18" style="vertical-align: middle;"><path d="M7.5 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm9 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM7.5 14C5 14 2 15.2 2 17.5V20h11v-2.5C13 15.2 10 14 7.5 14Zm9 0c-.58 0-1.21.08-1.86.24 1.01.72 1.86 1.87 2.26 3.26H22v-1c0-1.9-2.45-2.5-5.5-2.5Z" fill="currentColor"/></svg>`;
+    }
     return "-";
   };
 
@@ -1881,7 +1946,7 @@ function renderHistoryList() {
       </div>
       <div class="history-item-body">
         <div class="history-item-info">
-          <strong class="history-total-score">${entry.total ?? 0} pts</strong>
+          <strong class="history-total-score">${entry.total ?? 0}<span class="stats-unit">pts</span></strong>
           <span class="history-mode">${formatParcoursLabel(entry.ruleset)}<br>${formatModeWithIcon(entry.scoringMode)}${entry.weapon ? " • " + entry.weapon : ""}</span>
         </div>
         <div class="history-item-actions">
@@ -2078,6 +2143,7 @@ els.rulesetSelect.addEventListener("change", () => {
   }
   syncScoringModeFieldset();
   syncWeaponSelectOptions();
+  updateWeaponSelectVisibility();
   syncTargetCountDisplay();
   // Update slider max BEFORE restoring value to prevent browser clamping
   const newMax = getMaxSuccessZoneForSetup();
@@ -2285,6 +2351,7 @@ rulesetCheckboxes.forEach((cb) => {
 els.rulesetSelect.addEventListener("change", () => syncConfigSliderMax());
 loadConfig();
 updateRulesetSelectOptions();
+syncScoringModeFieldset();
 syncWeaponSelectOptions();
 updateWeaponSelectVisibility();
 els.appVersion.textContent = APP_VERSION;
