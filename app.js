@@ -331,12 +331,20 @@ function updateRulesetSelectOptions() {
   }
 }
 
-const maxShootTotalByRuleset = {
-  nature: 105,
-  "3d": 66,
-  "3d2": 60,
-  "3dh": 20,
-  ar: 48,
+const maxArrowValuesByRuleset = {
+  nature: {
+    team: [20, 15, 20, 15, 20, 15],
+    individual: [20, 15],
+  },
+  campagne: [6, 6, 6],
+  "3d": {
+    team: [11, 11, 11, 11, 11, 11],
+    individual: [11, 11],
+  },
+  field: [5, 5, 5, 5],
+  "3d2": [10, 10],
+  "3dh": [20],
+  ar: [20, 16, 12],
 };
 
 const targetGroupsByRuleset = {
@@ -582,6 +590,13 @@ function restorePersistedState() {
   if (saved.activeRuleset === "field" && !state.allowedPoints.includes(FIELD_X)) {
     state.allowedPoints = [...presets.field];
   }
+  state.successZone = clampSuccessZoneForConfig(
+    state.successZone,
+    state.activeRuleset,
+    state.scoringMode,
+    state.arrowsPerVolley,
+    state.allowedPoints,
+  );
   state.shootGroups = Array.isArray(saved.shootGroups) ? [...saved.shootGroups] : [];
   state.editingVolleyIndex = Number.isInteger(saved.editingVolleyIndex) ? saved.editingVolleyIndex : null;
   state.shoots = Array.isArray(saved.shoots) ? saved.shoots.map((shoot) => (Array.isArray(shoot) ? [...shoot] : [])).filter((shoot) => shoot.length === state.arrowsPerVolley) : [];
@@ -812,8 +827,47 @@ function getCurrentShootPartialTotal() {
   return state.currentshoot.reduce((sum, value) => sum + scoreToValue(value), 0);
 }
 
+function getPerArrowMaxValues(ruleset, scoringMode, arrowsPerVolley, allowedPoints) {
+  const entry = maxArrowValuesByRuleset[ruleset];
+  let maxValues = null;
+
+  if (Array.isArray(entry)) {
+    maxValues = [...entry];
+  } else if (entry && typeof entry === "object") {
+    const byMode = entry[scoringMode];
+    if (Array.isArray(byMode)) {
+      maxValues = [...byMode];
+    }
+  }
+
+  if (Array.isArray(maxValues) && maxValues.length > 0) {
+    if (maxValues.length >= arrowsPerVolley) {
+      return maxValues.slice(0, arrowsPerVolley);
+    }
+    const fallback = maxValues[maxValues.length - 1] ?? 0;
+    const extended = [...maxValues];
+    while (extended.length < arrowsPerVolley) {
+      extended.push(fallback);
+    }
+    return extended;
+  }
+
+  const maxPoint = Math.max(...(allowedPoints || []).map(scoreToValue), 0);
+  return Array(arrowsPerVolley).fill(maxPoint);
+}
+
+function getMaxShootTotalForConfig(ruleset, scoringMode, arrowsPerVolley, allowedPoints) {
+  const perArrowMaxValues = getPerArrowMaxValues(ruleset, scoringMode, arrowsPerVolley, allowedPoints);
+  return perArrowMaxValues.reduce((sum, value) => sum + value, 0);
+}
+
 function getMaxShootTotalForRuleset() {
-  return maxShootTotalByRuleset[state.activeRuleset] ?? null;
+  return getMaxShootTotalForConfig(
+    state.activeRuleset,
+    state.scoringMode,
+    state.arrowsPerVolley,
+    state.allowedPoints,
+  );
 }
 
 function getMaxVolleyForCurrentConfig() {
@@ -1077,15 +1131,16 @@ function syncTargetCountDisplay() {
 function getMaxSuccessZoneForSetup() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
-
-  if (maxShootTotalByRuleset[ruleset]) {
-    const teamMax = maxShootTotalByRuleset[ruleset];
-    if (isFFTLRuleset(ruleset)) return teamMax;
-    return scoringMode === "individual" ? Math.floor(teamMax / 3) : teamMax;
-  }
-
   const { arrowsPerVolley, maxPoint } = getCurrentConfigForSetup();
-  return Math.max(0, arrowsPerVolley * maxPoint);
+  const points = presets[ruleset] || [];
+  const sourcePoints = points.length ? points : [maxPoint];
+  return getMaxShootTotalForConfig(ruleset, scoringMode, arrowsPerVolley, sourcePoints);
+}
+
+function clampSuccessZoneForConfig(value, ruleset, scoringMode, arrowsPerVolley, allowedPoints) {
+  const max = getMaxShootTotalForConfig(ruleset, scoringMode, arrowsPerVolley, allowedPoints);
+  if (!Number.isInteger(value) || value < 1) return 1;
+  return Math.min(value, Math.max(1, max));
 }
 
 function getSuccessZoneColor(value, ruleset, scoringMode) {
@@ -1137,6 +1192,13 @@ function startScoring() {
   state.useTargetGroups = getSelectedUseTargetGroups();
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
+  state.successZone = clampSuccessZoneForConfig(
+    parsedSuccessZone,
+    state.activeRuleset,
+    state.scoringMode,
+    state.arrowsPerVolley,
+    state.allowedPoints,
+  );
   state.shoots = [];
   state.shootGroups = [];
   state.resultsPayload = null;
@@ -1287,13 +1349,9 @@ function getSegmentAverages(totals, segmentCount) {
 }
 
 function getMaxVolleyFromPayload(payload) {
-  const byRuleset = maxShootTotalByRuleset[payload.ruleset];
-  if (byRuleset !== undefined) {
-    return payload.scoringMode === "individual" ? Math.floor(byRuleset / 3) : byRuleset;
-  }
   const sourcePoints = Array.isArray(payload.allowedPoints) && payload.allowedPoints.length ? payload.allowedPoints : [0];
-  const maxPoint = Math.max(...sourcePoints.map(scoreToValue));
-  return (payload.arrowsPerVolley || 0) * Math.max(0, maxPoint);
+  const arrowsPerVolley = payload.arrowsPerVolley || 0;
+  return getMaxShootTotalForConfig(payload.ruleset, payload.scoringMode, arrowsPerVolley, sourcePoints);
 }
 
 function renderEvolutionChart(totals, maxVolley, successZone, targetCount) {
