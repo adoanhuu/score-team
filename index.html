@@ -79,6 +79,10 @@
                 <input type="radio" name="scoring-mode" value="individual" />
                 <span>Individuel</span>
               </label>
+              <label class="mode-option">
+                <input type="radio" name="scoring-mode" value="mixed" />
+                <span>Mixte</span>
+              </label>
             </fieldset>
             <label id="weapon-select-wrapper">
               <span class="label-inline">Type d'arme</span>
@@ -92,10 +96,17 @@
               </select>
             </label>
           </div>
-          <label class="checkbox-label use-target-groups-label">
-            <input type="checkbox" id="use-target-groups" checked />
-            <span>Utiliser les catégories de cibles</span>
-          </label>
+          <fieldset class="use-target-groups-fieldset">
+            <legend>Utiliser les catégories de cibles</legend>
+            <label class="checkbox-label">
+              <input type="radio" name="use-target-groups" value="yes" checked />
+              <span>Oui</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" name="use-target-groups" value="no" />
+              <span>Non</span>
+            </label>
+          </fieldset>
         </div>
         <label>
           Zone de réussite (pts / volée)
@@ -244,11 +255,11 @@
 
       <section id="stats-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="stats-modal-title">
         <div class="modal-overlay" id="stats-modal-overlay"></div>
-        <div class="modal-card">
+        <div class="modal-card stats-modal-card">
           <div class="modal-head">
             <div class="stats-head-title">
               <h3 id="stats-modal-title">Statistiques</h3>
-              <strong id="stats-total-points">0 pts</strong>
+              <strong id="stats-total-points">0<span class="stats-unit">pts</span></strong>
             </div>
             <button id="stats-close-btn" class="btn btn-light btn-icon" aria-label="Fermer statistiques">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -262,7 +273,7 @@
           </nav>
           <div id="stats-tab-summary" class="stats-tab-panel">
           <div class="stats-grid-3">
-            <article><span>Zone de réussite</span><strong id="stats-success-zone">0</strong></article>
+            <article><span>Z. de réussite</span><strong id="stats-success-zone">0</strong></article>
             <article><span>Meilleur score</span><strong id="stats-best-volley">0</strong></article>
             <article><span>Pire score</span><strong id="stats-worst-volley">0</strong></article>
           </div>
@@ -274,22 +285,22 @@
                   <div class="stats-bar-track">
                     <div id="stats-bar-1" class="stats-bar" style="height: 0%"></div>
                   </div>
-                  <strong id="stats-bar-1-value">0</strong>
-                  <small>1er tiers</small>
+                  <strong id="stats-bar-1-value">0.0<span class="stats-unit">pts</span></strong>
+                  <small>Moyenne 1er tiers</small>
                 </div>
                 <div class="stats-bar-col">
                   <div class="stats-bar-track">
                     <div id="stats-bar-2" class="stats-bar" style="height: 0%"></div>
                   </div>
-                  <strong id="stats-bar-2-value">0</strong>
-                  <small>2e tiers</small>
+                  <strong id="stats-bar-2-value">0.0<span class="stats-unit">pts</span></strong>
+                  <small>Moyenne 2e tiers</small>
                 </div>
                 <div class="stats-bar-col">
                   <div class="stats-bar-track">
                     <div id="stats-bar-3" class="stats-bar" style="height: 0%"></div>
                   </div>
-                  <strong id="stats-bar-3-value">0</strong>
-                  <small>3e tiers</small>
+                  <strong id="stats-bar-3-value">0.0<span class="stats-unit">pts</span></strong>
+                  <small>Moyenne 3e tiers</small>
                 </div>
               </div>
             </article>
@@ -300,7 +311,7 @@
                   <div class="stats-bar-track">
                     <div id="stats-global-bar" class="stats-bar" style="height: 0%"></div>
                   </div>
-                  <strong id="stats-global-avg">0</strong>
+                  <strong id="stats-global-avg">0.0<span class="stats-unit">pts</span></strong>
                   <small>Globale</small>
                 </div>
               </div>
@@ -604,6 +615,7 @@
               <option value="all">Tous modes</option>
               <option value="team">Équipe</option>
               <option value="individual">Individuel</option>
+              <option value="mixed">Mixte</option>
             </select>
             <button id="history-reset-filters-btn" class="btn btn-light btn-icon" aria-label="Réinitialiser les filtres">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
