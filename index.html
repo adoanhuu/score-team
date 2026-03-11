@@ -126,7 +126,7 @@
               <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
             </svg>
           </button>
-          <button id="history-btn" class="btn btn-primary start-btn" aria-label="Historique parcours">
+          <button id="history-btn" class="btn btn-primary start-btn" aria-label="Historique des sessions">
             Historique
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 14.2A6.2 6.2 0 1 1 18.2 14 6.21 6.21 0 0 1 12 20.2Zm.9-9.8v4l3 1.8-.9 1.5-3.9-2.3V10.4h1.8Z" fill="currentColor" />
@@ -165,7 +165,7 @@
             <strong id="team-total">0</strong>
           </article>
           <article>
-            <span>Z. réussite</span>
+            <span>Zone de réussite</span>
             <strong id="success-zone-display">0</strong>
           </article>
         </div>
@@ -215,44 +215,6 @@
         </div>
       </section>
 
-      <section class="card hidden" id="summary-card">
-        <h2>Bilan du parcours</h2>
-        <div class="quick-stats">
-          <article>
-            <span>Total final</span>
-            <strong id="final-total">0</strong>
-          </article>
-          <article>
-            <span>Moyenne / volée</span>
-            <strong id="avg-volley">0</strong>
-          </article>
-          <article>
-            <span>Moyenne / flèche</span>
-            <strong id="avg-arrow">0</strong>
-          </article>
-        </div>
-
-        <div class="stats-list" id="stats-list"></div>
-
-        <h3>Détail par volée</h3>
-        <div class="table-wrap">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>Volée</th>
-                <th>Flèches</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody id="volley-history-body"></tbody>
-          </table>
-        </div>
-
-        <div class="actions">
-          <button id="restart-btn" class="btn btn-primary">Nouveau parcours</button>
-        </div>
-      </section>
-
       <section id="stats-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="stats-modal-title">
         <div class="modal-overlay" id="stats-modal-overlay"></div>
         <div class="modal-card stats-modal-card">
@@ -270,12 +232,13 @@
           <nav class="stats-tabs" role="tablist">
             <button class="stats-tab active" role="tab" aria-selected="true" data-stats-tab="summary">Résumé</button>
             <button id="stats-tab-groups-btn" class="stats-tab" role="tab" aria-selected="false" data-stats-tab="groups">Répartition</button>
+            <button id="stats-tab-comments-btn" class="stats-tab" role="tab" aria-selected="false" data-stats-tab="comments">Commentaires</button>
           </nav>
           <div id="stats-tab-summary" class="stats-tab-panel">
           <div class="stats-grid-3">
             <article><span>Z. de réussite</span><strong id="stats-success-zone">0</strong></article>
-            <article><span>Meilleur score</span><strong id="stats-best-volley">0</strong></article>
-            <article><span>Pire score</span><strong id="stats-worst-volley">0</strong></article>
+            <article><span>Meilleure volée</span><strong id="stats-best-volley">0</strong></article>
+            <article><span>Pire volée</span><strong id="stats-worst-volley">0</strong></article>
           </div>
           <div class="stats-grid-3 stats-dashboard">
             <article class="stats-histogram-card">
@@ -348,6 +311,19 @@
               </article>
             </div>
           </div>
+          <div id="stats-tab-comments" class="stats-tab-panel hidden">
+            <div class="stats-grid-1">
+              <article class="stats-dist-card">
+                <span>Axe de progression</span>
+                <textarea id="stats-comments-input" class="progression-textarea" placeholder="Saisir un axe de progression (max 100 caractères)" maxlength="100" rows="6"></textarea>
+                <small class="char-count-progression"><span id="stats-comments-count">0</span>/100</small>
+                <div class="modal-actions" style="margin-top: 12px;">
+                  <button id="stats-comments-save-btn" class="btn btn-primary">Valider</button>
+                </div>
+                <small id="stats-comments-save-feedback" class="save-feedback hidden" aria-live="polite">Enregistré ✓</small>
+              </article>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -372,18 +348,18 @@
             <section class="help-block">
               <h4>Création d'une session</h4>
               <ul>
-                <li>Sélection du type de parcours (nature/Campagne/3D/3D Two Shoots/3D Hunting/Animal round).</li>
-                <li>Mode de parcours (équipe/individuel).</li>
+                <li>Sélection du type de session (nature/Campagne/3D/3D Two Shoots/3D Hunting/Animal round).</li>
+                <li>Mode de session (équipe/individuel/mixte).</li>
                 <li>Définition de la zone de réussite</li>
               </ul>
             </section>
 
             <section class="help-block">
-              <h4>Historique de parcours</h4>
+              <h4>Historique des sessions</h4>
               <ul>
                 <li>Filtrage par type et mode de parcours.</li>
-                <li>Affichage des détails de chaque parcours enregistré.</li>
-                <li>Suppression des parcours enregistrés.</li>
+                <li>Affichage des détails de chaque session enregistrée.</li>
+                <li>Suppression des sessions enregistrées.</li>
               </ul>
             </section>
 
@@ -588,7 +564,7 @@
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 14.2A6.2 6.2 0 1 1 18.2 14 6.21 6.21 0 0 1 12 20.2Zm.9-9.8v4l3 1.8-.9 1.5-3.9-2.3V10.4h1.8Z" fill="currentColor" />
               </svg>
-              <span>Historique des parcours</span>
+              <span>Historique des sessions</span>
             </h3>
             <button id="history-close-btn" class="btn btn-light btn-icon" aria-label="Fermer historique">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">

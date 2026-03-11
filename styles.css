@@ -66,6 +66,14 @@ body {
   text-align: center;
 }
 
+.save-feedback {
+  display: inline-block;
+  margin-top: 8px;
+  color: #2d6a4f;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
 .help-head {
   display: flex;
   justify-content: space-between;
@@ -279,6 +287,69 @@ select {
   border-radius: 10px;
   padding: 10px;
   background: #fff;
+}
+
+.quick-stats-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.quick-stats {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.quick-stats-container .btn {
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+.progression-textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+  font: inherit;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 120px;
+  color: var(--ink);
+}
+
+.progression-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.modal-actions .btn {
+  min-width: 120px;
+}
+
+.char-count-progression {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.char-count-progression.is-warning {
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+.char-count-progression.is-danger {
+  color: var(--danger);
+  font-weight: 700;
 }
 
 #success-zone-input {
@@ -830,19 +901,6 @@ select {
 
 .history-total.success {
   color: green;
-}
-
-.stats-list {
-  display: grid;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.stats-list article {
-  border-left: 4px solid var(--accent-2);
-  background: #fff;
-  padding: 8px;
-  border-radius: 8px;
 }
 
 .history-modal-card {

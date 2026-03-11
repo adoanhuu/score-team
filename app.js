@@ -1,4 +1,4 @@
-const ARROWS_PER_shoot = 6;
+const ARROWS_PER_VOLLEY = 6;
 const APP_VERSION = "v1.5.3";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
@@ -11,26 +11,27 @@ const state = {
   targetCount: 21,
   successZone: 0,
   scoringMode: "team",
-  arrowsPerVolley: ARROWS_PER_shoot,
-  currentshoot: Array(ARROWS_PER_shoot).fill(null),
+  arrowsPerVolley: ARROWS_PER_VOLLEY,
+  currentshoot: Array(ARROWS_PER_VOLLEY).fill(null),
   currentArrowIndex: 0,
   shoots: [],
   activeRuleset: "nature",
   allowedPoints: [20, 15, 10, 0],
   shootGroups: [],
   resultsPayload: null,
+  activeStatsPayload: null,
   inputLocked: false,
   completionArchived: false,
   statsOpenedFromHistory: false,
   useTargetGroups: true,
   editingVolleyIndex: null,
   lastEditedVolleyIndex: null,
+  progressionAxis: "",
 };
 
 const els = {
   setupCard: document.getElementById("setup-card"),
   scoringCard: document.getElementById("scoring-card"),
-  summaryCard: document.getElementById("summary-card"),
   targetsCountText: document.getElementById("targets-count-text"),
   successZoneInput: document.getElementById("success-zone-input"),
   successZoneValue: document.getElementById("success-zone-value"),
@@ -106,12 +107,6 @@ const els = {
   statsTabGroups: document.getElementById("stats-tab-groups"),
   statsGroupDistCard: document.getElementById("stats-group-dist-card"),
   statsGroupDist: document.getElementById("stats-group-dist"),
-  finalTotal: document.getElementById("final-total"),
-  avgshoot: document.getElementById("avg-volley"),
-  avgArrow: document.getElementById("avg-arrow"),
-  statsList: document.getElementById("stats-list"),
-  shootHistoryBody: document.getElementById("volley-history-body"),
-  restartBtn: document.getElementById("restart-btn"),
   appVersion: document.getElementById("app-version"),
   flashInfo: document.getElementById("flash-info"),
   configBtn: document.getElementById("config-btn"),
@@ -137,6 +132,11 @@ const els = {
   useTargetGroupsInputs: document.querySelectorAll('input[name="use-target-groups"]'),
   groupColumnHeader: document.getElementById("group-column-header"),
   statsTabGroupsBtn: document.getElementById("stats-tab-groups-btn"),
+  statsTabComments: document.getElementById("stats-tab-comments"),
+  statsCommentsInput: document.getElementById("stats-comments-input"),
+  statsCommentsCount: document.getElementById("stats-comments-count"),
+  statsCommentsSaveBtn: document.getElementById("stats-comments-save-btn"),
+  statsCommentsSaveFeedback: document.getElementById("stats-comments-save-feedback"),
 };
 
 // Sentinel for "X" score (Field/Hunter: inner-bull, counted as 5 pts)
@@ -151,6 +151,8 @@ const presets = {
   "3dh": [20, 16, 10, 0],
   ar: [20, 18, 16, 14, 12, 10, 0],
 };
+
+let statsCommentsSaveFeedbackTimeout = null;
 
 function scoreToValue(s) {
   return s === FIELD_X ? 5 : (s ?? 0);
@@ -514,13 +516,14 @@ function persistAppState() {
             useTargetGroups: state.useTargetGroups,
             arrowsPerVolley: state.arrowsPerVolley,
             currentArrowIndex: state.currentArrowIndex,
-            shoots: state.shoots.map((shoot) => [...shoot]),
+            shoots: state.shoots.map((volley) => [...volley]),
             currentshoot: [...state.currentshoot],
             activeRuleset: state.activeRuleset,
             allowedPoints: [...state.allowedPoints],
             shootGroups: [...state.shootGroups],
             currentGroup: getSelectedTargetGroup(),
             editingVolleyIndex: state.editingVolleyIndex,
+            progressionAxis: state.progressionAxis || "",
           }
         : null,
     };
@@ -614,10 +617,10 @@ function restorePersistedState() {
   state.inputLocked = false;
   state.completionArchived = state.shoots.length === state.targetCount;
   state.resultsPayload = state.shoots.length === state.targetCount ? buildResultsPayload() : null;
+  state.progressionAxis = saved.progressionAxis || "";
   syncTargetGroupSelect(saved.currentGroup);
 
   els.setupCard.classList.add("hidden");
-  els.summaryCard.classList.add("hidden");
   els.scoringCard.classList.remove("hidden");
   closeStatsModal();
   closeHelpModal();
@@ -641,7 +644,7 @@ function formatScore(value) {
 }
 
 function globalTotal() {
-  return state.shoots.reduce((sum, shoot) => sum + roundTotal(shoot), 0);
+  return state.shoots.reduce((sum, volley) => sum + roundTotal(volley), 0);
 }
 
 function isSuccessfulVolley(total) {
@@ -748,16 +751,16 @@ function renderLiveVolleyHistory() {
   els.liveVolleyHistoryBody.innerHTML = "";
   const maxVolley = getMaxVolleyForCurrentConfig();
   const sessionCompleted = state.shoots.length === state.targetCount;
-  state.shoots.forEach((shoot, idx) => {
+  state.shoots.forEach((volley, idx) => {
     const isEditingRow = idx === state.editingVolleyIndex;
-    const total = roundTotal(shoot);
+    const total = roundTotal(volley);
     const successful = isSuccessfulVolley(total);
-    const pillClass = getVolleyPillClass(shoot, total, maxVolley);
+    const pillClass = getVolleyPillClass(volley, total, maxVolley);
     const row = document.createElement("tr");
     row.classList.toggle("is-edited-row", idx === state.lastEditedVolleyIndex);
     const arrowsText = isEditingRow
       ? Array(state.arrowsPerVolley).fill("-").join(" / ")
-      : shoot.map((value) => formatScore(value)).join(" / ");
+      : volley.map((value) => formatScore(value)).join(" / ");
     const totalText = isEditingRow ? "-" : String(total);
     const groupCell = state.useTargetGroups ? `<td>${state.shootGroups[idx] || "-"}</td>` : "";
     row.innerHTML = `
@@ -899,18 +902,18 @@ function getMaxVolleyForCurrentConfig() {
   return state.arrowsPerVolley * Math.max(...state.allowedPoints.map(scoreToValue), 0);
 }
 
-function isDoubleZeroVolley(shoot) {
-  return shoot.length >= 2 && shoot[0] === 0 && shoot[1] === 0;
+function isDoubleZeroVolley(volley) {
+  return volley.length >= 2 && volley[0] === 0 && volley[1] === 0;
 }
 
-function hasSingleMiss(shoot) {
-  return shoot.some((v) => v === 0);
+function hasSingleMiss(volley) {
+  return volley.some((v) => v === 0);
 }
 
-function getVolleyPillClass(shoot, total, maxVolley) {
-  if (isDoubleZeroVolley(shoot)) return "is-red";
+function getVolleyPillClass(volley, total, maxVolley) {
+  if (isDoubleZeroVolley(volley)) return "is-red";
   if (total === maxVolley) return "is-green";
-  if (hasSingleMiss(shoot)) return "is-orange";
+  if (hasSingleMiss(volley)) return "is-orange";
   return "is-blue";
 }
 
@@ -986,7 +989,7 @@ function registerScore(score) {
       if (state.shoots.length === state.targetCount) {
         state.resultsPayload = buildResultsPayload();
         if (state.resultsPayload && !state.completionArchived) {
-          addHistoryEntry(state.resultsPayload);
+          state.resultsPayload = addHistoryEntry(state.resultsPayload) || state.resultsPayload;
           state.completionArchived = true;
           showFlashInfo("Parcours enregistré dans l'historique.");
         }
@@ -1145,7 +1148,7 @@ function getArrowsPerVolley(ruleset, scoringMode) {
   if (ruleset === "field") return 4;
   if (ruleset === "campagne") return 3;
   if (ruleset === "3d" && scoringMode === "mixed") return 4;
-  return scoringMode === "individual" ? 2 : ARROWS_PER_shoot;
+  return scoringMode === "individual" ? 2 : ARROWS_PER_VOLLEY;
 }
 
 function syncScoringModeFieldset() {
@@ -1249,6 +1252,7 @@ function startScoring() {
   state.shoots = [];
   state.shootGroups = [];
   state.resultsPayload = null;
+  state.progressionAxis = "";
   state.completionArchived = false;
   state.editingVolleyIndex = null;
   state.lastEditedVolleyIndex = null;
@@ -1256,7 +1260,6 @@ function startScoring() {
   syncTargetGroupSelect();
 
   els.setupCard.classList.add("hidden");
-  els.summaryCard.classList.add("hidden");
   els.scoringCard.classList.remove("hidden");
   closeStatsModal();
   closeHelpModal();
@@ -1269,7 +1272,7 @@ function buildResultsPayload() {
     return null;
   }
 
-  const totals = state.shoots.map((shoot) => roundTotal(shoot));
+  const totals = state.shoots.map((volley) => roundTotal(volley));
   const total = totals.reduce((sum, value) => sum + value, 0);
   const avgshoot = total / state.shoots.length;
   const avgArrow = total / (state.shoots.length * state.arrowsPerVolley);
@@ -1310,13 +1313,14 @@ function buildResultsPayload() {
     },
     allowedPoints: state.allowedPoints,
     distribution: Object.fromEntries(distribution.entries()),
-    volleys: state.shoots.map((shoot, idx) => ({
+    volleys: state.shoots.map((volley, idx) => ({
       index: idx + 1,
-      arrows: shoot,
+      arrows: volley,
       group: state.shootGroups[idx] || null,
-      total: roundTotal(shoot),
-      success: isSuccessfulVolley(roundTotal(shoot)),
+      total: roundTotal(volley),
+      success: isSuccessfulVolley(roundTotal(volley)),
     })),
+    progressionAxis: state.progressionAxis,
   };
 }
 
@@ -1501,13 +1505,36 @@ function renderScoreDistribution(allowedPoints, volleys) {
 }
 
 function switchStatsTab(tabName) {
+  if (!tabName) {
+    tabName = "summary";
+  }
   document.querySelectorAll(".stats-tab").forEach((btn) => {
     const isActive = btn.dataset.statsTab === tabName;
     btn.classList.toggle("active", isActive);
     btn.setAttribute("aria-selected", String(isActive));
   });
-  els.statsTabSummary.classList.toggle("hidden", tabName !== "summary");
-  els.statsTabGroups.classList.toggle("hidden", tabName !== "groups");
+  if (els.statsTabSummary) {
+    els.statsTabSummary.classList.toggle("hidden", tabName !== "summary");
+  }
+  if (els.statsTabGroups) {
+    els.statsTabGroups.classList.toggle("hidden", tabName !== "groups");
+  }
+  if (els.statsTabComments) {
+    els.statsTabComments.classList.toggle("hidden", tabName !== "comments");
+  }
+}
+
+function updateStatsCommentsCounter() {
+  if (!els.statsCommentsInput || !els.statsCommentsCount) {
+    return;
+  }
+  const length = els.statsCommentsInput.value.length;
+  els.statsCommentsCount.textContent = String(length);
+  const counterWrap = els.statsCommentsCount.closest(".char-count-progression");
+  if (counterWrap) {
+    counterWrap.classList.toggle("is-warning", length >= 80 && length < 90);
+    counterWrap.classList.toggle("is-danger", length >= 90);
+  }
 }
 
 function getPieColorsFromCounts(counts, orderedScores) {
@@ -1617,6 +1644,7 @@ function renderGroupDistribution(payload) {
 }
 
 function openStatsModalFromPayload(payload) {
+  state.activeStatsPayload = payload || null;
   const volleys = Array.isArray(payload?.volleys) ? payload.volleys : [];
   if (volleys.length === 0) return;
   const totals = volleys.map((volley) => volley.total ?? roundTotal(volley.arrows || []));
@@ -1704,6 +1732,11 @@ function openStatsModalFromPayload(payload) {
     els.statsTabGroupsBtn.style.display = "";
   }
 
+  if (els.statsCommentsInput) {
+    els.statsCommentsInput.value = payload.progressionAxis || "";
+    updateStatsCommentsCounter();
+  }
+
   switchStatsTab("summary");
 
   closeHelpModal();
@@ -1723,6 +1756,7 @@ function openStatsModal() {
 
 function closeStatsModal() {
   els.statsModal.classList.add("hidden");
+  state.activeStatsPayload = null;
   if (state.statsOpenedFromHistory) {
     state.statsOpenedFromHistory = false;
     openHistoryModal();
@@ -1870,10 +1904,33 @@ function saveHistoryEntries(entries) {
   }
 }
 
+function updateHistoryEntryProgressionAxis(payload, progressionAxis) {
+  if (!payload) return false;
+  const entries = loadHistoryEntries();
+  if (entries.length === 0) return false;
+
+  const archivedAt = typeof payload.archivedAt === "string" ? payload.archivedAt : "";
+  const generatedAt = typeof payload.generatedAt === "string" ? payload.generatedAt : "";
+  const entryIndex = entries.findIndex((entry) => {
+    if (archivedAt) return entry.archivedAt === archivedAt;
+    if (generatedAt) return entry.generatedAt === generatedAt;
+    return false;
+  });
+
+  if (entryIndex < 0) return false;
+  entries[entryIndex] = {
+    ...entries[entryIndex],
+    progressionAxis,
+  };
+  saveHistoryEntries(entries);
+  return true;
+}
+
 function addHistoryEntry(payload) {
   const entries = loadHistoryEntries();
   const entry = { ...payload, archivedAt: new Date().toISOString() };
   saveHistoryEntries([entry, ...entries]);
+  return entry;
 }
 
 async function removeHistoryEntry(archivedAt) {
@@ -2132,6 +2189,7 @@ function restart() {
   state.shoots = [];
   state.shootGroups = [];
   state.resultsPayload = null;
+  state.progressionAxis = "";
   state.editingVolleyIndex = null;
   state.lastEditedVolleyIndex = null;
   state.inputLocked = false;
@@ -2140,7 +2198,6 @@ function restart() {
   closeHelpModal();
   closeHistoryModal();
   els.scoringCard.classList.add("hidden");
-  els.summaryCard.classList.add("hidden");
   els.setupCard.classList.remove("hidden");
   clearPersistedState();
   persistAppState();
@@ -2256,11 +2313,51 @@ els.helpBtn.addEventListener("click", openHelpModal);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
 els.statsBtn.addEventListener("click", openStatsModal);
 els.resultsCloseBtn.addEventListener("click", restart);
-els.restartBtn.addEventListener("click", restart);
+if (els.statsCommentsSaveBtn) {
+  els.statsCommentsSaveBtn.addEventListener("click", () => {
+    const progressionAxis = (els.statsCommentsInput?.value || "").trim();
+    const activePayload = state.activeStatsPayload || state.resultsPayload;
+    if (activePayload) {
+      activePayload.progressionAxis = progressionAxis;
+
+      const isCurrentSessionPayload = Boolean(
+        state.resultsPayload
+        && (
+          (activePayload.archivedAt && state.resultsPayload.archivedAt && activePayload.archivedAt === state.resultsPayload.archivedAt)
+          || (activePayload.generatedAt && state.resultsPayload.generatedAt && activePayload.generatedAt === state.resultsPayload.generatedAt)
+        )
+      );
+
+      if (isCurrentSessionPayload && state.resultsPayload) {
+        state.progressionAxis = progressionAxis;
+        state.resultsPayload.progressionAxis = progressionAxis;
+        persistAppState();
+      }
+
+      updateHistoryEntryProgressionAxis(activePayload, progressionAxis);
+    }
+    showFlashInfo("Axe de progression enregistré.");
+    if (els.statsCommentsSaveFeedback) {
+      els.statsCommentsSaveFeedback.classList.remove("hidden");
+      if (statsCommentsSaveFeedbackTimeout) {
+        window.clearTimeout(statsCommentsSaveFeedbackTimeout);
+      }
+      statsCommentsSaveFeedbackTimeout = window.setTimeout(() => {
+        els.statsCommentsSaveFeedback?.classList.add("hidden");
+      }, 1600);
+    }
+  });
+}
+if (els.statsCommentsInput) {
+  els.statsCommentsInput.addEventListener("input", () => {
+    updateStatsCommentsCounter();
+  });
+}
+
 els.statsModalOverlay.addEventListener("click", closeStatsModal);
 els.statsCloseBtn.addEventListener("click", closeStatsModal);
 document.querySelectorAll(".stats-tab").forEach((btn) => {
-  btn.addEventListener("click", () => switchStatsTab(btn.dataset.statsTab));
+  btn.addEventListener("click", () => switchStatsTab(btn.dataset.statsTab || "summary"));
 });
 els.helpModalOverlay.addEventListener("click", closeHelpModal);
 els.helpCloseBtn.addEventListener("click", closeHelpModal);
