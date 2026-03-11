@@ -878,10 +878,24 @@ function getMaxShootTotalForRuleset() {
 }
 
 function getMaxVolleyForCurrentConfig() {
-  const byRuleset = getMaxShootTotalForRuleset();
-  if (byRuleset !== null) {
-    return state.scoringMode === "individual" ? Math.floor(byRuleset / 3) : byRuleset;
+  // Calculate the max score using the individual mode as reference (base pattern)
+  // Then multiply by the number of archers (derived from arrows count ratio)
+  // This ensures "faire le plein" is consistent: nature team=(20+15)*3=105, 3d team=(11+11)*3=66, etc.
+  const arrowsPerVolleyIndividual = getArrowsPerVolley(state.activeRuleset, "individual");
+  const maxSingleArcher = getMaxShootTotalForConfig(
+    state.activeRuleset,
+    "individual",
+    arrowsPerVolleyIndividual,
+    state.allowedPoints,
+  );
+  
+  // Calculate number of archers from the current arrows per volley vs individual
+  const numberOfArchers = state.arrowsPerVolley / arrowsPerVolleyIndividual;
+  
+  if (maxSingleArcher !== null) {
+    return maxSingleArcher * numberOfArchers;
   }
+  
   return state.arrowsPerVolley * Math.max(...state.allowedPoints.map(scoreToValue), 0);
 }
 
