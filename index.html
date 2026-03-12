@@ -14,44 +14,63 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <section id="home-screen" class="home-screen" role="main" aria-label="Accueil">
+      <header class="home-header">
+        <img src="icons/icon.png" alt="Archery Team Score" class="home-logo" />
+        <div class="home-header-text">
+          <h1 class="home-title">Archery Team Score</h1>
+          <p class="home-subtitle">Gestion des scores de tir à l'arc</p>
+        </div>
+      </header>
+      <nav class="home-nav" aria-label="Menu principal">
+
+        <button class="home-tile" id="home-training-btn" aria-label="Entrainement structuré">
+          <span class="home-tile-label">Entrainement</span>
+        </button>
+
+        <button class="home-tile" id="home-peloton-btn" aria-label="Tri en peloton">
+          <span class="home-tile-label">Peloton</span>
+        </button>
+
+        <button class="home-tile" id="home-history-btn" aria-label="Historique">
+          <span class="home-tile-label">Historique</span>
+        </button>
+
+        <button class="home-tile" id="home-stats-btn" aria-label="Statistiques">
+          <span class="home-tile-label">Statistiques</span>
+        </button>
+
+        <button class="home-tile" id="home-config-btn" aria-label="Configuration">
+          <span class="home-tile-label">Configuration</span>
+        </button>
+
+        <button class="home-tile" id="home-help-btn" aria-label="Aide">
+          <span class="home-tile-label">Aide</span>
+        </button>
+
+      </nav>
+    </section>
+
     <main class="app">
       <div id="flash-info" class="flash-info hidden" role="status" aria-live="polite"></div>
 
-      <section class="card" id="setup-card">
+      <section class="card hidden" id="setup-card">
         <div class="setup-head">
-          <h2 class="title-with-icon">
-            <img src="icons/icon.png" alt="" class="app-title-icon" />
-            <span>Archery Team Score</span>
-          </h2>
-          <div class="setup-head-actions">
-            <button id="setup-menu-btn" class="btn btn-light btn-icon home-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false" aria-controls="setup-menu-panel">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z" fill="currentColor" />
-              </svg>
-            </button>
-            <div id="setup-menu-panel" class="setup-menu-panel hidden" role="menu" aria-label="Menu principal">
-              <button id="config-btn" class="setup-menu-item" type="button" role="menuitem" aria-label="Paramètres">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94 7.07 7.07 0 0 0-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54a7.04 7.04 0 0 0-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0-.06.94c0 .32.02.64.06.94L2.86 14.5a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54a7.04 7.04 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.56ZM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6Z" fill="currentColor" />
-                </svg>
-                <span>Paramètres</span>
-              </button>
-              <button id="setup-help-btn" class="setup-menu-item" type="button" role="menuitem" aria-label="Aide">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
-                </svg>
-                <span>Aide</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div>
-          <h4 class="section-title">
+          <h2 class="modal-title-with-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2Zm-2-7V3.5L18.5 8H14Z" fill="currentColor"/>
             </svg>
-            Créer une nouvelle session
-          </h4>
+            <span>Créer une session</span>
+          </h2>
+          <div class="setup-head-actions">
+            <button id="setup-close-btn" class="btn btn-light btn-icon home-btn" aria-label="Fermer">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div>
           <div class="grid-two">
             <label>
               <span class="label-inline">Parcours <span id="targets-count-text" class="inline-meta">21 cibles</span></span>

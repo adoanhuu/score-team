@@ -38,6 +38,7 @@ const els = {
   lieuInput: document.getElementById("lieu-input"),
   rulesetSelect: document.getElementById("ruleset-select"),
   scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
+  setupCloseBtn: document.getElementById("setup-close-btn"),
   setupMenuBtn: document.getElementById("setup-menu-btn"),
   setupMenuPanel: document.getElementById("setup-menu-panel"),
   setupHelpBtn: document.getElementById("setup-help-btn"),
@@ -137,6 +138,13 @@ const els = {
   statsCommentsCount: document.getElementById("stats-comments-count"),
   statsCommentsSaveBtn: document.getElementById("stats-comments-save-btn"),
   statsCommentsSaveFeedback: document.getElementById("stats-comments-save-feedback"),
+  homeScreen: document.getElementById("home-screen"),
+  homeTrainingBtn: document.getElementById("home-training-btn"),
+  homePelotonBtn: document.getElementById("home-peloton-btn"),
+  homeHistoryBtn: document.getElementById("home-history-btn"),
+  homeStatsBtn: document.getElementById("home-stats-btn"),
+  homeConfigBtn: document.getElementById("home-config-btn"),
+  homeHelpBtn: document.getElementById("home-help-btn"),
 };
 
 // Sentinel for "X" score (Field/Hunter: inner-bull, counted as 5 pts)
@@ -622,6 +630,7 @@ function restorePersistedState() {
 
   els.setupCard.classList.add("hidden");
   els.scoringCard.classList.remove("hidden");
+  els.homeScreen.classList.add("hidden");
   closeStatsModal();
   closeHelpModal();
   closeHistoryModal();
@@ -1261,6 +1270,7 @@ function startScoring() {
 
   els.setupCard.classList.add("hidden");
   els.scoringCard.classList.remove("hidden");
+  els.homeScreen.classList.add("hidden");
   closeStatsModal();
   closeHelpModal();
 
@@ -2198,7 +2208,9 @@ function restart() {
   closeHelpModal();
   closeHistoryModal();
   els.scoringCard.classList.add("hidden");
-  els.setupCard.classList.remove("hidden");
+  els.setupCard.classList.add("hidden");
+  document.body.classList.remove("home-underlay-active");
+  els.homeScreen.classList.remove("hidden");
   clearPersistedState();
   persistAppState();
 }
@@ -2286,6 +2298,19 @@ els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", pe
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
 els.historyBtn.addEventListener("click", openHistoryModal);
+
+function showSetupFromHome() {
+  document.body.classList.add("home-underlay-active");
+  els.setupCard.classList.remove("hidden");
+}
+
+els.homeTrainingBtn.addEventListener("click", showSetupFromHome);
+els.homeHistoryBtn.addEventListener("click", () => { openHistoryModal(); });
+els.homeConfigBtn.addEventListener("click", () => { openConfigModal(); });
+els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
+if (els.setupCloseBtn) {
+  els.setupCloseBtn.addEventListener("click", restart);
+}
 if (els.setupMenuBtn) {
   els.setupMenuBtn.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -2305,10 +2330,12 @@ document.addEventListener("keydown", (event) => {
     closeSetupMenu();
   }
 });
-els.setupHelpBtn.addEventListener("click", () => {
-  closeSetupMenu();
-  openHelpModal();
-});
+if (els.setupHelpBtn) {
+  els.setupHelpBtn.addEventListener("click", () => {
+    closeSetupMenu();
+    openHelpModal();
+  });
+}
 els.helpBtn.addEventListener("click", openHelpModal);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
 els.statsBtn.addEventListener("click", openStatsModal);
@@ -2371,10 +2398,12 @@ els.historyResetFiltersBtn.addEventListener("click", () => {
   historyCurrentPage = 1;
   renderHistoryList();
 });
-els.configBtn.addEventListener("click", () => {
-  closeSetupMenu();
-  openConfigModal();
-});
+if (els.configBtn) {
+  els.configBtn.addEventListener("click", () => {
+    closeSetupMenu();
+    openConfigModal();
+  });
+}
 els.configModalOverlay.addEventListener("click", closeConfigModal);
 els.configCloseBtn.addEventListener("click", closeConfigModal);
 els.configExportHistoryBtn.addEventListener("click", exportHistory);
