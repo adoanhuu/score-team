@@ -422,7 +422,7 @@ select {
 .start-action {
   margin-top: 2px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
@@ -2083,16 +2083,25 @@ select {
 }
 
 .home-tile-label {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   margin-top: auto;
   margin-bottom: 8px;
   width: 100%;
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-weight: bold;
   text-align: center;
   color: var(--ink);
   line-height: 1.3;
   color: var(--dark-blue);
+}
+
+.home-tile-label-icon {
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
 }
 
 #home-training-btn  {

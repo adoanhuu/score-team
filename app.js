@@ -39,9 +39,6 @@ const els = {
   rulesetSelect: document.getElementById("ruleset-select"),
   scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
   setupCloseBtn: document.getElementById("setup-close-btn"),
-  setupMenuBtn: document.getElementById("setup-menu-btn"),
-  setupMenuPanel: document.getElementById("setup-menu-panel"),
-  setupHelpBtn: document.getElementById("setup-help-btn"),
   startBtn: document.getElementById("start-btn"),
   backSetupBtn: document.getElementById("back-setup-btn"),
   helpBtn: document.getElementById("help-btn"),
@@ -260,19 +257,6 @@ function openConfigModal() {
 function closeConfigModal() {
   els.configModal.classList.add("hidden");
   updateRulesetSelectOptions();
-}
-
-function closeSetupMenu() {
-  if (!els.setupMenuPanel || !els.setupMenuBtn) return;
-  els.setupMenuPanel.classList.add("hidden");
-  els.setupMenuBtn.setAttribute("aria-expanded", "false");
-}
-
-function toggleSetupMenu() {
-  if (!els.setupMenuPanel || !els.setupMenuBtn) return;
-  const shouldOpen = els.setupMenuPanel.classList.contains("hidden");
-  els.setupMenuPanel.classList.toggle("hidden", !shouldOpen);
-  els.setupMenuBtn.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
 }
 
 function syncRulesetCheckboxes() {
@@ -2297,7 +2281,9 @@ els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
 els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
-els.historyBtn.addEventListener("click", openHistoryModal);
+if (els.historyBtn) {
+  els.historyBtn.addEventListener("click", openHistoryModal);
+}
 
 function showSetupFromHome() {
   document.body.classList.add("home-underlay-active");
@@ -2310,31 +2296,6 @@ els.homeConfigBtn.addEventListener("click", () => { openConfigModal(); });
 els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
 if (els.setupCloseBtn) {
   els.setupCloseBtn.addEventListener("click", restart);
-}
-if (els.setupMenuBtn) {
-  els.setupMenuBtn.addEventListener("click", (event) => {
-    event.stopPropagation();
-    toggleSetupMenu();
-  });
-}
-if (els.setupMenuPanel) {
-  els.setupMenuPanel.addEventListener("click", (event) => {
-    event.stopPropagation();
-  });
-}
-document.addEventListener("click", () => {
-  closeSetupMenu();
-});
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    closeSetupMenu();
-  }
-});
-if (els.setupHelpBtn) {
-  els.setupHelpBtn.addEventListener("click", () => {
-    closeSetupMenu();
-    openHelpModal();
-  });
 }
 els.helpBtn.addEventListener("click", openHelpModal);
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
@@ -2400,7 +2361,6 @@ els.historyResetFiltersBtn.addEventListener("click", () => {
 });
 if (els.configBtn) {
   els.configBtn.addEventListener("click", () => {
-    closeSetupMenu();
     openConfigModal();
   });
 }
