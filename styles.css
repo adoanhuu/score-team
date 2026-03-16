@@ -11,12 +11,17 @@
   --bottom-dock-space: 250px;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  overflow-x: hidden;
   font-family: "Nunito", "Trebuchet MS", sans-serif;
   background: #3a3a3a;
   color: var(--ink);
@@ -246,6 +251,7 @@ label {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
   white-space: nowrap;
 }
 
@@ -307,6 +313,7 @@ input,
 select,
 button {
   font: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
 input,
@@ -316,6 +323,8 @@ select {
   border-radius: 10px;
   padding: 10px;
   background: #fff;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .quick-stats-container {
@@ -323,10 +332,12 @@ select {
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 20px;
+  min-width: 0;
 }
 
 .quick-stats {
   flex: 1;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
@@ -348,6 +359,8 @@ select {
   resize: vertical;
   min-height: 120px;
   color: var(--ink);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .progression-textarea:focus {
@@ -497,6 +510,7 @@ select {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .volley-title-row {
@@ -504,6 +518,7 @@ select {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  min-width: 0;
   margin-bottom: 0;
   line-height: 1;
 }
@@ -557,6 +572,7 @@ select {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .home-btn {
@@ -608,7 +624,7 @@ select {
 .arrow-grid {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(6, minmax(42px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -699,6 +715,7 @@ select {
 
 .points-pad {
   flex: 1;
+  min-width: 0;
   display: flex;
   gap: 6px;
 }
@@ -707,8 +724,10 @@ select {
   position: fixed;
   left: 50%;
   bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  -webkit-transform: translateX(-50%);
   transform: translateX(-50%);
   z-index: 20;
+  width: -webkit-fill-available;
   width: min(720px, calc(100% - 16px));
   margin-top: 0;
   padding: 8px;
@@ -754,6 +773,7 @@ select {
   display: flex;
   gap: 4px;
   flex: 1;
+  min-width: 0;
 }
 
 .target-group-radio {
@@ -823,8 +843,10 @@ select {
 }
 
 #live-volley-history-wrap {
+  max-height: clamp(220px, calc(100vh - var(--bottom-dock-space) - 180px), 60vh);
   max-height: clamp(220px, calc(100dvh - var(--bottom-dock-space) - 180px), 60vh);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 0;
   scroll-padding-bottom: 8px;
 }
@@ -941,6 +963,7 @@ select {
   gap: 16px;
   flex: 1 1 auto;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .history-pagination {
@@ -1173,8 +1196,10 @@ select {
   position: fixed;
   left: 50%;
   bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  -webkit-transform: translateX(-50%);
   transform: translateX(-50%);
   z-index: 20;
+  width: -webkit-fill-available;
   width: min(720px, calc(100% - 16px));
   margin-top: 0;
   padding: 8px;
@@ -1224,6 +1249,7 @@ select {
   width: min(680px, 100%);
   max-height: min(85vh, 860px);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: #fff;
   border: 2px solid #123974;
   border-radius: 14px;
@@ -1987,14 +2013,21 @@ select {
 }
 
 .home-header {
-  display: flex;
-  align-items: center;
+  display: block;
   gap: 14px;
-  padding: 16px 20px;
   background: var(--dark-blue);
   color: #fff;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+
+.home-header-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 12px;
 }
 
 .home-logo {
@@ -2031,7 +2064,10 @@ select {
   grid-template-rows: 1fr 1fr 0.8fr;
   gap: 10px;
   padding: 10px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   min-height: 0;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .home-tile {
@@ -2085,23 +2121,27 @@ select {
 .home-tile-label {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 2px;
   margin-top: auto;
   margin-bottom: 8px;
-  width: 100%;
-  font-size: 1.4rem;
+  padding: 10px;
+  font-size: 1.1em;
   font-weight: bold;
   text-align: center;
-  color: var(--ink);
-  line-height: 1.3;
-  color: var(--dark-blue);
+  line-height: 1.2;
+  background-color: var(--dark-blue);
+  color: white;
+  border-radius: 8px;
+  width: 100%;
+  border: 1px solid var(--dark-blue);
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
 }
 
 .home-tile-label-icon {
   width: 1.05em;
   height: 1.05em;
   flex-shrink: 0;
+  margin-top: -3px;
 }
 
 #home-training-btn  {
