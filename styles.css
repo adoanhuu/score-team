@@ -306,7 +306,11 @@ label {
 .checkbox-label input[type="radio"] {
   width: auto;
   cursor: pointer;
-  accent-color: var(--primary);
+  accent-color: var(--accent);
+  -webkit-appearance: auto;
+  appearance: auto;
+  inline-size: 18px;
+  block-size: 18px;
 }
 
 input,
@@ -325,6 +329,102 @@ select {
   background: #fff;
   -webkit-appearance: none;
   appearance: none;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  -webkit-appearance: auto;
+  appearance: auto;
+  accent-color: var(--accent);
+}
+
+input[type="range"] {
+  padding: 0;
+  background: transparent;
+  -webkit-appearance: auto;
+  appearance: auto;
+  accent-color: var(--accent);
+  height: 28px;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--range-fill-color, var(--accent)) 0 var(--range-progress, 0%),
+    var(--line) var(--range-progress, 0%) 100%
+  );
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+  margin-top: -5px;
+}
+
+input[type="range"]::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+input[type="range"]::-moz-range-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--range-fill-color, var(--accent));
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+input[type="range"]:focus-visible {
+  outline: 2px solid var(--dark-blue);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  input[type="range"] {
+    height: 32px;
+  }
+
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 10px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+    margin-top: -5px;
+  }
+
+  input[type="range"]::-moz-range-track {
+    height: 10px;
+  }
+
+  input[type="range"]::-moz-range-progress {
+    height: 10px;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 .quick-stats-container {
@@ -1824,13 +1924,15 @@ select {
   font-weight: 700;
   cursor: pointer;
   font-size: 0.95rem;
-  width: 12px;
+  width: auto;
 }
 
 .config-fed-label input[type="checkbox"] {
   cursor: pointer;
   margin: 0;
   flex-shrink: 0;
+  width: 16px;
+  height: 16px;
 }
 
 .config-ruleset-group {
@@ -1855,7 +1957,8 @@ select {
 .config-ruleset-label input[type="checkbox"] {
   cursor: pointer;
   margin: 0;
-  width: 12px;
+  width: 16px;
+  height: 16px;
 }
 
 .hidden {

@@ -1196,6 +1196,22 @@ function getSuccessZoneColor(value, ruleset, scoringMode) {
   return "#6b7280";
 }
 
+function setRangeProgress(input, fillColor = "") {
+  if (!input) return;
+  const min = Number.parseFloat(input.min || "0");
+  const max = Number.parseFloat(input.max || "100");
+  const value = Number.parseFloat(input.value || "0");
+  const span = max - min;
+  const pct = span > 0 ? ((value - min) / span) * 100 : 0;
+  const clampedPct = Math.min(100, Math.max(0, pct));
+  input.style.setProperty("--range-progress", `${clampedPct}%`);
+  if (fillColor) {
+    input.style.setProperty("--range-fill-color", fillColor);
+  } else {
+    input.style.removeProperty("--range-fill-color");
+  }
+}
+
 function updateSuccessZoneSlider() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
@@ -1213,6 +1229,7 @@ function updateSuccessZoneSlider() {
   saveConfig();
   const zoneColor = getSuccessZoneColor(value, ruleset, scoringMode);
   els.successZoneInput.style.setProperty("--zone-color", zoneColor);
+  setRangeProgress(els.successZoneInput, zoneColor);
   els.successZoneValue.style.color = zoneColor;
   persistAppState();
 }
@@ -1268,6 +1285,10 @@ function buildResultsPayload() {
 
   const totals = state.shoots.map((volley) => roundTotal(volley));
   const total = totals.reduce((sum, value) => sum + value, 0);
+  setRangeProgress(els.configFullTargetTeam);
+  setRangeProgress(els.configFullTargetIndiv);
+  setRangeProgress(els.configMissLimitTeam);
+  setRangeProgress(els.configMissLimitIndiv);
   const avgshoot = total / state.shoots.length;
   const avgArrow = total / (state.shoots.length * state.arrowsPerVolley);
 
@@ -2377,21 +2398,25 @@ els.configImportHistoryInput.addEventListener("change", (e) => {
 els.configFullTargetTeam.addEventListener("input", () => {
   appConfig.fullTarget_team = Number(els.configFullTargetTeam.value);
   els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
+  setRangeProgress(els.configFullTargetTeam);
   saveConfig();
 });
 els.configFullTargetIndiv.addEventListener("input", () => {
   appConfig.fullTarget_individual = Number(els.configFullTargetIndiv.value);
   els.configFullTargetIndivValue.textContent = String(appConfig.fullTarget_individual);
+  setRangeProgress(els.configFullTargetIndiv);
   saveConfig();
 });
 els.configMissLimitTeam.addEventListener("input", () => {
   appConfig.missLimit_team = Number(els.configMissLimitTeam.value);
   els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
+  setRangeProgress(els.configMissLimitTeam);
   saveConfig();
 });
 els.configMissLimitIndiv.addEventListener("input", () => {
   appConfig.missLimit_individual = Number(els.configMissLimitIndiv.value);
   els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
+  setRangeProgress(els.configMissLimitIndiv);
   saveConfig();
 });
 
@@ -2463,6 +2488,11 @@ if (!restorePersistedState()) {
   updateSuccessZoneSlider();
   persistAppState();
 }
+setRangeProgress(els.successZoneInput, els.successZoneInput.style.getPropertyValue("--zone-color").trim());
+setRangeProgress(els.configFullTargetTeam);
+setRangeProgress(els.configFullTargetIndiv);
+setRangeProgress(els.configMissLimitTeam);
+setRangeProgress(els.configMissLimitIndiv);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
