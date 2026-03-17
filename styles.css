@@ -1440,6 +1440,13 @@ input[type="range"]:focus-visible {
   gap: 8px;
 }
 
+.help-version {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.8;
+  color: #fff;
+}
+
 .modal-title-with-icon svg {
   width: 24px;
   height: 24px;

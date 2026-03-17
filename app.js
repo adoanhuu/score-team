@@ -142,6 +142,7 @@ const els = {
   homeStatsBtn: document.getElementById("home-stats-btn"),
   homeConfigBtn: document.getElementById("home-config-btn"),
   homeHelpBtn: document.getElementById("home-help-btn"),
+  helpVersion: document.getElementById("help-version"),
 };
 
 // Sentinel for "X" score (Field/Hunter: inner-bull, counted as 5 pts)
@@ -2480,6 +2481,9 @@ syncScoringModeFieldset();
 syncWeaponSelectOptions();
 updateWeaponSelectVisibility();
 els.appVersion.textContent = APP_VERSION;
+if (els.helpVersion) {
+  els.helpVersion.textContent = APP_VERSION;
+}
 state._lastRuleset = els.rulesetSelect.value;
 state._lastScoringMode = getSelectedScoringMode();
 state._lastWeapon = els.weaponSelect ? els.weaponSelect.value : "";
