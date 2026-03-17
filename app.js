@@ -24,6 +24,7 @@ const state = {
   completionArchived: false,
   statsOpenedFromHistory: false,
   useTargetGroups: true,
+  showScores: true,
   editingVolleyIndex: null,
   lastEditedVolleyIndex: null,
   progressionAxis: "",
@@ -128,6 +129,7 @@ const els = {
   configMissLimitIndiv: document.getElementById("config-miss-limit-indiv"),
   configMissLimitIndivValue: document.getElementById("config-miss-limit-indiv-value"),
   useTargetGroupsInputs: document.querySelectorAll('input[name="use-target-groups"]'),
+  showScoresInputs: document.querySelectorAll('input[name="show-scores"]'),
   groupColumnHeader: document.getElementById("group-column-header"),
   statsTabGroupsBtn: document.getElementById("stats-tab-groups-btn"),
   statsTabComments: document.getElementById("stats-tab-comments"),
@@ -377,6 +379,7 @@ function getSetupSnapshot() {
     weapon: els.weaponSelect ? els.weaponSelect.value : "",
     successZone: Number.parseInt(els.successZoneInput.value, 10) || 1,
     useTargetGroups: getSelectedUseTargetGroups(),
+    showScores: getSelectedShowScores(),
   };
 }
 
@@ -507,6 +510,7 @@ function persistAppState() {
             scoringMode: state.scoringMode,
             weapon: state.weapon || "",
             useTargetGroups: state.useTargetGroups,
+            showScores: state.showScores,
             arrowsPerVolley: state.arrowsPerVolley,
             currentArrowIndex: state.currentArrowIndex,
             shoots: state.shoots.map((volley) => [...volley]),
@@ -565,6 +569,11 @@ function restorePersistedState() {
     const input = [...els.useTargetGroupsInputs].find((i) => i.value === targetValue);
     if (input) input.checked = true;
   }
+  if (typeof setup.showScores === "boolean") {
+    const targetValue = setup.showScores ? "yes" : "no";
+    const input = [...els.showScoresInputs].find((i) => i.value === targetValue);
+    if (input) input.checked = true;
+  }
   syncTargetCountDisplay();
   updateSuccessZoneSlider();
 
@@ -586,6 +595,9 @@ function restorePersistedState() {
     ? saved.weapon
     : getWeaponsForRuleset(saved.activeRuleset)[0];
   state.useTargetGroups = typeof saved.useTargetGroups === "boolean" ? saved.useTargetGroups : true;
+  state.showScores = typeof saved.showScores === "boolean"
+    ? saved.showScores
+    : (typeof setup.showScores === "boolean" ? setup.showScores : true);
   state.arrowsPerVolley = getArrowsPerVolley(saved.activeRuleset, state.scoringMode);
   state.activeRuleset = saved.activeRuleset;
   state.allowedPoints = Array.isArray(saved.allowedPoints) && saved.allowedPoints.length ? [...saved.allowedPoints] : [...presets[saved.activeRuleset]];
@@ -1100,6 +1112,11 @@ function getSelectedUseTargetGroups() {
   return checked ? checked.value === "yes" : true;
 }
 
+function getSelectedShowScores() {
+  const checked = [...els.showScoresInputs].find((input) => input.checked);
+  return checked ? checked.value === "yes" : true;
+}
+
 function getCurrentConfigForSetup() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
@@ -1251,6 +1268,7 @@ function startScoring() {
   state.scoringMode = getSelectedScoringMode();
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
   state.useTargetGroups = getSelectedUseTargetGroups();
+  state.showScores = getSelectedShowScores();
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.successZone = clampSuccessZoneForConfig(
@@ -1313,6 +1331,7 @@ function buildResultsPayload() {
     weapon: state.weapon || "",
     lieu: state.lieu || "",
     useTargetGroups: state.useTargetGroups,
+    showScores: state.showScores,
     targetCount: state.targetCount,
     arrowsPerVolley: state.arrowsPerVolley,
     successZone: state.successZone,
@@ -1386,7 +1405,13 @@ function renderSegmentStats() {
       ? (i === 0 ? "1ère moitié" : "2e moitié")
       : ["1er tiers", "2e tiers", "3e tiers"][i];
     const strong = document.createElement("strong");
-    strong.innerHTML = `${segTotals[i]}<span class="stats-unit">pts</span>`;
+    if (state.showScores) {
+      strong.innerHTML = `${segTotals[i]}<span class="stats-unit">pts</span>`;
+    } else {
+      const segmentTarget = Math.max(0, state.successZone * segSize);
+      const successRate = segmentTarget > 0 ? Math.round((segTotals[i] / segmentTarget) * 100) : 0;
+      strong.innerHTML = `${successRate}<span class="stats-unit">%</span>`;
+    }
 
     if (isComplete && segSize > 0) {
       const avgVolley = segTotals[i] / segSize;
@@ -1672,6 +1697,7 @@ function openStatsModalFromPayload(payload) {
   const partAverages = getSegmentAverages(totals, segmentCount);
   const maxVolley = getMaxVolleyFromPayload(payload);
   const successZone = Number.isInteger(payload.successZone) ? payload.successZone : 0;
+  const showScores = typeof payload.showScores === "boolean" ? payload.showScores : true;
   const ratioFor = (value) => {
     if (maxVolley <= 0) return 0;
     return Math.max(0, Math.min(100, (value / maxVolley) * 100));
@@ -1698,9 +1724,15 @@ function openStatsModalFromPayload(payload) {
   els.statsBar1.style.background = getBarColorByZoneRatio(part1, successZone);
   els.statsBar2.style.background = getBarColorByZoneRatio(part2, successZone);
   els.statsBar3.style.background = getBarColorByZoneRatio(part3, successZone);
-  els.statsBar1Value.innerHTML = `${part1.toFixed(1)}<span class="stats-unit">pts</span>`;
-  els.statsBar2Value.innerHTML = `${part2.toFixed(1)}<span class="stats-unit">pts</span>`;
-  els.statsBar3Value.innerHTML = `${part3.toFixed(1)}<span class="stats-unit">pts</span>`;
+  if (showScores) {
+    els.statsBar1Value.innerHTML = `${part1.toFixed(1)}<span class="stats-unit">pts</span>`;
+    els.statsBar2Value.innerHTML = `${part2.toFixed(1)}<span class="stats-unit">pts</span>`;
+    els.statsBar3Value.innerHTML = `${part3.toFixed(1)}<span class="stats-unit">pts</span>`;
+  } else {
+    els.statsBar1Value.innerHTML = `${percentOfSuccessZone(part1)}<span class="stats-unit">%</span>`;
+    els.statsBar2Value.innerHTML = `${percentOfSuccessZone(part2)}<span class="stats-unit">%</span>`;
+    els.statsBar3Value.innerHTML = `${percentOfSuccessZone(part3)}<span class="stats-unit">%</span>`;
+  }
   if (els.statsBar1Points) els.statsBar1Points.textContent = `${percentOfSuccessZone(part1)}%`;
   if (els.statsBar2Points) els.statsBar2Points.textContent = `${percentOfSuccessZone(part2)}%`;
   if (els.statsBar3Points) els.statsBar3Points.textContent = `${percentOfSuccessZone(part3)}%`;
@@ -2301,6 +2333,7 @@ if (els.weaponSelect) {
 }
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
 els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
+els.showScoresInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
 if (els.historyBtn) {
