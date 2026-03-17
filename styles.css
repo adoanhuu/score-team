@@ -2023,11 +2023,14 @@ select {
 
 .home-header-wrapper {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
   gap: 14px;
   max-width: 500px;
   margin: 0 auto;
   padding: 12px;
+  text-align: center;
 }
 
 .home-logo {
@@ -2039,6 +2042,7 @@ select {
 .home-header-text {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 2px;
 }
 

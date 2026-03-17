@@ -88,6 +88,21 @@ a {
   color: #8fb0e0;
 }
 
+.home-page .header-content {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.home-page .header-logo {
+  justify-content: center;
+  text-align: center;
+}
+
+.home-page .site-nav {
+  margin: 0;
+}
+
 /* Menu toggle button */
 .menu-toggle {
   display: none;
