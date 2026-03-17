@@ -14,44 +14,95 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <section id="home-screen" class="home-screen" role="main" aria-label="Accueil">
+      <header class="home-header">
+        <div class="home-header-wrapper">
+        <img src="icons/icon.png" alt="Archery Team Score" class="home-logo" />
+        <div class="home-header-text">
+          <h1 class="home-title">Archery Team Score</h1>
+          <p class="home-subtitle">Gestion des scores de tir à l'arc</p>
+        </div>
+        </div>
+      </header>
+      <nav class="home-nav" aria-label="Menu principal">
+
+        <button class="home-tile" id="home-training-btn" aria-label="Entrainement structuré">
+          <span class="home-tile-label">
+            <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M11 2h2v3.07A7.002 7.002 0 0 1 18.93 11H22v2h-3.07A7.002 7.002 0 0 1 13 18.93V22h-2v-3.07A7.002 7.002 0 0 1 5.07 13H2v-2h3.07A7.002 7.002 0 0 1 11 5.07V2Zm1 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z" fill="currentColor"/>
+            </svg>
+            <span>Entrainement</span>
+          </span>
+        </button>
+
+        <button class="home-tile" id="home-peloton-btn" aria-label="Tri en peloton">
+          <span class="home-tile-label">
+            <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5ZM8 13c-2.67 0-8 1.34-8 4v2h7v-2.5c0-.95.37-1.81 1.05-2.56-.02-.3-.03-.6-.05-.94Z" fill="currentColor"/>
+            </svg>
+            <span>Peloton</span>
+          </span>
+        </button>
+
+        <button class="home-tile" id="home-history-btn" aria-label="Historique">
+          <span class="home-tile-label">
+            <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 14.2A6.2 6.2 0 1 1 18.2 14 6.21 6.21 0 0 1 12 20.2Zm.9-9.8v4l3 1.8-.9 1.5-3.9-2.3V10.4h1.8Z" fill="currentColor"/>
+            </svg>
+            <span>Historique</span>
+          </span>
+        </button>
+
+        <button class="home-tile" id="home-stats-btn" aria-label="Statistiques">
+          <span class="home-tile-label">
+            <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 19h16v2H4v-2Zm1-2V9h3v8H5Zm5 0V5h3v12h-3Zm5 0v-6h3v6h-3Z" fill="currentColor"/>
+            </svg>
+            <span>Statistiques</span>
+          </span>
+        </button>
+
+        <button class="home-tile" id="home-config-btn" aria-label="Configuration">
+          <span class="home-tile-label">
+            <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.23-1.13.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.68 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.8 14.52a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.31.6.22l2.39-.96c.5.4 1.05.72 1.63.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.58-.23 1.13-.54 1.63-.94l2.39.96c.22.09.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" fill="currentColor"/>
+            </svg>
+            <span>Configuration</span>
+          </span>
+        </button>
+
+        <button class="home-tile" id="home-help-btn" aria-label="Aide">
+          <span class="home-tile-label">
+            <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M11 18h2v2h-2v-2Zm1-16a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm0-14a4 4 0 0 0-4 4h2a2 2 0 1 1 2.8 1.84c-1.2.54-1.8 1.35-1.8 2.66V16h2v-1.5c0-.58.22-.9 1.05-1.28A4 4 0 0 0 12 6Z" fill="currentColor"/>
+            </svg>
+            <span>Aide</span>
+          </span>
+        </button>
+
+      </nav>
+    </section>
+
     <main class="app">
       <div id="flash-info" class="flash-info hidden" role="status" aria-live="polite"></div>
 
-      <section class="card" id="setup-card">
+      <section class="card hidden" id="setup-card">
         <div class="setup-head">
-          <h2 class="title-with-icon">
-            <img src="icons/icon.png" alt="" class="app-title-icon" />
-            <span>Archery Team Score</span>
+          <h2 class="modal-title-with-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M11 2h2v3.07A7.002 7.002 0 0 1 18.93 11H22v2h-3.07A7.002 7.002 0 0 1 13 18.93V22h-2v-3.07A7.002 7.002 0 0 1 5.07 13H2v-2h3.07A7.002 7.002 0 0 1 11 5.07V2Zm1 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z" fill="currentColor"/>
+            </svg>
+            <span>Créer une session</span>
           </h2>
           <div class="setup-head-actions">
-            <button id="setup-menu-btn" class="btn btn-light btn-icon home-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false" aria-controls="setup-menu-panel">
+            <button id="setup-close-btn" class="btn btn-light btn-icon home-btn" aria-label="Fermer">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z" fill="currentColor" />
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
               </svg>
             </button>
-            <div id="setup-menu-panel" class="setup-menu-panel hidden" role="menu" aria-label="Menu principal">
-              <button id="config-btn" class="setup-menu-item" type="button" role="menuitem" aria-label="Paramètres">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94 7.07 7.07 0 0 0-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54a7.04 7.04 0 0 0-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0-.06.94c0 .32.02.64.06.94L2.86 14.5a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54a7.04 7.04 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.56ZM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6Z" fill="currentColor" />
-                </svg>
-                <span>Paramètres</span>
-              </button>
-              <button id="setup-help-btn" class="setup-menu-item" type="button" role="menuitem" aria-label="Aide">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
-                </svg>
-                <span>Aide</span>
-              </button>
-            </div>
           </div>
         </div>
         <div>
-          <h4 class="section-title">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2Zm-2-7V3.5L18.5 8H14Z" fill="currentColor"/>
-            </svg>
-            Créer une nouvelle session
-          </h4>
           <div class="grid-two">
             <label>
               <span class="label-inline">Parcours <span id="targets-count-text" class="inline-meta">21 cibles</span></span>
@@ -126,12 +177,6 @@
               <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
             </svg>
           </button>
-          <button id="history-btn" class="btn btn-primary start-btn" aria-label="Historique parcours">
-            Historique
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 14.2A6.2 6.2 0 1 1 18.2 14 6.21 6.21 0 0 1 12 20.2Zm.9-9.8v4l3 1.8-.9 1.5-3.9-2.3V10.4h1.8Z" fill="currentColor" />
-            </svg>
-          </button>
         </div>
       </section>
 
@@ -165,7 +210,7 @@
             <strong id="team-total">0</strong>
           </article>
           <article>
-            <span>Z. réussite</span>
+            <span>Zone de réussite</span>
             <strong id="success-zone-display">0</strong>
           </article>
         </div>
@@ -215,44 +260,6 @@
         </div>
       </section>
 
-      <section class="card hidden" id="summary-card">
-        <h2>Bilan du parcours</h2>
-        <div class="quick-stats">
-          <article>
-            <span>Total final</span>
-            <strong id="final-total">0</strong>
-          </article>
-          <article>
-            <span>Moyenne / volée</span>
-            <strong id="avg-volley">0</strong>
-          </article>
-          <article>
-            <span>Moyenne / flèche</span>
-            <strong id="avg-arrow">0</strong>
-          </article>
-        </div>
-
-        <div class="stats-list" id="stats-list"></div>
-
-        <h3>Détail par volée</h3>
-        <div class="table-wrap">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>Volée</th>
-                <th>Flèches</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody id="volley-history-body"></tbody>
-          </table>
-        </div>
-
-        <div class="actions">
-          <button id="restart-btn" class="btn btn-primary">Nouveau parcours</button>
-        </div>
-      </section>
-
       <section id="stats-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="stats-modal-title">
         <div class="modal-overlay" id="stats-modal-overlay"></div>
         <div class="modal-card stats-modal-card">
@@ -270,12 +277,13 @@
           <nav class="stats-tabs" role="tablist">
             <button class="stats-tab active" role="tab" aria-selected="true" data-stats-tab="summary">Résumé</button>
             <button id="stats-tab-groups-btn" class="stats-tab" role="tab" aria-selected="false" data-stats-tab="groups">Répartition</button>
+            <button id="stats-tab-comments-btn" class="stats-tab" role="tab" aria-selected="false" data-stats-tab="comments">Commentaires</button>
           </nav>
           <div id="stats-tab-summary" class="stats-tab-panel">
           <div class="stats-grid-3">
             <article><span>Z. de réussite</span><strong id="stats-success-zone">0</strong></article>
-            <article><span>Meilleur score</span><strong id="stats-best-volley">0</strong></article>
-            <article><span>Pire score</span><strong id="stats-worst-volley">0</strong></article>
+            <article><span>Meilleure volée</span><strong id="stats-best-volley">0</strong></article>
+            <article><span>Pire volée</span><strong id="stats-worst-volley">0</strong></article>
           </div>
           <div class="stats-grid-3 stats-dashboard">
             <article class="stats-histogram-card">
@@ -348,6 +356,19 @@
               </article>
             </div>
           </div>
+          <div id="stats-tab-comments" class="stats-tab-panel hidden">
+            <div class="stats-grid-1">
+              <article class="stats-dist-card">
+                <span>Axe de progression</span>
+                <textarea id="stats-comments-input" class="progression-textarea" placeholder="Saisir un axe de progression (max 100 caractères)" maxlength="100" rows="6"></textarea>
+                <small class="char-count-progression"><span id="stats-comments-count">0</span>/100</small>
+                <div class="modal-actions" style="margin-top: 12px;">
+                  <button id="stats-comments-save-btn" class="btn btn-primary">Valider</button>
+                </div>
+                <small id="stats-comments-save-feedback" class="save-feedback hidden" aria-live="polite">Enregistré ✓</small>
+              </article>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -372,18 +393,18 @@
             <section class="help-block">
               <h4>Création d'une session</h4>
               <ul>
-                <li>Sélection du type de parcours (nature/Campagne/3D/3D Two Shoots/3D Hunting/Animal round).</li>
-                <li>Mode de parcours (équipe/individuel).</li>
+                <li>Sélection du type de session (nature/Campagne/3D/3D Two Shoots/3D Hunting/Animal round).</li>
+                <li>Mode de session (équipe/individuel/mixte).</li>
                 <li>Définition de la zone de réussite</li>
               </ul>
             </section>
 
             <section class="help-block">
-              <h4>Historique de parcours</h4>
+              <h4>Historique des sessions</h4>
               <ul>
                 <li>Filtrage par type et mode de parcours.</li>
-                <li>Affichage des détails de chaque parcours enregistré.</li>
-                <li>Suppression des parcours enregistrés.</li>
+                <li>Affichage des détails de chaque session enregistrée.</li>
+                <li>Suppression des sessions enregistrées.</li>
               </ul>
             </section>
 
@@ -588,7 +609,7 @@
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 14.2A6.2 6.2 0 1 1 18.2 14 6.21 6.21 0 0 1 12 20.2Zm.9-9.8v4l3 1.8-.9 1.5-3.9-2.3V10.4h1.8Z" fill="currentColor" />
               </svg>
-              <span>Historique des parcours</span>
+              <span>Historique des sessions</span>
             </h3>
             <button id="history-close-btn" class="btn btn-light btn-icon" aria-label="Fermer historique">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">

@@ -18,6 +18,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -87,6 +88,21 @@ a {
   color: #8fb0e0;
 }
 
+.home-page .header-content {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.home-page .header-logo {
+  justify-content: center;
+  text-align: center;
+}
+
+.home-page .site-nav {
+  margin: 0;
+}
+
 /* Menu toggle button */
 .menu-toggle {
   display: none;
@@ -114,7 +130,7 @@ a {
   display: flex;
   gap: 4px;
   padding-right: 2px;
-  width: 600px;
+  width: min(600px, 100%);
   margin: 0 0 -70px auto;
   background: white;
 }
@@ -228,6 +244,7 @@ a {
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   margin: 24px 0;
+  min-width: 0;
 }
 
 .explanation-card {
@@ -235,6 +252,7 @@ a {
   border: 1px solid var(--light-grey);
   border-radius: 12px;
   padding: 20px;
+  min-width: 0;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
@@ -450,6 +468,7 @@ a {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
+  min-width: 0;
 }
 
 /* Grille pour la section résumé des statistiques */
