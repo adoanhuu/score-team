@@ -35,12 +35,12 @@
           </span>
         </button>
 
-        <button class="home-tile" id="home-peloton-btn" aria-label="Mode à plusieurs">
+        <button class="home-tile" id="home-peloton-btn" aria-label="Mode Multi">
           <span class="home-tile-label">
             <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5ZM8 13c-2.67 0-8 1.34-8 4v2h7v-2.5c0-.95.37-1.81 1.05-2.56-.02-.3-.03-.6-.05-.94Z" fill="currentColor"/>
             </svg>
-            <span>À plusieurs</span>
+            <span>Mode Multi</span>
           </span>
         </button>
 
@@ -492,9 +492,9 @@
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5ZM8 13c-2.67 0-8 1.34-8 4v2h7v-2.5c0-.95.37-1.81 1.05-2.56-.02-.3-.03-.6-.05-.94Z" fill="currentColor" />
               </svg>
-              <span>A plusieurs</span>
+              <span>Mode Multi</span>
             </h3>
-            <button id="multi-close-btn" class="btn btn-light btn-icon" aria-label="Fermer a plusieurs">
+            <button id="multi-close-btn" class="btn btn-light btn-icon" aria-label="Fermer mode multi">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
               </svg>
@@ -507,7 +507,7 @@
                 <optgroup label="FFTA">
                   <option value="nature">Nature (20 / 15 / 10)</option>
                   <option value="campagne">Campagne (6 / 5 / 4 / 3 / 2 / 1)</option>
-                  <option value="3d">3D (11 / 10 / 8 / 5)</option>
+                  <option value="3d" selected>3D (11 / 10 / 8 / 5)</option>
                 </optgroup>
                 <optgroup label="FFTL">
                   <option value="3d2">3D Two Shoots (10 / 8 / 5)</option>
@@ -517,6 +517,16 @@
                 </optgroup>
               </select>
             </label>
+          <div class="duel-names-row">
+            <label for="duel-name-p1">
+              <span class="label-inline">Archer n°1</span>
+              <input id="duel-name-p1" type="text" placeholder="Nom archer 1" maxlength="30" autocomplete="off" />
+            </label>
+            <label for="duel-name-p2">
+              <span class="label-inline">Archer n°2</span>
+              <input id="duel-name-p2" type="text" placeholder="Nom archer 2" maxlength="30" autocomplete="off" />
+            </label>
+          </div>
             <label for="multi-mode-select">
               <span class="label-inline">Mode</span>
               <select id="multi-mode-select">
@@ -536,7 +546,7 @@
             </fieldset>
           </div>
           <div class="start-action">
-            <button id="multi-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer à plusieurs">
+            <button id="multi-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer mode multi">
               Démarrer
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
@@ -554,7 +564,7 @@
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5ZM8 13c-2.67 0-8 1.34-8 4v2h7v-2.5c0-.95.37-1.81 1.05-2.56-.02-.3-.03-.6-.05-.94Z" fill="currentColor" />
               </svg>
-              <span>Mode duel</span>
+              <span id="duel-modal-title-text">Mode duel</span>
             </h3>
             <button id="duel-close-btn" class="btn btn-light btn-icon" aria-label="Fermer mode duel">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -563,30 +573,26 @@
             </button>
           </div>
 
-          <div class="quick-stats quick-stats-two">
-            <article>
-              <span>Joueur 1</span>
+          <div class="duel-meta-row">
+            <strong id="duel-volley-number"></strong>
+          </div>
+
+          <div class="quick-stats quick-stats-two duel-summary-row">
+            <article id="duel-summary-card-p1">
+              <span id="duel-p1-label">Joueur 1</span>
               <strong id="duel-total-p1">0<span class="stats-unit">pts</span></strong>
             </article>
-            <article>
-              <span>Joueur 2</span>
+            <article id="duel-summary-card-p2">
+              <span id="duel-p2-label">Joueur 2</span>
               <strong id="duel-total-p2">0<span class="stats-unit">pts</span></strong>
             </article>
           </div>
-
-          <div class="duel-meta-row">
-            <strong id="duel-target-counter">Cible 1/4</strong>
-            <span id="duel-active-player">Tour: Joueur 1</span>
-          </div>
-
           <div class="quick-stats quick-stats-two duel-current-row">
-            <article>
-              <span>Joueur 1 (cible en cours)</span>
-              <strong id="duel-current-p1">-</strong>
+            <article id="duel-current-card-p1">
+              <div id="duel-history-p1" class="duel-volley-history"></div>
             </article>
-            <article>
-              <span>Joueur 2 (cible en cours)</span>
-              <strong id="duel-current-p2">-</strong>
+            <article id="duel-current-card-p2">
+              <div id="duel-history-p2" class="duel-volley-history"></div>
             </article>
           </div>
 

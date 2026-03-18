@@ -1485,6 +1485,130 @@ input[type="range"]:focus-visible {
   font-size: 0.92rem;
 }
 
+.duel-names-row {
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.duel-names-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.duel-names-row input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.92rem;
+  background: #fff;
+  color: #1f2a24;
+}
+
+.duel-meta-row {
+  margin: 14px 0;
+  padding: 6px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+#duel-target-counter {
+  display: inline-block;
+  line-height: 1.3;
+}
+
+#duel-p1-label,
+#duel-p2-label {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--dark-blue);
+}
+
+#duel-total-p1,
+#duel-total-p2 {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+#duel-p1-current-label,
+#duel-p2-current-label {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.duel-volley-history {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.duel-volley-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.95rem;
+  color: #4b5b66;
+}
+
+.duel-volley-index {
+  font-weight: 800;
+}
+
+.duel-volley-values {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.duel-volley-total {
+  font-weight: 900;
+  font-size: 1.4rem !important;
+  color: var(--dark-blue);
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.duel-volley-empty {
+  font-size: 0.76rem;
+  color: #7a8791;
+  font-style: italic;
+}
+
+#duel-summary-card-p1,
+#duel-summary-card-p2 {
+  border-width: 2px;
+}
+
+.duel-summary-row article.is-active-archer {
+  border-color: var(--light-blue);
+}
+
+.duel-summary-row article.is-active-archer .duel-volley-history {
+  border-top-color: rgba(255, 255, 255, 0.5);
+}
+
+.duel-summary-row article.is-active-archer .duel-volley-item,
+.duel-summary-row article.is-active-archer .duel-volley-empty {
+  color: #fff;
+}
+
 .multi-target-fieldset {
   border: none;
   padding: 0;
@@ -1869,7 +1993,7 @@ input[type="range"]:focus-visible {
 
 .stats-unit {
   font-weight: 400;
-  margin-left: 0;
+  margin-left: 2px;
 }
 
 .stats-evolution-row {
