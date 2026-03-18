@@ -1945,20 +1945,15 @@ function importHistory(file) {
         showFlashInfo("Aucun parcours valide trouvé dans le fichier.");
         return;
       }
-      const existing = loadHistoryEntries();
-      const existingKeys = new Set(existing.map((e) => e.archivedAt || e.generatedAt));
-      const newEntries = valid.filter((e) => !existingKeys.has(e.archivedAt || e.generatedAt));
-      if (newEntries.length === 0) {
-        showFlashInfo("Tous les parcours existent déjà.");
-        return;
-      }
-      const merged = [...newEntries, ...existing].sort((a, b) => {
+      const resetEntries = [...valid].sort((a, b) => {
         const dateA = getHistorySortDate(a);
         const dateB = getHistorySortDate(b);
         return dateB - dateA;
       });
-      saveHistoryEntries(merged);
-      showFlashInfo(`${newEntries.length} parcours importé(s).`);
+      saveHistoryEntries(resetEntries);
+      clearPersistedState();
+      historyCurrentPage = 1;
+      showFlashInfo(`${resetEntries.length} parcours importé(s) (historique réinitialisé).`);
     } catch {
       showFlashInfo("Erreur lors de la lecture du fichier.");
     }
