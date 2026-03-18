@@ -54,12 +54,15 @@ const els = {
   rulesetSelect: document.getElementById("ruleset-select"),
   scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
   setupCloseBtn: document.getElementById("setup-close-btn"),
+  scoringCloseBtn: document.getElementById("scoring-close-btn"),
   startBtn: document.getElementById("start-btn"),
   backSetupBtn: document.getElementById("back-setup-btn"),
   helpBtn: document.getElementById("help-btn"),
   stepBackBtn: document.getElementById("step-back-btn"),
   shootTitle: document.getElementById("volley-title"),
   progressText: document.getElementById("progress-text"),
+  volleyWeaponTitle: document.getElementById("volley-weapon-title"),
+  targetCounterDisplay: document.getElementById("target-counter-display"),
   teamTotal: document.getElementById("team-total"),
   successZoneDisplay: document.getElementById("success-zone-display"),
   scoreEntryPanel: document.getElementById("score-entry-panel"),
@@ -748,9 +751,21 @@ function renderPad() {
 
 function updateScoringHeader() {
   const shootNumber = state.shoots.length + 1;
-  els.volleyTitleText.textContent = formatRulesetLabel(state.activeRuleset);
-  els.volleyCounter.textContent = `${Math.min(shootNumber, state.targetCount)}/${state.targetCount}`;
-  els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
+  const currentTarget = Math.min(shootNumber, state.targetCount);
+  if (els.volleyTitleText) {
+    els.volleyTitleText.textContent = formatRulesetLabel(state.activeRuleset);
+  }
+  if (els.volleyWeaponTitle && state.weapon) {
+    els.volleyWeaponTitle.textContent = formatWeaponLabel(state.weapon);
+  } else if (els.volleyWeaponTitle) {
+    els.volleyWeaponTitle.textContent = "";
+  }
+  if (els.volleyWeaponLabel) {
+    els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
+  }
+  if (els.targetCounterDisplay) {
+    els.targetCounterDisplay.textContent = `${currentTarget}/${state.targetCount}`;
+  }
   if (Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0) {
     els.progressText.textContent = `Modification de la volée ${state.editingVolleyIndex + 1}`;
   } else {
@@ -2837,7 +2852,9 @@ els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
 els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.showScoresInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.startBtn.addEventListener("click", startScoring);
-els.backSetupBtn.addEventListener("click", restart);
+if (els.backSetupBtn) {
+  els.backSetupBtn.addEventListener("click", restart);
+}
 if (els.historyBtn) {
   els.historyBtn.addEventListener("click", openHistoryModal);
 }
@@ -2861,7 +2878,9 @@ if (els.multiStartBtn) {
 if (els.setupCloseBtn) {
   els.setupCloseBtn.addEventListener("click", restart);
 }
-els.helpBtn.addEventListener("click", openHelpModal);
+if (els.scoringCloseBtn) {
+  els.scoringCloseBtn.addEventListener("click", restart);
+}
 els.stepBackBtn.addEventListener("click", stepBackOneArrow);
 els.statsBtn.addEventListener("click", openStatsModal);
 els.resultsCloseBtn.addEventListener("click", restart);

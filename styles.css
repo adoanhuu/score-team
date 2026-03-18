@@ -648,18 +648,70 @@ input[type="range"]:focus-visible {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   min-width: 0;
 }
 
-.volley-title-row {
+.scoring-head.modal-head {
+  padding: 8px 12px;
+}
+
+.scoring-head > div:first-child {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
   min-width: 0;
-  margin-bottom: 0;
+  flex: 1;
+}
+
+.scoring-head .head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+#scoring-card #volley-title {
+  margin: 0;
+}
+
+.scoring-head .volley-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  margin: 0;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   line-height: 1;
+  padding: 0;
+}
+
+.volley-title-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.volley-weapon-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #d9e6ff;
+}
+
+.volley-user-icon {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  color: #fff;
+  flex-shrink: 0;
 }
 
 .volley-counter {
@@ -672,7 +724,7 @@ input[type="range"]:focus-visible {
 }
 
 #volley-title-text {
-  color: var(--dark-blue);
+  color: #fff;
 }
 
 #volley-weapon-label {
@@ -694,7 +746,18 @@ input[type="range"]:focus-visible {
   margin: 2px 0 0 32px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #d9e6ff;
+}
+
+#scoring-card #progress-text {
+  color: #d9e6ff;
+  margin: 0;
+  padding: 0;
+  display: none;
+}
+
+#scoring-card #progress-text:not(:empty) {
+  display: block;
 }
 
 .volley-weapon-text:empty {
@@ -2014,10 +2077,6 @@ input[type="range"]:focus-visible {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.config-input-row input[type="range"] {
-  flex: 1;
 }
 
 .config-input-row strong {
