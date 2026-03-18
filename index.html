@@ -120,6 +120,10 @@
                 </optgroup>
               </select>
             </label>
+            <label>
+              <span class="label-inline">Date de la session</span>
+              <input id="session-date-input" type="date" />
+            </label>
             <fieldset class="mode-fieldset">
               <legend>Mode de saisie</legend>
               <label class="mode-option">
@@ -381,6 +385,98 @@
                 <small id="stats-comments-save-feedback" class="save-feedback hidden" aria-live="polite">Enregistré ✓</small>
               </article>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="general-stats-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="general-stats-modal-title">
+        <div class="modal-overlay" id="general-stats-modal-overlay"></div>
+        <div class="modal-card general-stats-modal-card">
+          <div class="modal-head">
+            <h3 id="general-stats-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 20h16v2H4v-2Zm1-2V9h3v9H5Zm5 0V5h3v13h-3Zm5 0v-7h3v7h-3Z" fill="currentColor" />
+              </svg>
+              <span>Statistiques générales</span>
+            </h3>
+            <button id="general-stats-close-btn" class="btn btn-light btn-icon" aria-label="Fermer statistiques générales">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="general-stats-filter-row">
+            <label for="general-stats-ruleset-filter">
+              <span class="label-inline">Type de parcours</span>
+              <select id="general-stats-ruleset-filter">
+                <option value="all">Tous les parcours</option>
+                <optgroup label="FFTA">
+                  <option value="nature">Nature (20 / 15 / 10)</option>
+                  <option value="campagne">Campagne (6 / 5 / 4 / 3 / 2 / 1)</option>
+                  <option value="3d">3D (11 / 10 / 8 / 5)</option>
+                </optgroup>
+                <optgroup label="FFTL">
+                  <option value="3d2">3D Two Shoots (10 / 8 / 5)</option>
+                  <option value="3dh">3D Hunting (20 / 16 / 10)</option>
+                  <option value="ar">Animal round (3 flèches)</option>
+                  <option value="field">Field / Hunter (X / 5 / 4 / 3)</option>
+                </optgroup>
+              </select>
+            </label>
+            <label for="general-stats-weapon-filter">
+              <span class="label-inline">Type d'arme</span>
+              <select id="general-stats-weapon-filter">
+                <option value="all">Toutes les armes</option>
+              </select>
+            </label>
+          </div>
+
+          <div id="general-stats-evolution-row" class="stats-grid-3 stats-evolution-row general-stats-evolution-row">
+            <article class="stats-evolution-card">
+              <span>Évolution des scores dans le temps</span>
+              <div id="general-stats-evolution-wrap" class="stats-evolution-wrap">
+                <svg id="general-stats-evolution-chart" viewBox="0 0 100 44" preserveAspectRatio="none" aria-hidden="true">
+                  <line id="general-stats-evolution-avg-line" x1="4" y1="40" x2="96" y2="40"></line>
+                  <polyline id="general-stats-evolution-path" points=""></polyline>
+                </svg>
+                <div class="stats-evolution-axis" id="general-stats-evolution-axis"></div>
+              </div>
+            </article>
+          </div>
+
+          <div class="stats-grid-2 general-stats-top-row">
+            <article>
+              <span>Sessions</span>
+              <strong id="general-stats-session-count">0</strong>
+            </article>
+            <article>
+              <span>Moyenne / session</span>
+              <strong id="general-stats-avg-session">0.0<span class="stats-unit">pts</span></strong>
+            </article>
+          </div>
+
+          <div class="stats-grid-2 stats-extra-row general-stats-row">
+            <article>
+              <span>Moyenne / flèche</span>
+              <strong id="general-stats-avg-arrow">0.0<span class="stats-unit">pts</span></strong>
+            </article>
+            <article>
+              <span>Taux de réussite</span>
+              <strong id="general-stats-success-rate">0<span class="stats-unit">%</span></strong>
+            </article>
+          </div>
+
+          <div class="stats-grid-2 stats-extra-row general-stats-row">
+            <article>
+              <span>Meilleure session</span>
+              <strong id="general-stats-best-session">0<span class="stats-unit">pts</span></strong>
+              <small id="general-stats-best-session-date" class="general-stats-meta">-</small>
+            </article>
+            <article>
+              <span>Meilleure volée</span>
+              <strong id="general-stats-best-volley">0<span class="stats-unit">pts</span></strong>
+            </article>
           </div>
         </div>
       </section>
