@@ -29,6 +29,7 @@ const state = {
   lastEditedVolleyIndex: null,
   progressionAxis: "",
   sessionDate: "",
+  generalStatsGraphEnabled: false,
 };
 
 const els = {
@@ -65,6 +66,24 @@ const els = {
   statsModalOverlay: document.getElementById("stats-modal-overlay"),
   statsCloseBtn: document.getElementById("stats-close-btn"),
   statsTotalPoints: document.getElementById("stats-total-points"),
+  generalStatsModal: document.getElementById("general-stats-modal"),
+  generalStatsModalOverlay: document.getElementById("general-stats-modal-overlay"),
+  generalStatsCloseBtn: document.getElementById("general-stats-close-btn"),
+  generalStatsRulesetFilter: document.getElementById("general-stats-ruleset-filter"),
+  generalStatsWeaponFilter: document.getElementById("general-stats-weapon-filter"),
+  generalStatsSessionCount: document.getElementById("general-stats-session-count"),
+  generalStatsAvgSession: document.getElementById("general-stats-avg-session"),
+  generalStatsAvgArrow: document.getElementById("general-stats-avg-arrow"),
+  generalStatsSuccessRate: document.getElementById("general-stats-success-rate"),
+  generalStatsBestSession: document.getElementById("general-stats-best-session"),
+  generalStatsBestSessionDate: document.getElementById("general-stats-best-session-date"),
+  generalStatsBestVolley: document.getElementById("general-stats-best-volley"),
+  generalStatsEvolutionRow: document.getElementById("general-stats-evolution-row"),
+  generalStatsEvolutionWrap: document.getElementById("general-stats-evolution-wrap"),
+  generalStatsEvolutionChart: document.getElementById("general-stats-evolution-chart"),
+  generalStatsEvolutionPath: document.getElementById("general-stats-evolution-path"),
+  generalStatsEvolutionAvgLine: document.getElementById("general-stats-evolution-avg-line"),
+  generalStatsEvolutionAxis: document.getElementById("general-stats-evolution-axis"),
   helpModal: document.getElementById("help-modal"),
   helpModalOverlay: document.getElementById("help-modal-overlay"),
   helpCloseBtn: document.getElementById("help-close-btn"),
@@ -244,6 +263,7 @@ function syncConfigSliderMax() {
 
 function openConfigModal() {
   closeStatsModal();
+  closeGeneralStatsModal();
   closeHelpModal();
   closeHistoryModal();
   syncConfigSliderMax();
@@ -636,6 +656,7 @@ function restorePersistedState() {
   els.scoringCard.classList.remove("hidden");
   els.homeScreen.classList.add("hidden");
   closeStatsModal();
+  closeGeneralStatsModal();
   closeHelpModal();
   closeHistoryModal();
   refreshScoringView();
@@ -1798,6 +1819,7 @@ function openStatsModalFromPayload(payload) {
 
   closeHelpModal();
   closeHistoryModal();
+  closeGeneralStatsModal();
   els.statsModal.classList.remove("hidden");
 }
 
@@ -1854,6 +1876,7 @@ function renderHelpPagination() {
 
 function openHelpModal() {
   closeStatsModal();
+  closeGeneralStatsModal();
   closeHistoryModal();
   helpCurrentPage = 1;
   renderHelpPagination();
@@ -1950,6 +1973,239 @@ function getHistorySortDate(entry) {
   }
   // Fallback sur archivedAt ou generatedAt
   return new Date(entry.archivedAt || entry.generatedAt).getTime();
+}
+
+function formatHistoryEntryDate(entry) {
+  if (entry.sessionDate) {
+    const [yyyy, mm, dd] = entry.sessionDate.split("-");
+    if (yyyy && mm && dd) return `${dd}/${mm}/${yyyy}`;
+  }
+  const date = new Date(entry.generatedAt || entry.archivedAt);
+  if (Number.isNaN(date.getTime())) return "Date inconnue";
+  return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function formatHistoryEntryDateShort(entry) {
+  if (entry.sessionDate) {
+    const [, mm, dd] = entry.sessionDate.split("-");
+    if (mm && dd) return `${dd}/${mm}`;
+  }
+  const date = new Date(entry.generatedAt || entry.archivedAt);
+  if (Number.isNaN(date.getTime())) return "--/--";
+  return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+}
+
+function syncGeneralStatsWeaponFilter() {
+  if (!els.generalStatsWeaponFilter || !els.generalStatsRulesetFilter) return;
+
+  const selectedRuleset = els.generalStatsRulesetFilter.value || "all";
+  const previous = els.generalStatsWeaponFilter.value || "all";
+  const options = [{ value: "all", label: "Toutes les armes" }];
+
+  if (selectedRuleset !== "all") {
+    getWeaponsForRuleset(selectedRuleset).forEach((weaponCode) => {
+      options.push({ value: weaponCode, label: `${weaponCode} - ${formatWeaponLabel(weaponCode)}` });
+    });
+  }
+
+  els.generalStatsWeaponFilter.innerHTML = options
+    .map((option) => `<option value="${option.value}">${option.label}</option>`)
+    .join("");
+
+  const optionValues = new Set(options.map((option) => option.value));
+  els.generalStatsWeaponFilter.value = optionValues.has(previous) ? previous : "all";
+}
+
+function renderGeneralStatsEvolution(entries) {
+  if (!els.generalStatsEvolutionPath || !els.generalStatsEvolutionAvgLine || !els.generalStatsEvolutionAxis || !els.generalStatsEvolutionChart) {
+    return;
+  }
+
+  const ordered = [...entries].sort((a, b) => getHistorySortDate(a) - getHistorySortDate(b));
+  const totals = ordered.map((entry) => Number(entry.total) || 0);
+
+  const targetSessionTotals = ordered
+    .map((entry) => {
+      const zone = Number(entry.successZone) || 0;
+      const volleyCount = Number.isInteger(entry.targetCount)
+        ? entry.targetCount
+        : (Array.isArray(entry.volleys) ? entry.volleys.length : 0);
+      return zone > 0 && volleyCount > 0 ? zone * volleyCount : 0;
+    })
+    .filter((value) => value > 0);
+
+  const avgTargetTotal = targetSessionTotals.length > 0
+    ? targetSessionTotals.reduce((sum, value) => sum + value, 0) / targetSessionTotals.length
+    : 0;
+
+  const left = 4;
+  const right = 96;
+  const top = 4;
+  const bottom = 40;
+  const rangeY = bottom - top;
+  const maxObserved = Math.max(...totals, avgTargetTotal, 1);
+  const toY = (value) => bottom - (Math.max(0, value) / maxObserved) * rangeY;
+
+  const points = totals
+    .map((value, index) => {
+      const x = totals.length === 1 ? (left + right) / 2 : left + (index * (right - left)) / (totals.length - 1);
+      return `${x.toFixed(2)},${toY(value).toFixed(2)}`;
+    })
+    .join(" ");
+
+  const xSpacingPx = 50;
+  const chartWidth = Math.max(280, ((ordered.length - 1) * xSpacingPx) + 80);
+  els.generalStatsEvolutionChart.style.width = `${chartWidth}px`;
+  els.generalStatsEvolutionAxis.style.width = `${chartWidth}px`;
+  els.generalStatsEvolutionAxis.style.gridTemplateColumns = `repeat(${ordered.length}, minmax(${xSpacingPx}px, 1fr))`;
+
+  els.generalStatsEvolutionPath.setAttribute("points", points);
+  const avgY = toY(avgTargetTotal).toFixed(2);
+  els.generalStatsEvolutionAvgLine.setAttribute("y1", avgY);
+  els.generalStatsEvolutionAvgLine.setAttribute("y2", avgY);
+
+  els.generalStatsEvolutionAxis.innerHTML = ordered
+    .map((entry) => `<small>${formatHistoryEntryDateShort(entry)}</small>`)
+    .join("");
+}
+
+function renderGeneralStatsModal() {
+  const selectedRuleset = els.generalStatsRulesetFilter?.value || "all";
+  const selectedWeapon = els.generalStatsWeaponFilter?.value || "all";
+  const hasEmptyFilter = !String(selectedRuleset).trim() || !String(selectedWeapon).trim();
+  const isAllWeaponsSelected = selectedWeapon === "all";
+
+  if (hasEmptyFilter) {
+    els.generalStatsEvolutionRow?.classList.add("hidden");
+    els.generalStatsEvolutionPath?.setAttribute("points", "");
+    els.generalStatsEvolutionAvgLine?.setAttribute("y1", "40");
+    els.generalStatsEvolutionAvgLine?.setAttribute("y2", "40");
+    if (els.generalStatsEvolutionAxis) {
+      els.generalStatsEvolutionAxis.style.width = "";
+      els.generalStatsEvolutionAxis.style.gridTemplateColumns = "";
+      els.generalStatsEvolutionAxis.innerHTML = "";
+    }
+    if (els.generalStatsEvolutionChart) {
+      els.generalStatsEvolutionChart.style.width = "";
+    }
+  }
+
+  const entries = loadHistoryEntries().filter((entry) => {
+    if (selectedRuleset !== "all" && entry.ruleset !== selectedRuleset) return false;
+    if (selectedWeapon !== "all" && entry.weapon !== selectedWeapon) return false;
+    return true;
+  });
+  if (entries.length === 0) {
+    els.generalStatsEvolutionRow?.classList.add("hidden");
+    els.generalStatsSessionCount.textContent = "0";
+    els.generalStatsAvgSession.innerHTML = `0.0<span class="stats-unit">pts</span>`;
+    els.generalStatsAvgArrow.innerHTML = `0.0<span class="stats-unit">pts</span>`;
+    els.generalStatsSuccessRate.innerHTML = `0<span class="stats-unit">%</span>`;
+    els.generalStatsBestSession.innerHTML = `0<span class="stats-unit">pts</span>`;
+    els.generalStatsBestSessionDate.textContent = "-";
+    els.generalStatsBestVolley.innerHTML = `0<span class="stats-unit">pts</span>`;
+    els.generalStatsEvolutionPath?.setAttribute("points", "");
+    els.generalStatsEvolutionAvgLine?.setAttribute("y1", "40");
+    els.generalStatsEvolutionAvgLine?.setAttribute("y2", "40");
+    if (els.generalStatsEvolutionAxis) {
+      els.generalStatsEvolutionAxis.style.width = "";
+      els.generalStatsEvolutionAxis.style.gridTemplateColumns = "";
+      els.generalStatsEvolutionAxis.innerHTML = "";
+    }
+    if (els.generalStatsEvolutionChart) {
+      els.generalStatsEvolutionChart.style.width = "";
+    }
+    return false;
+  }
+
+  const sessions = entries.length;
+  const totalPoints = entries.reduce((sum, entry) => sum + (Number(entry.total) || 0), 0);
+  const avgSession = sessions > 0 ? totalPoints / sessions : 0;
+
+  let totalArrows = 0;
+  let volleyCount = 0;
+  let successCount = 0;
+  let bestVolley = 0;
+
+  entries.forEach((entry) => {
+    const volleys = Array.isArray(entry.volleys) ? entry.volleys : [];
+    const perVolley = Number.isInteger(entry.arrowsPerVolley) ? entry.arrowsPerVolley : 0;
+    volleyCount += volleys.length;
+    totalArrows += perVolley > 0 ? perVolley * volleys.length : 0;
+
+    volleys.forEach((volley) => {
+      const volleyTotal = Number.isFinite(volley.total) ? volley.total : roundTotal(volley.arrows || []);
+      if (volleyTotal > bestVolley) bestVolley = volleyTotal;
+
+      if (typeof volley.success === "boolean") {
+        if (volley.success) successCount += 1;
+      } else {
+        const zone = Number(entry.successZone) || 0;
+        if (zone > 0 && volleyTotal >= zone) successCount += 1;
+      }
+    });
+  });
+
+  const avgArrow = totalArrows > 0 ? totalPoints / totalArrows : 0;
+  const successRate = volleyCount > 0 ? Math.round((successCount / volleyCount) * 100) : 0;
+
+  const bestSession = entries.reduce((best, entry) => {
+    const bestTotal = Number(best?.total) || 0;
+    const entryTotal = Number(entry.total) || 0;
+    return entryTotal > bestTotal ? entry : best;
+  }, entries[0]);
+
+  els.generalStatsSessionCount.textContent = String(sessions);
+  els.generalStatsAvgSession.innerHTML = `${avgSession.toFixed(1)}<span class="stats-unit">pts</span>`;
+  els.generalStatsAvgArrow.innerHTML = `${avgArrow.toFixed(1)}<span class="stats-unit">pts</span>`;
+  els.generalStatsSuccessRate.innerHTML = `${successRate}<span class="stats-unit">%</span>`;
+  els.generalStatsBestSession.innerHTML = `${Number(bestSession?.total) || 0}<span class="stats-unit">pts</span>`;
+  els.generalStatsBestSessionDate.textContent = formatHistoryEntryDate(bestSession);
+  els.generalStatsBestVolley.innerHTML = `${bestVolley}<span class="stats-unit">pts</span>`;
+
+  if (state.generalStatsGraphEnabled && !hasEmptyFilter && !isAllWeaponsSelected && entries.length >= 3) {
+    els.generalStatsEvolutionRow?.classList.remove("hidden");
+    renderGeneralStatsEvolution(entries);
+  } else {
+    els.generalStatsEvolutionRow?.classList.add("hidden");
+    els.generalStatsEvolutionPath?.setAttribute("points", "");
+    els.generalStatsEvolutionAvgLine?.setAttribute("y1", "40");
+    els.generalStatsEvolutionAvgLine?.setAttribute("y2", "40");
+    if (els.generalStatsEvolutionAxis) {
+      els.generalStatsEvolutionAxis.style.width = "";
+      els.generalStatsEvolutionAxis.style.gridTemplateColumns = "";
+      els.generalStatsEvolutionAxis.innerHTML = "";
+    }
+    if (els.generalStatsEvolutionChart) {
+      els.generalStatsEvolutionChart.style.width = "";
+    }
+  }
+
+  return true;
+}
+
+function openGeneralStatsModal() {
+  closeStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  closeConfigModal();
+  state.generalStatsGraphEnabled = false;
+  if (els.generalStatsRulesetFilter) {
+    els.generalStatsRulesetFilter.value = "all";
+  }
+  if (els.generalStatsWeaponFilter) {
+    els.generalStatsWeaponFilter.value = "all";
+  }
+  syncGeneralStatsWeaponFilter();
+  if (!renderGeneralStatsModal()) {
+    showFlashInfo("Aucune statistique disponible. Enregistrez au moins une session dans l'historique.");
+    return;
+  }
+  els.generalStatsModal.classList.remove("hidden");
+}
+
+function closeGeneralStatsModal() {
+  els.generalStatsModal.classList.add("hidden");
 }
 
 function loadHistoryEntries() {
@@ -2223,6 +2479,7 @@ function renderHistoryPagination(totalPages) {
 
 function openHistoryModal() {
   closeStatsModal();
+  closeGeneralStatsModal();
   closeHelpModal();
   historyCurrentPage = 1;
   renderHistoryList();
@@ -2281,6 +2538,7 @@ function restart() {
   state.inputLocked = false;
   resetRoundBuffer();
   closeStatsModal();
+  closeGeneralStatsModal();
   closeHelpModal();
   closeHistoryModal();
   els.scoringCard.classList.add("hidden");
@@ -2385,6 +2643,7 @@ function showSetupFromHome() {
 
 els.homeTrainingBtn.addEventListener("click", showSetupFromHome);
 els.homeHistoryBtn.addEventListener("click", () => { openHistoryModal(); });
+els.homeStatsBtn.addEventListener("click", () => { openGeneralStatsModal(); });
 els.homeConfigBtn.addEventListener("click", () => { openConfigModal(); });
 els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
 if (els.setupCloseBtn) {
@@ -2437,6 +2696,21 @@ if (els.statsCommentsInput) {
 
 els.statsModalOverlay.addEventListener("click", closeStatsModal);
 els.statsCloseBtn.addEventListener("click", closeStatsModal);
+els.generalStatsModalOverlay.addEventListener("click", closeGeneralStatsModal);
+els.generalStatsCloseBtn.addEventListener("click", closeGeneralStatsModal);
+if (els.generalStatsRulesetFilter) {
+  els.generalStatsRulesetFilter.addEventListener("change", () => {
+    state.generalStatsGraphEnabled = true;
+    syncGeneralStatsWeaponFilter();
+    renderGeneralStatsModal();
+  });
+}
+if (els.generalStatsWeaponFilter) {
+  els.generalStatsWeaponFilter.addEventListener("change", () => {
+    state.generalStatsGraphEnabled = true;
+    renderGeneralStatsModal();
+  });
+}
 document.querySelectorAll(".stats-tab").forEach((btn) => {
   btn.addEventListener("click", () => switchStatsTab(btn.dataset.statsTab || "summary"));
 });
