@@ -120,6 +120,10 @@
                 </optgroup>
               </select>
             </label>
+            <label>
+              <span class="label-inline">Date de la session</span>
+              <input id="session-date-input" type="date" />
+            </label>
             <fieldset class="mode-fieldset">
               <legend>Mode de saisie</legend>
               <label class="mode-option">
@@ -147,17 +151,6 @@
               </select>
             </label>
           </div>
-          <fieldset class="use-target-groups-fieldset">
-            <legend>Utiliser les catégories de cibles</legend>
-            <label class="checkbox-label">
-              <input type="radio" name="use-target-groups" value="yes" checked />
-              <span>Oui</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="radio" name="use-target-groups" value="no" />
-              <span>Non</span>
-            </label>
-          </fieldset>
         </div>
         <label>
           Zone de réussite (pts / volée)
@@ -170,6 +163,30 @@
           Lieu
           <input id="lieu-input" type="text" placeholder="Ex : Forêt de Rambouillet" autocomplete="off" maxlength="30" />
         </label>
+        <div class="setup-options-row">
+          <fieldset class="use-target-groups-fieldset">
+            <legend>Catégories de cibles</legend>
+            <label class="checkbox-label">
+              <input type="radio" name="use-target-groups" value="yes" checked />
+              <span>Oui</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" name="use-target-groups" value="no" />
+              <span>Non</span>
+            </label>
+          </fieldset>
+          <fieldset class="show-scores-fieldset">
+            <legend>Afficher des scores</legend>
+            <label class="checkbox-label">
+              <input type="radio" name="show-scores" value="yes" checked />
+              <span>Oui</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" name="show-scores" value="no" />
+              <span>Non</span>
+            </label>
+          </fieldset>
+        </div>
         <div class="start-action">
           <button id="start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer la saisie">
             Démarrer

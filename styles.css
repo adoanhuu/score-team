@@ -284,7 +284,18 @@ label {
 }
 
 .use-target-groups-fieldset {
-  margin-top: 28px;
+  border: none;
+  padding: 0;
+}
+
+.setup-options-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.show-scores-fieldset {
   border: none;
   padding: 0;
 }
@@ -295,11 +306,36 @@ label {
   padding: 0;
   font-weight: 600;
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .use-target-groups-fieldset .checkbox-label {
   display: inline-block;
   margin-right: 20px;
+}
+
+.show-scores-fieldset legend {
+  display: block;
+  margin-bottom: 12px;
+  padding: 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.show-scores-fieldset .checkbox-label {
+  display: inline-block;
+  margin-right: 20px;
+}
+
+@media (max-width: 420px) {
+  .setup-options-row {
+    gap: 10px;
+  }
+
+  .use-target-groups-fieldset legend,
+  .show-scores-fieldset legend {
+    font-size: 12px;
+  }
 }
 
 .checkbox-label input[type="checkbox"],
@@ -433,6 +469,7 @@ input[type="range"]:focus-visible {
   gap: 12px;
   margin-bottom: 20px;
   min-width: 0;
+  white-space: nowrap;
 }
 
 .quick-stats {

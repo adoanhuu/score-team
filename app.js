@@ -24,9 +24,11 @@ const state = {
   completionArchived: false,
   statsOpenedFromHistory: false,
   useTargetGroups: true,
+  showScores: true,
   editingVolleyIndex: null,
   lastEditedVolleyIndex: null,
   progressionAxis: "",
+  sessionDate: "",
 };
 
 const els = {
@@ -36,6 +38,7 @@ const els = {
   successZoneInput: document.getElementById("success-zone-input"),
   successZoneValue: document.getElementById("success-zone-value"),
   lieuInput: document.getElementById("lieu-input"),
+  sessionDateInput: document.getElementById("session-date-input"),
   rulesetSelect: document.getElementById("ruleset-select"),
   scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
   setupCloseBtn: document.getElementById("setup-close-btn"),
@@ -128,6 +131,7 @@ const els = {
   configMissLimitIndiv: document.getElementById("config-miss-limit-indiv"),
   configMissLimitIndivValue: document.getElementById("config-miss-limit-indiv-value"),
   useTargetGroupsInputs: document.querySelectorAll('input[name="use-target-groups"]'),
+  showScoresInputs: document.querySelectorAll('input[name="show-scores"]'),
   groupColumnHeader: document.getElementById("group-column-header"),
   statsTabGroupsBtn: document.getElementById("stats-tab-groups-btn"),
   statsTabComments: document.getElementById("stats-tab-comments"),
@@ -377,6 +381,7 @@ function getSetupSnapshot() {
     weapon: els.weaponSelect ? els.weaponSelect.value : "",
     successZone: Number.parseInt(els.successZoneInput.value, 10) || 1,
     useTargetGroups: getSelectedUseTargetGroups(),
+    showScores: getSelectedShowScores(),
   };
 }
 
@@ -504,9 +509,11 @@ function persistAppState() {
             targetCount: state.targetCount,
             successZone: state.successZone,
             lieu: state.lieu || "",
+            sessionDate: state.sessionDate || "",
             scoringMode: state.scoringMode,
             weapon: state.weapon || "",
             useTargetGroups: state.useTargetGroups,
+            showScores: state.showScores,
             arrowsPerVolley: state.arrowsPerVolley,
             currentArrowIndex: state.currentArrowIndex,
             shoots: state.shoots.map((volley) => [...volley]),
@@ -565,6 +572,11 @@ function restorePersistedState() {
     const input = [...els.useTargetGroupsInputs].find((i) => i.value === targetValue);
     if (input) input.checked = true;
   }
+  if (typeof setup.showScores === "boolean") {
+    const targetValue = setup.showScores ? "yes" : "no";
+    const input = [...els.showScoresInputs].find((i) => i.value === targetValue);
+    if (input) input.checked = true;
+  }
   syncTargetCountDisplay();
   updateSuccessZoneSlider();
 
@@ -581,11 +593,18 @@ function restorePersistedState() {
   state.targetCount = Number.isInteger(saved.targetCount) ? saved.targetCount : getTargetCountForRuleset(saved.activeRuleset);
   state.successZone = Number.isInteger(saved.successZone) ? saved.successZone : 1;
   state.lieu = saved.lieu || "";
+  state.sessionDate = saved.sessionDate || "";
+  if (els.sessionDateInput && saved.sessionDate) {
+    els.sessionDateInput.value = saved.sessionDate;
+  }
   state.scoringMode = normalizeScoringMode(saved.scoringMode, saved.activeRuleset);
   state.weapon = isWeaponAllowedForRuleset(saved.weapon || "", saved.activeRuleset)
     ? saved.weapon
     : getWeaponsForRuleset(saved.activeRuleset)[0];
   state.useTargetGroups = typeof saved.useTargetGroups === "boolean" ? saved.useTargetGroups : true;
+  state.showScores = typeof saved.showScores === "boolean"
+    ? saved.showScores
+    : (typeof setup.showScores === "boolean" ? setup.showScores : true);
   state.arrowsPerVolley = getArrowsPerVolley(saved.activeRuleset, state.scoringMode);
   state.activeRuleset = saved.activeRuleset;
   state.allowedPoints = Array.isArray(saved.allowedPoints) && saved.allowedPoints.length ? [...saved.allowedPoints] : [...presets[saved.activeRuleset]];
@@ -1100,6 +1119,11 @@ function getSelectedUseTargetGroups() {
   return checked ? checked.value === "yes" : true;
 }
 
+function getSelectedShowScores() {
+  const checked = [...els.showScoresInputs].find((input) => input.checked);
+  return checked ? checked.value === "yes" : true;
+}
+
 function getCurrentConfigForSetup() {
   const ruleset = els.rulesetSelect.value;
   const scoringMode = getSelectedScoringMode();
@@ -1247,10 +1271,12 @@ function startScoring() {
   state.targetCount = getTargetCountForRuleset(els.rulesetSelect.value);
   state.successZone = parsedSuccessZone;
   state.lieu = els.lieuInput ? els.lieuInput.value.trim() : "";
+  state.sessionDate = els.sessionDateInput ? els.sessionDateInput.value : "";
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = getSelectedScoringMode();
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
   state.useTargetGroups = getSelectedUseTargetGroups();
+  state.showScores = getSelectedShowScores();
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
   state.successZone = clampSuccessZoneForConfig(
@@ -1312,7 +1338,9 @@ function buildResultsPayload() {
     scoringMode: state.scoringMode,
     weapon: state.weapon || "",
     lieu: state.lieu || "",
+    sessionDate: state.sessionDate || "",
     useTargetGroups: state.useTargetGroups,
+    showScores: state.showScores,
     targetCount: state.targetCount,
     arrowsPerVolley: state.arrowsPerVolley,
     successZone: state.successZone,
@@ -1386,7 +1414,13 @@ function renderSegmentStats() {
       ? (i === 0 ? "1ère moitié" : "2e moitié")
       : ["1er tiers", "2e tiers", "3e tiers"][i];
     const strong = document.createElement("strong");
-    strong.innerHTML = `${segTotals[i]}<span class="stats-unit">pts</span>`;
+    if (state.showScores) {
+      strong.innerHTML = `${segTotals[i]}<span class="stats-unit">pts</span>`;
+    } else {
+      const segmentTarget = Math.max(0, state.successZone * segSize);
+      const successRate = segmentTarget > 0 ? Math.round((segTotals[i] / segmentTarget) * 100) : 0;
+      strong.innerHTML = `${successRate}<span class="stats-unit">%</span>`;
+    }
 
     if (isComplete && segSize > 0) {
       const avgVolley = segTotals[i] / segSize;
@@ -1672,6 +1706,7 @@ function openStatsModalFromPayload(payload) {
   const partAverages = getSegmentAverages(totals, segmentCount);
   const maxVolley = getMaxVolleyFromPayload(payload);
   const successZone = Number.isInteger(payload.successZone) ? payload.successZone : 0;
+  const showScores = typeof payload.showScores === "boolean" ? payload.showScores : true;
   const ratioFor = (value) => {
     if (maxVolley <= 0) return 0;
     return Math.max(0, Math.min(100, (value / maxVolley) * 100));
@@ -1698,9 +1733,15 @@ function openStatsModalFromPayload(payload) {
   els.statsBar1.style.background = getBarColorByZoneRatio(part1, successZone);
   els.statsBar2.style.background = getBarColorByZoneRatio(part2, successZone);
   els.statsBar3.style.background = getBarColorByZoneRatio(part3, successZone);
-  els.statsBar1Value.innerHTML = `${part1.toFixed(1)}<span class="stats-unit">pts</span>`;
-  els.statsBar2Value.innerHTML = `${part2.toFixed(1)}<span class="stats-unit">pts</span>`;
-  els.statsBar3Value.innerHTML = `${part3.toFixed(1)}<span class="stats-unit">pts</span>`;
+  if (showScores) {
+    els.statsBar1Value.innerHTML = `${part1.toFixed(1)}<span class="stats-unit">pts</span>`;
+    els.statsBar2Value.innerHTML = `${part2.toFixed(1)}<span class="stats-unit">pts</span>`;
+    els.statsBar3Value.innerHTML = `${part3.toFixed(1)}<span class="stats-unit">pts</span>`;
+  } else {
+    els.statsBar1Value.innerHTML = `${percentOfSuccessZone(part1)}<span class="stats-unit">%</span>`;
+    els.statsBar2Value.innerHTML = `${percentOfSuccessZone(part2)}<span class="stats-unit">%</span>`;
+    els.statsBar3Value.innerHTML = `${percentOfSuccessZone(part3)}<span class="stats-unit">%</span>`;
+  }
   if (els.statsBar1Points) els.statsBar1Points.textContent = `${percentOfSuccessZone(part1)}%`;
   if (els.statsBar2Points) els.statsBar2Points.textContent = `${percentOfSuccessZone(part2)}%`;
   if (els.statsBar3Points) els.statsBar3Points.textContent = `${percentOfSuccessZone(part3)}%`;
@@ -1888,9 +1929,11 @@ function importHistory(file) {
         showFlashInfo("Tous les parcours existent déjà.");
         return;
       }
-      const merged = [...newEntries, ...existing].sort((a, b) =>
-        new Date(b.archivedAt || b.generatedAt) - new Date(a.archivedAt || a.generatedAt)
-      );
+      const merged = [...newEntries, ...existing].sort((a, b) => {
+        const dateA = getHistorySortDate(a);
+        const dateB = getHistorySortDate(b);
+        return dateB - dateA;
+      });
       saveHistoryEntries(merged);
       showFlashInfo(`${newEntries.length} parcours importé(s).`);
     } catch {
@@ -1898,6 +1941,15 @@ function importHistory(file) {
     }
   };
   reader.readAsText(file);
+}
+
+function getHistorySortDate(entry) {
+  // Convertir sessionDate (yyyy-mm-dd) en Date
+  if (entry.sessionDate) {
+    return new Date(`${entry.sessionDate}T23:59:59`).getTime();
+  }
+  // Fallback sur archivedAt ou generatedAt
+  return new Date(entry.archivedAt || entry.generatedAt).getTime();
 }
 
 function loadHistoryEntries() {
@@ -1965,10 +2017,17 @@ let historyCurrentPage = 1;
 function renderHistoryList() {
   const selectedMode = els.historyModeFilter.value;
   const selectedRuleset = els.historyRulesetFilter.value;
-  const entries = loadHistoryEntries().filter((entry) => {
+  let entries = loadHistoryEntries().filter((entry) => {
     if (selectedMode !== "all" && entry.scoringMode !== selectedMode) return false;
     if (selectedRuleset !== "all" && entry.ruleset !== selectedRuleset) return false;
     return true;
+  });
+
+  // Trier par date de session (décroissant)
+  entries.sort((a, b) => {
+    const dateA = getHistorySortDate(a);
+    const dateB = getHistorySortDate(b);
+    return dateB - dateA;
   });
 
   if (entries.length === 0) {
@@ -1999,18 +2058,29 @@ function renderHistoryList() {
 
   els.historyList.innerHTML = "";
   pageEntries.forEach((entry) => {
-    const date = new Date(entry.generatedAt || entry.archivedAt);
-    const isValidDate = !Number.isNaN(date.getTime());
-    const dateLabel = isValidDate
-      ? date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
-      : "Date inconnue";
-    const timeLabel = isValidDate
-      ? `${date.toLocaleTimeString("fr-FR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }).replace(":", "h")}`
-      : "--h--";
+    let dateLabel = "Date inconnue";
+    let timeLabel = "--h--";
+    
+    // Utiliser sessionDate (format yyyy-mm-dd) s'il existe
+    if (entry.sessionDate) {
+      const [yyyy, mm, dd] = entry.sessionDate.split("-");
+      dateLabel = `${dd}/${mm}/${yyyy}`;
+    } else {
+      // Fallback pour l'ancien format avec generatedAt/archivedAt
+      const date = new Date(entry.generatedAt || entry.archivedAt);
+      const isValidDate = !Number.isNaN(date.getTime());
+      dateLabel = isValidDate
+        ? date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
+        : "Date inconnue";
+      timeLabel = isValidDate
+        ? `${date.toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }).replace(":", "h")}`
+        : "--h--";
+    }
+    
     const row = document.createElement("article");
     row.className = "history-item";
     const maxVolley = getMaxVolleyFromPayload(entry);
@@ -2301,6 +2371,7 @@ if (els.weaponSelect) {
 }
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
 els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
+els.showScoresInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.startBtn.addEventListener("click", startScoring);
 els.backSetupBtn.addEventListener("click", restart);
 if (els.historyBtn) {
@@ -2491,6 +2562,14 @@ if (!restorePersistedState()) {
   syncTargetCountDisplay();
   updateSuccessZoneSlider();
   persistAppState();
+}
+// Initialiser la date de la session avec la date du jour par défaut (format yyyy-mm-dd)
+if (els.sessionDateInput && !els.sessionDateInput.value) {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  els.sessionDateInput.value = `${yyyy}-${mm}-${dd}`;
 }
 setRangeProgress(els.successZoneInput, els.successZoneInput.style.getPropertyValue("--zone-color").trim());
 setRangeProgress(els.configFullTargetTeam);
