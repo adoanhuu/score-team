@@ -30,6 +30,17 @@ const state = {
   progressionAxis: "",
   sessionDate: "",
   generalStatsGraphEnabled: false,
+  duel: {
+    ruleset: "nature",
+    mode: "duel",
+    targetCount: 4,
+    allowedPoints: [20, 15, 10, 0],
+    currentTargetIndex: 0,
+    activePlayer: 1,
+    scoresP1: [],
+    scoresP2: [],
+    completed: false,
+  },
 };
 
 const els = {
@@ -165,6 +176,24 @@ const els = {
   homeStatsBtn: document.getElementById("home-stats-btn"),
   homeConfigBtn: document.getElementById("home-config-btn"),
   homeHelpBtn: document.getElementById("home-help-btn"),
+  multiModal: document.getElementById("multi-modal"),
+  multiModalOverlay: document.getElementById("multi-modal-overlay"),
+  multiCloseBtn: document.getElementById("multi-close-btn"),
+  multiRulesetSelect: document.getElementById("multi-ruleset-select"),
+  multiModeSelect: document.getElementById("multi-mode-select"),
+  multiStartBtn: document.getElementById("multi-start-btn"),
+  multiTargetCountInputs: document.querySelectorAll('input[name="multi-target-count"]'),
+  duelModal: document.getElementById("duel-modal"),
+  duelModalOverlay: document.getElementById("duel-modal-overlay"),
+  duelCloseBtn: document.getElementById("duel-close-btn"),
+  duelTargetCounter: document.getElementById("duel-target-counter"),
+  duelActivePlayer: document.getElementById("duel-active-player"),
+  duelTotalP1: document.getElementById("duel-total-p1"),
+  duelTotalP2: document.getElementById("duel-total-p2"),
+  duelCurrentP1: document.getElementById("duel-current-p1"),
+  duelCurrentP2: document.getElementById("duel-current-p2"),
+  duelPointsPad: document.getElementById("duel-points-pad"),
+  duelStepBackBtn: document.getElementById("duel-step-back-btn"),
   helpVersion: document.getElementById("help-version"),
 };
 
@@ -266,6 +295,8 @@ function openConfigModal() {
   closeGeneralStatsModal();
   closeHelpModal();
   closeHistoryModal();
+  closeMultiModal();
+  closeDuelModal();
   syncConfigSliderMax();
   els.configFullTargetTeam.value = String(appConfig.fullTarget_team);
   els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
@@ -1820,6 +1851,8 @@ function openStatsModalFromPayload(payload) {
   closeHelpModal();
   closeHistoryModal();
   closeGeneralStatsModal();
+  closeMultiModal();
+  closeDuelModal();
   els.statsModal.classList.remove("hidden");
 }
 
@@ -1878,6 +1911,8 @@ function openHelpModal() {
   closeStatsModal();
   closeGeneralStatsModal();
   closeHistoryModal();
+  closeMultiModal();
+  closeDuelModal();
   helpCurrentPage = 1;
   renderHelpPagination();
   els.helpModal.classList.remove("hidden");
@@ -2184,6 +2219,8 @@ function openGeneralStatsModal() {
   closeHelpModal();
   closeHistoryModal();
   closeConfigModal();
+  closeMultiModal();
+  closeDuelModal();
   state.generalStatsGraphEnabled = false;
   if (els.generalStatsRulesetFilter) {
     els.generalStatsRulesetFilter.value = "all";
@@ -2476,6 +2513,8 @@ function openHistoryModal() {
   closeStatsModal();
   closeGeneralStatsModal();
   closeHelpModal();
+  closeMultiModal();
+  closeDuelModal();
   historyCurrentPage = 1;
   renderHistoryList();
   els.historyModal.classList.remove("hidden");
@@ -2483,6 +2522,176 @@ function openHistoryModal() {
 
 function closeHistoryModal() {
   els.historyModal.classList.add("hidden");
+}
+
+function openMultiModal() {
+  closeStatsModal();
+  closeGeneralStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  closeConfigModal();
+  closeDuelModal();
+  if (els.multiRulesetSelect && !els.multiRulesetSelect.value) {
+    els.multiRulesetSelect.value = "nature";
+  }
+  if (els.multiModeSelect && !els.multiModeSelect.value) {
+    els.multiModeSelect.value = "duel";
+  }
+  els.multiModal?.classList.remove("hidden");
+}
+
+function closeMultiModal() {
+  els.multiModal?.classList.add("hidden");
+}
+
+function getSelectedMultiTargetCount() {
+  const checked = [...(els.multiTargetCountInputs || [])].find((input) => input.checked);
+  const parsed = Number.parseInt(checked?.value || "4", 10);
+  return parsed === 6 ? 6 : 4;
+}
+
+function resetDuelStateFromMultiConfig() {
+  const ruleset = els.multiRulesetSelect?.value || "nature";
+  const mode = els.multiModeSelect?.value || "duel";
+  const targetCount = getSelectedMultiTargetCount();
+  const allowedPoints = [...new Set(presets[ruleset] || [0])].sort((a, b) => b - a);
+
+  state.duel = {
+    ruleset,
+    mode,
+    targetCount,
+    allowedPoints,
+    currentTargetIndex: 0,
+    activePlayer: 1,
+    scoresP1: Array(targetCount).fill(null),
+    scoresP2: Array(targetCount).fill(null),
+    completed: false,
+  };
+}
+
+function getDuelTotal(scores) {
+  return scores.reduce((sum, value) => sum + scoreToValue(value), 0);
+}
+
+function renderDuelPad() {
+  if (!els.duelPointsPad) return;
+  els.duelPointsPad.innerHTML = "";
+  state.duel.allowedPoints.forEach((score) => {
+    const button = document.createElement("button");
+    button.className = "point-btn";
+    if (score === 0) button.classList.add("zero");
+    if (score === FIELD_X) button.classList.add("x-score");
+    button.textContent = scoreLabel(score);
+    if (state.duel.completed) {
+      button.disabled = true;
+      button.classList.add("lock-disabled");
+    } else {
+      button.addEventListener("click", () => registerDuelScore(score));
+    }
+    els.duelPointsPad.appendChild(button);
+  });
+}
+
+function renderDuelView() {
+  const { currentTargetIndex, targetCount, activePlayer, scoresP1, scoresP2, completed } = state.duel;
+  const safeIndex = Math.max(0, Math.min(currentTargetIndex, targetCount - 1));
+  const currentP1 = scoresP1[safeIndex];
+  const currentP2 = scoresP2[safeIndex];
+
+  if (els.duelTargetCounter) {
+    const labelIndex = completed ? targetCount : safeIndex + 1;
+    els.duelTargetCounter.textContent = `Cible ${labelIndex}/${targetCount}`;
+  }
+  if (els.duelActivePlayer) {
+    els.duelActivePlayer.textContent = completed ? "Saisie terminée" : `Tour: Joueur ${activePlayer}`;
+  }
+  if (els.duelTotalP1) {
+    els.duelTotalP1.innerHTML = `${getDuelTotal(scoresP1)}<span class="stats-unit">pts</span>`;
+  }
+  if (els.duelTotalP2) {
+    els.duelTotalP2.innerHTML = `${getDuelTotal(scoresP2)}<span class="stats-unit">pts</span>`;
+  }
+  if (els.duelCurrentP1) {
+    els.duelCurrentP1.textContent = currentP1 === null ? "-" : scoreLabel(currentP1);
+  }
+  if (els.duelCurrentP2) {
+    els.duelCurrentP2.textContent = currentP2 === null ? "-" : scoreLabel(currentP2);
+  }
+
+  renderDuelPad();
+}
+
+function registerDuelScore(score) {
+  if (state.duel.completed) return;
+  const idx = state.duel.currentTargetIndex;
+  if (idx < 0 || idx >= state.duel.targetCount) return;
+
+  if (state.duel.activePlayer === 1) {
+    state.duel.scoresP1[idx] = score;
+    state.duel.activePlayer = 2;
+  } else {
+    state.duel.scoresP2[idx] = score;
+    state.duel.currentTargetIndex += 1;
+    state.duel.activePlayer = 1;
+    if (state.duel.currentTargetIndex >= state.duel.targetCount) {
+      state.duel.completed = true;
+      state.duel.currentTargetIndex = state.duel.targetCount;
+      showFlashInfo("Saisie duel terminée.");
+    }
+  }
+
+  renderDuelView();
+}
+
+function stepBackDuelScore() {
+  const duel = state.duel;
+  if (duel.targetCount <= 0) return;
+
+  if (duel.completed) {
+    duel.completed = false;
+    duel.currentTargetIndex = duel.targetCount - 1;
+    duel.activePlayer = 2;
+    duel.scoresP2[duel.currentTargetIndex] = null;
+    renderDuelView();
+    return;
+  }
+
+  const idx = duel.currentTargetIndex;
+
+  if (duel.activePlayer === 2) {
+    if (idx >= 0 && idx < duel.targetCount) {
+      duel.scoresP1[idx] = null;
+      duel.activePlayer = 1;
+    }
+    renderDuelView();
+    return;
+  }
+
+  if (idx <= 0) {
+    renderDuelView();
+    return;
+  }
+
+  duel.currentTargetIndex = idx - 1;
+  duel.activePlayer = 2;
+  duel.scoresP2[duel.currentTargetIndex] = null;
+  renderDuelView();
+}
+
+function openDuelModal() {
+  resetDuelStateFromMultiConfig();
+  closeMultiModal();
+  closeStatsModal();
+  closeGeneralStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  closeConfigModal();
+  renderDuelView();
+  els.duelModal?.classList.remove("hidden");
+}
+
+function closeDuelModal() {
+  els.duelModal?.classList.add("hidden");
 }
 
 function confirmAction(message, confirmLabel = "Supprimer") {
@@ -2536,6 +2745,8 @@ function restart() {
   closeGeneralStatsModal();
   closeHelpModal();
   closeHistoryModal();
+  closeMultiModal();
+  closeDuelModal();
   els.scoringCard.classList.add("hidden");
   els.setupCard.classList.add("hidden");
   document.body.classList.remove("home-underlay-active");
@@ -2637,10 +2848,16 @@ function showSetupFromHome() {
 }
 
 els.homeTrainingBtn.addEventListener("click", showSetupFromHome);
+els.homePelotonBtn.addEventListener("click", () => { openMultiModal(); });
 els.homeHistoryBtn.addEventListener("click", () => { openHistoryModal(); });
 els.homeStatsBtn.addEventListener("click", () => { openGeneralStatsModal(); });
 els.homeConfigBtn.addEventListener("click", () => { openConfigModal(); });
 els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
+if (els.multiStartBtn) {
+  els.multiStartBtn.addEventListener("click", () => {
+    openDuelModal();
+  });
+}
 if (els.setupCloseBtn) {
   els.setupCloseBtn.addEventListener("click", restart);
 }
@@ -2713,6 +2930,21 @@ els.helpModalOverlay.addEventListener("click", closeHelpModal);
 els.helpCloseBtn.addEventListener("click", closeHelpModal);
 els.historyModalOverlay.addEventListener("click", closeHistoryModal);
 els.historyCloseBtn.addEventListener("click", closeHistoryModal);
+if (els.multiModalOverlay) {
+  els.multiModalOverlay.addEventListener("click", closeMultiModal);
+}
+if (els.multiCloseBtn) {
+  els.multiCloseBtn.addEventListener("click", closeMultiModal);
+}
+if (els.duelModalOverlay) {
+  els.duelModalOverlay.addEventListener("click", closeDuelModal);
+}
+if (els.duelCloseBtn) {
+  els.duelCloseBtn.addEventListener("click", closeDuelModal);
+}
+if (els.duelStepBackBtn) {
+  els.duelStepBackBtn.addEventListener("click", stepBackDuelScore);
+}
 els.historyModeFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
 els.historyRulesetFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
 els.historyResetFiltersBtn.addEventListener("click", () => {

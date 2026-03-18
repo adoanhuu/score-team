@@ -26,21 +26,21 @@
       </header>
       <nav class="home-nav" aria-label="Menu principal">
 
-        <button class="home-tile" id="home-training-btn" aria-label="Entrainement structuré">
+        <button class="home-tile" id="home-training-btn" aria-label="Individuel structuré">
           <span class="home-tile-label">
             <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M11 2h2v3.07A7.002 7.002 0 0 1 18.93 11H22v2h-3.07A7.002 7.002 0 0 1 13 18.93V22h-2v-3.07A7.002 7.002 0 0 1 5.07 13H2v-2h3.07A7.002 7.002 0 0 1 11 5.07V2Zm1 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z" fill="currentColor"/>
+              <path d="M12 12c2.76 0 5-2.24 5-5S14.76 2 12 2 7 4.24 7 7s2.24 5 5 5Zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5Z" fill="currentColor"/>
             </svg>
-            <span>Entrainement</span>
+            <span>Individuel</span>
           </span>
         </button>
 
-        <button class="home-tile" id="home-peloton-btn" aria-label="Tri en peloton">
+        <button class="home-tile" id="home-peloton-btn" aria-label="Mode à plusieurs">
           <span class="home-tile-label">
             <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5ZM8 13c-2.67 0-8 1.34-8 4v2h7v-2.5c0-.95.37-1.81 1.05-2.56-.02-.3-.03-.6-.05-.94Z" fill="currentColor"/>
             </svg>
-            <span>Peloton</span>
+            <span>À plusieurs</span>
           </span>
         </button>
 
@@ -90,9 +90,9 @@
         <div class="setup-head">
           <h2 class="modal-title-with-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M11 2h2v3.07A7.002 7.002 0 0 1 18.93 11H22v2h-3.07A7.002 7.002 0 0 1 13 18.93V22h-2v-3.07A7.002 7.002 0 0 1 5.07 13H2v-2h3.07A7.002 7.002 0 0 1 11 5.07V2Zm1 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z" fill="currentColor"/>
+              <path d="M12 12c2.76 0 5-2.24 5-5S14.76 2 12 2 7 4.24 7 7s2.24 5 5 5Zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5Z" fill="currentColor"/>
             </svg>
-            <span>Créer une session</span>
+            <span>Individuel</span>
           </h2>
           <div class="setup-head-actions">
             <button id="setup-close-btn" class="btn btn-light btn-icon home-btn" aria-label="Fermer">
@@ -477,6 +477,125 @@
               <span>Meilleure volée</span>
               <strong id="general-stats-best-volley">0<span class="stats-unit">pts</span></strong>
             </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="multi-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="multi-modal-title">
+        <div class="modal-overlay" id="multi-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="multi-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5ZM8 13c-2.67 0-8 1.34-8 4v2h7v-2.5c0-.95.37-1.81 1.05-2.56-.02-.3-.03-.6-.05-.94Z" fill="currentColor" />
+              </svg>
+              <span>A plusieurs</span>
+            </h3>
+            <button id="multi-close-btn" class="btn btn-light btn-icon" aria-label="Fermer a plusieurs">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div class="general-stats-filter-row">
+            <label for="multi-ruleset-select">
+              <span class="label-inline">Type de parcours</span>
+              <select id="multi-ruleset-select">
+                <optgroup label="FFTA">
+                  <option value="nature">Nature (20 / 15 / 10)</option>
+                  <option value="campagne">Campagne (6 / 5 / 4 / 3 / 2 / 1)</option>
+                  <option value="3d">3D (11 / 10 / 8 / 5)</option>
+                </optgroup>
+                <optgroup label="FFTL">
+                  <option value="3d2">3D Two Shoots (10 / 8 / 5)</option>
+                  <option value="3dh">3D Hunting (20 / 16 / 10)</option>
+                  <option value="ar">Animal round (3 fleches)</option>
+                  <option value="field">Field / Hunter (X / 5 / 4 / 3)</option>
+                </optgroup>
+              </select>
+            </label>
+            <label for="multi-mode-select">
+              <span class="label-inline">Mode</span>
+              <select id="multi-mode-select">
+                <option value="duel">Duel</option>
+              </select>
+            </label>
+            <fieldset class="multi-target-fieldset">
+              <legend>Nombre de cibles</legend>
+              <label class="checkbox-label">
+                <input type="radio" name="multi-target-count" value="4" checked />
+                <span>4 cibles</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="multi-target-count" value="6" />
+                <span>6 cibles</span>
+              </label>
+            </fieldset>
+          </div>
+          <div class="start-action">
+            <button id="multi-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer à plusieurs">
+              Démarrer
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="duel-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="duel-modal-title">
+        <div class="modal-overlay" id="duel-modal-overlay"></div>
+        <div class="modal-card duel-modal-card">
+          <div class="modal-head">
+            <h3 id="duel-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5ZM8 13c-2.67 0-8 1.34-8 4v2h7v-2.5c0-.95.37-1.81 1.05-2.56-.02-.3-.03-.6-.05-.94Z" fill="currentColor" />
+              </svg>
+              <span>Mode duel</span>
+            </h3>
+            <button id="duel-close-btn" class="btn btn-light btn-icon" aria-label="Fermer mode duel">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="quick-stats quick-stats-two">
+            <article>
+              <span>Joueur 1</span>
+              <strong id="duel-total-p1">0<span class="stats-unit">pts</span></strong>
+            </article>
+            <article>
+              <span>Joueur 2</span>
+              <strong id="duel-total-p2">0<span class="stats-unit">pts</span></strong>
+            </article>
+          </div>
+
+          <div class="duel-meta-row">
+            <strong id="duel-target-counter">Cible 1/4</strong>
+            <span id="duel-active-player">Tour: Joueur 1</span>
+          </div>
+
+          <div class="quick-stats quick-stats-two duel-current-row">
+            <article>
+              <span>Joueur 1 (cible en cours)</span>
+              <strong id="duel-current-p1">-</strong>
+            </article>
+            <article>
+              <span>Joueur 2 (cible en cours)</span>
+              <strong id="duel-current-p2">-</strong>
+            </article>
+          </div>
+
+          <div id="duel-score-entry-panel" class="score-entry-sticky">
+            <div class="points-pad-container">
+              <div id="duel-points-pad" class="points-pad"></div>
+              <button id="duel-step-back-btn" class="btn btn-light btn-icon back-btn" aria-label="Effacer la dernière saisie duel">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l10.6-10.6c.79-.78 2.05-.78 2.83 0M4.22 15.58l3.54 3.53c.78.79 2.04.79 2.83 0l3.53-3.53-6.36-6.36-3.54 3.54c-.78.78-.78 2.05 0 2.82Z" fill="currentColor" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </section>

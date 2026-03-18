@@ -586,14 +586,16 @@ input[type="range"]:focus-visible {
   margin-top: 0;
 }
 
-#start-btn {
+#start-btn,
+#multi-start-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 }
 
-#start-btn svg {
+#start-btn svg,
+#multi-start-btn svg {
   color: #fff;
 }
 
@@ -1418,6 +1420,26 @@ input[type="range"]:focus-visible {
 
 .general-stats-filter-row label {
   font-size: 0.92rem;
+}
+
+.multi-target-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.multi-target-fieldset legend {
+  display: block;
+  margin-bottom: 8px;
+  padding: 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.multi-target-fieldset .checkbox-label {
+  display: inline-block;
+  margin-right: 20px;
+  margin-top: 0;
 }
 
 .general-stats-evolution-row {
@@ -2386,7 +2408,6 @@ input[type="range"]:focus-visible {
 #home-peloton-btn {
   background: url('images/peloton.png') white center 10px no-repeat;
   background-size: contain;
-  filter: grayscale(100%);
 }
 #home-history-btn{
   background: url('images/history.png') white center 10px no-repeat;
