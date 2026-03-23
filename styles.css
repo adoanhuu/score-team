@@ -586,15 +586,24 @@ input[type="range"]:focus-visible {
   margin-top: 0;
 }
 
-#start-btn {
+#start-btn,
+#multi-start-btn,
+#duel-restart-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 }
 
-#start-btn svg {
+#start-btn svg,
+#multi-start-btn svg,
+#duel-restart-btn svg {
   color: #fff;
+}
+
+#duel-restart-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 #history-btn {
@@ -646,18 +655,70 @@ input[type="range"]:focus-visible {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   min-width: 0;
 }
 
-.volley-title-row {
+.scoring-head.modal-head {
+  padding: 8px 12px;
+}
+
+.scoring-head > div:first-child {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
   min-width: 0;
-  margin-bottom: 0;
+  flex: 1;
+}
+
+.scoring-head .head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+#scoring-card #volley-title {
+  margin: 0;
+}
+
+.scoring-head .volley-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  margin: 0;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   line-height: 1;
+  padding: 0;
+}
+
+.volley-title-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.volley-weapon-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #d9e6ff;
+}
+
+.volley-user-icon {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  color: #fff;
+  flex-shrink: 0;
 }
 
 .volley-counter {
@@ -670,7 +731,7 @@ input[type="range"]:focus-visible {
 }
 
 #volley-title-text {
-  color: var(--dark-blue);
+  color: #fff;
 }
 
 #volley-weapon-label {
@@ -692,7 +753,18 @@ input[type="range"]:focus-visible {
   margin: 2px 0 0 32px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #d9e6ff;
+}
+
+#scoring-card #progress-text {
+  color: #d9e6ff;
+  margin: 0;
+  padding: 0;
+  display: none;
+}
+
+#scoring-card #progress-text:not(:empty) {
+  display: block;
 }
 
 .volley-weapon-text:empty {
@@ -800,6 +872,12 @@ input[type="range"]:focus-visible {
   display: flex;
   gap: 6px;
   align-items: stretch;
+}
+
+.duel-restart-action {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
 }
 
 .current-shoot-display {
@@ -1043,6 +1121,7 @@ input[type="range"]:focus-visible {
 
 .volley-pill.is-green {
   background: #2d6a4f;
+  color: #fff;
 }
 
 .volley-pill.is-orange {
@@ -1420,6 +1499,193 @@ input[type="range"]:focus-visible {
   font-size: 0.92rem;
 }
 
+.duel-names-row {
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.duel-names-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.duel-names-row input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.92rem;
+  background: #fff;
+  color: #1f2a24;
+}
+
+#multi-modal .general-stats-filter-row {
+  gap: 16px;
+  margin: 14px 0 18px;
+}
+
+#multi-modal .duel-names-row {
+  margin-bottom: 16px;
+  gap: 14px;
+}
+
+#multi-modal .multi-target-fieldset {
+  margin-top: 6px;
+}
+
+#multi-modal .start-action {
+  margin-top: 12px;
+}
+
+.duel-meta-row {
+  margin: 14px 0;
+  padding: 6px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+#duel-target-counter {
+  display: inline-block;
+  line-height: 1.3;
+}
+
+#duel-p1-label,
+#duel-p2-label {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--dark-blue);
+}
+
+#duel-total-p1,
+#duel-total-p2 {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+#duel-p1-current-label,
+#duel-p2-current-label {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.duel-volley-history {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.duel-volley-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.95rem;
+  color: #4b5b66;
+}
+
+.duel-volley-index {
+  font-weight: 800;
+}
+
+.duel-volley-values {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.duel-volley-total {
+  font-weight: 900;
+  font-size: 1.4rem !important;
+  color: var(--dark-blue);
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.duel-volley-empty {
+  font-size: 0.76rem;
+  color: #7a8791;
+  font-style: italic;
+}
+
+#duel-summary-card-p1,
+#duel-summary-card-p2 {
+  border-width: 2px;
+}
+
+.duel-summary-row article.is-active-archer {
+  border-color: var(--light-blue);
+}
+
+.duel-summary-row article.is-active-archer .duel-volley-item,
+.duel-summary-row article.is-active-archer .duel-volley-empty {
+  color: #fff;
+}
+
+.duel-summary-row article.is-winner-archer {
+  background: #2d6a4f;
+  border-color: #2d6a4f;
+  color: white !important;
+}
+
+.duel-summary-row article.is-winner-archer,
+.duel-summary-row article.is-winner-archer span,
+.duel-summary-row article.is-winner-archer strong,
+.duel-summary-row article.is-winner-archer .stats-unit {
+  color: #fff;
+}
+
+.duel-summary-row article.is-winner-archer #duel-p1-label,
+.duel-summary-row article.is-winner-archer #duel-p2-label,
+.duel-summary-row article.is-winner-archer #duel-total-p1,
+.duel-summary-row article.is-winner-archer #duel-total-p2 {
+  color: #fff;
+}
+
+.duel-summary-row article.is-winner-archer .duel-volley-history {
+  border-top-color: rgba(255, 255, 255, 0.5);
+}
+
+.duel-summary-row article.is-winner-archer .duel-volley-item,
+.duel-summary-row article.is-winner-archer .duel-volley-empty {
+  color: #fff;
+}
+
+.multi-target-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.multi-target-fieldset legend {
+  display: block;
+  margin-bottom: 8px;
+  padding: 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.multi-target-fieldset .checkbox-label {
+  display: inline-block;
+  margin-right: 20px;
+  margin-top: 0;
+}
+
 .general-stats-evolution-row {
   margin-top: 8px;
 }
@@ -1784,7 +2050,7 @@ input[type="range"]:focus-visible {
 
 .stats-unit {
   font-weight: 400;
-  margin-left: 0;
+  margin-left: 2px;
 }
 
 .stats-evolution-row {
@@ -1992,10 +2258,6 @@ input[type="range"]:focus-visible {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.config-input-row input[type="range"] {
-  flex: 1;
 }
 
 .config-input-row strong {
@@ -2386,7 +2648,6 @@ input[type="range"]:focus-visible {
 #home-peloton-btn {
   background: url('images/peloton.png') white center 10px no-repeat;
   background-size: contain;
-  filter: grayscale(100%);
 }
 #home-history-btn{
   background: url('images/history.png') white center 10px no-repeat;
