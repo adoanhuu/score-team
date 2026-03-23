@@ -203,6 +203,7 @@ const els = {
   duelCurrentP2: document.getElementById("duel-current-p2"),
   duelPointsPad: document.getElementById("duel-points-pad"),
   duelStepBackBtn: document.getElementById("duel-step-back-btn"),
+  duelRestartBtn: document.getElementById("duel-restart-btn"),
   duelNameP1: document.getElementById("duel-name-p1"),
   duelNameP2: document.getElementById("duel-name-p2"),
   duelP1Label: document.getElementById("duel-p1-label"),
@@ -731,6 +732,19 @@ function globalTotal() {
   return state.shoots.reduce((sum, volley) => sum + roundTotal(volley), 0);
 }
 
+function getProjectedSessionPercent() {
+  const completedTargets = state.shoots.length;
+  const maxVolley = getMaxVolleyForCurrentConfig();
+  const maxSessionTotal = maxVolley * state.targetCount;
+
+  if (completedTargets <= 0 || maxSessionTotal <= 0) {
+    return 0;
+  }
+
+  const projectedTotal = (globalTotal() / completedTargets) * state.targetCount;
+  return Math.max(0, Math.min(100, Math.round((projectedTotal / maxSessionTotal) * 100)));
+}
+
 function isSuccessfulVolley(total) {
   return total >= state.successZone;
 }
@@ -768,6 +782,8 @@ function renderPad() {
 function updateScoringHeader() {
   const shootNumber = state.shoots.length + 1;
   const currentTarget = Math.min(shootNumber, state.targetCount);
+  const totalCard = els.teamTotal ? els.teamTotal.closest("article") : null;
+  const totalCardLabel = totalCard ? totalCard.querySelector("span") : null;
   if (els.volleyTitleText) {
     els.volleyTitleText.textContent = formatRulesetLabel(state.activeRuleset);
   }
@@ -787,7 +803,34 @@ function updateScoringHeader() {
   } else {
     els.progressText.textContent = "";
   }
-  els.teamTotal.innerHTML = `${globalTotal()}<span class="stats-unit">pts</span>`;
+
+  if (state.scoringMode === "individual" && !state.showScores) {
+    els.teamTotal.innerHTML = `${getProjectedSessionPercent()}<span class="stats-unit">%</span>`;
+  } else {
+    els.teamTotal.innerHTML = `${globalTotal()}<span class="stats-unit">pts</span>`;
+  }
+
+  if (totalCard) {
+    if (state.shoots.length > 0) {
+      const averageVolley = globalTotal() / state.shoots.length;
+      const bgColor = getBarColorByZoneRatio(averageVolley, state.successZone);
+      const textColor = bgColor === "#eab308" ? "#1f2a24" : "#fff";
+      totalCard.style.background = bgColor;
+      totalCard.style.borderColor = bgColor;
+      els.teamTotal.style.color = textColor;
+      if (totalCardLabel) {
+        totalCardLabel.style.color = textColor;
+      }
+    } else {
+      totalCard.style.background = "#fff";
+      totalCard.style.borderColor = "var(--line)";
+      els.teamTotal.style.color = "";
+      if (totalCardLabel) {
+        totalCardLabel.style.color = "";
+      }
+    }
+  }
+
   els.successZoneDisplay.innerHTML = `${state.successZone}<span class="stats-unit">pts</span>`;
   renderSegmentStats();
 }
@@ -2640,8 +2683,14 @@ function renderDuelPad() {
   });
 }
 
-function renderDuelVolleyHistory(container, scoresByTarget) {
+function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarget) {
   if (!container) return;
+
+  const isCompletedVolley = (arrows) => (
+    Array.isArray(arrows)
+    && arrows.length > 0
+    && arrows.every((value) => value !== null && value !== undefined)
+  );
 
   const rows = [];
   scoresByTarget.forEach((targetArrows, index) => {
@@ -2649,12 +2698,24 @@ function renderDuelVolleyHistory(container, scoresByTarget) {
     const hasAnyScore = targetArrows.some((value) => value !== null && value !== undefined);
     if (!hasAnyScore) return;
 
-    const arrowsText = targetArrows
+    const sortedArrows = [...targetArrows].sort((a, b) => {
+      const scoreA = a === null || a === undefined ? -1 : scoreToValue(a);
+      const scoreB = b === null || b === undefined ? -1 : scoreToValue(b);
+      return scoreB - scoreA;
+    });
+
+    const arrowsText = sortedArrows
       .map((value) => (value === null || value === undefined ? "-" : scoreLabel(value)))
       .join(" / ");
     const targetTotal = targetArrows.reduce((sum, value) => sum + scoreToValue(value), 0);
+    const opponentArrows = Array.isArray(opponentScoresByTarget) ? opponentScoresByTarget[index] : null;
+    const bothCompleted = isCompletedVolley(targetArrows) && isCompletedVolley(opponentArrows);
+    const opponentTotal = bothCompleted
+      ? opponentArrows.reduce((sum, value) => sum + scoreToValue(value), 0)
+      : null;
+    const pillClass = bothCompleted && targetTotal > opponentTotal ? "is-green" : "is-blue";
 
-    rows.push(`<div class="duel-volley-item"><span class="volley-pill is-blue">${index + 1}</span><span class="duel-volley-values">${arrowsText}</span><span class="duel-volley-total">${targetTotal}</span></div>`);
+    rows.push(`<div class="duel-volley-item"><span class="volley-pill ${pillClass}">${index + 1}</span><span class="duel-volley-values">${arrowsText}</span><span class="duel-volley-total">${targetTotal}</span></div>`);
   });
 
   if (rows.length === 0) {
@@ -2668,6 +2729,8 @@ function renderDuelVolleyHistory(container, scoresByTarget) {
 function renderDuelView() {
   const { currentTargetIndex, targetCount, activePlayer, scoresP1, scoresP2, completed, nameP1, nameP2, currentArrowIndex, arrowsPerTarget } = state.duel;
   const safeIndex = Math.max(0, Math.min(currentTargetIndex, targetCount - 1));
+  const p1Total = getDuelTotal(scoresP1);
+  const p2Total = getDuelTotal(scoresP2);
 
   // Update player labels with names
   const displayP1 = nameP1 ? nameP1 : "Joueur 1";
@@ -2702,16 +2765,23 @@ function renderDuelView() {
     const p2Active = !completed && activePlayer === 2;
     els.duelSummaryCardP1.classList.toggle("is-active-archer", p1Active);
     els.duelSummaryCardP2.classList.toggle("is-active-archer", p2Active);
+
+    const hasWinner = completed && p1Total !== p2Total;
+    els.duelSummaryCardP1.classList.toggle("is-winner-archer", hasWinner && p1Total > p2Total);
+    els.duelSummaryCardP2.classList.toggle("is-winner-archer", hasWinner && p2Total > p1Total);
   }
   if (els.duelTotalP1) {
-    els.duelTotalP1.innerHTML = `${getDuelTotal(scoresP1)}<span class="stats-unit">pts</span>`;
+    els.duelTotalP1.innerHTML = `${p1Total}<span class="stats-unit">pts</span>`;
   }
   if (els.duelTotalP2) {
-    els.duelTotalP2.innerHTML = `${getDuelTotal(scoresP2)}<span class="stats-unit">pts</span>`;
+    els.duelTotalP2.innerHTML = `${p2Total}<span class="stats-unit">pts</span>`;
+  }
+  if (els.duelRestartBtn) {
+    els.duelRestartBtn.classList.toggle("hidden", !completed);
   }
 
-  renderDuelVolleyHistory(els.duelHistoryP1, scoresP1);
-  renderDuelVolleyHistory(els.duelHistoryP2, scoresP2);
+  renderDuelVolleyHistory(els.duelHistoryP1, scoresP1, scoresP2);
+  renderDuelVolleyHistory(els.duelHistoryP2, scoresP2, scoresP1);
 
   renderDuelPad();
 }
@@ -2756,40 +2826,62 @@ function stepBackDuelScore() {
   const duel = state.duel;
   if (duel.targetCount <= 0) return;
 
+  const clearScoreAt = (targetIndex, player, arrowIndex) => {
+    const scores = player === 1 ? duel.scoresP1 : duel.scoresP2;
+    if (!scores[targetIndex]) return;
+    scores[targetIndex][arrowIndex] = null;
+  };
+
   if (duel.completed) {
     duel.completed = false;
     duel.currentTargetIndex = duel.targetCount - 1;
     duel.activePlayer = 2;
     duel.currentArrowIndex = duel.arrowsPerTarget - 1;
-    duel.scoresP2[duel.currentTargetIndex][duel.currentArrowIndex] = null;
+    clearScoreAt(duel.currentTargetIndex, 2, duel.currentArrowIndex);
     renderDuelView();
     return;
   }
 
-  const idx = duel.currentTargetIndex;
-  const arrowIdx = duel.currentArrowIndex;
+  let targetIndex = duel.currentTargetIndex;
+  let player = duel.activePlayer;
+  let arrowIndex = duel.currentArrowIndex;
 
-  // If we can go back within current player's arrows
-  if (arrowIdx > 0) {
-    duel.currentArrowIndex -= 1;
-    duel.scoresP1[idx][arrowIdx] = null;
-  } else if (arrowIdx === 0) {
-    // First arrow of player, go back to last arrow of previous player
-    if (duel.activePlayer === 1) {
-      // P1 first arrow, go back to P2's last arrow
-      duel.activePlayer = 2;
-      duel.currentArrowIndex = duel.arrowsPerTarget - 1;
-      duel.scoresP1[idx][0] = null;
-    } else if (idx > 0) {
-      // P2 first arrow, go back to P1's last arrow of previous target
-      duel.currentTargetIndex = idx - 1;
-      duel.activePlayer = 1;
-      duel.currentArrowIndex = duel.arrowsPerTarget - 1;
-      duel.scoresP2[idx][0] = null;
-    }
+  // Nothing to remove at very beginning.
+  if (targetIndex === 0 && player === 1 && arrowIndex === 0) {
+    renderDuelView();
+    return;
   }
 
+  // Reverse the forward input cursor to the last entered score.
+  if (arrowIndex > 0) {
+    arrowIndex -= 1;
+  } else if (player === 2) {
+    player = 1;
+    arrowIndex = duel.arrowsPerTarget - 1;
+  } else {
+    targetIndex -= 1;
+    player = 2;
+    arrowIndex = duel.arrowsPerTarget - 1;
+  }
+
+  duel.currentTargetIndex = targetIndex;
+  duel.activePlayer = player;
+  duel.currentArrowIndex = arrowIndex;
+  clearScoreAt(targetIndex, player, arrowIndex);
+
   renderDuelView();
+}
+
+function restartDuelSession() {
+  const previousNameP1 = state.duel.nameP1 || "";
+  const previousNameP2 = state.duel.nameP2 || "";
+
+  resetDuelStateFromMultiConfig();
+  state.duel.nameP1 = previousNameP1;
+  state.duel.nameP2 = previousNameP2;
+
+  renderDuelView();
+  showFlashInfo("Nouveau duel démarré.");
 }
 
 function openDuelModal() {
@@ -2798,11 +2890,13 @@ function openDuelModal() {
     els.duelModalTitleText.textContent = `Mode duel - ${formatRulesetLabel(state.duel.ruleset)}`;
   }
   // Récupérer les noms des joueurs depuis les champs de saisie
-  if (els.duelNameP1 && els.duelNameP1.value) {
-    state.duel.nameP1 = els.duelNameP1.value;
+  const duelNameP1 = els.duelNameP1 ? els.duelNameP1.value.trim().slice(0, 12) : "";
+  const duelNameP2 = els.duelNameP2 ? els.duelNameP2.value.trim().slice(0, 12) : "";
+  if (duelNameP1) {
+    state.duel.nameP1 = duelNameP1;
   }
-  if (els.duelNameP2 && els.duelNameP2.value) {
-    state.duel.nameP2 = els.duelNameP2.value;
+  if (duelNameP2) {
+    state.duel.nameP2 = duelNameP2;
   }
   closeMultiModal();
   closeStatsModal();
@@ -3066,6 +3160,9 @@ if (els.duelCloseBtn) {
 }
 if (els.duelStepBackBtn) {
   els.duelStepBackBtn.addEventListener("click", stepBackDuelScore);
+}
+if (els.duelRestartBtn) {
+  els.duelRestartBtn.addEventListener("click", restartDuelSession);
 }
 els.historyModeFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
 els.historyRulesetFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });

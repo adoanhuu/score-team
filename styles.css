@@ -587,7 +587,8 @@ input[type="range"]:focus-visible {
 }
 
 #start-btn,
-#multi-start-btn {
+#multi-start-btn,
+#duel-restart-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -595,8 +596,14 @@ input[type="range"]:focus-visible {
 }
 
 #start-btn svg,
-#multi-start-btn svg {
+#multi-start-btn svg,
+#duel-restart-btn svg {
   color: #fff;
+}
+
+#duel-restart-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 #history-btn {
@@ -867,6 +874,12 @@ input[type="range"]:focus-visible {
   align-items: stretch;
 }
 
+.duel-restart-action {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
 .current-shoot-display {
   margin-bottom: 8px;
   padding: 10px;
@@ -1108,6 +1121,7 @@ input[type="range"]:focus-visible {
 
 .volley-pill.is-green {
   background: #2d6a4f;
+  color: #fff;
 }
 
 .volley-pill.is-orange {
@@ -1509,6 +1523,24 @@ input[type="range"]:focus-visible {
   color: #1f2a24;
 }
 
+#multi-modal .general-stats-filter-row {
+  gap: 16px;
+  margin: 14px 0 18px;
+}
+
+#multi-modal .duel-names-row {
+  margin-bottom: 16px;
+  gap: 14px;
+}
+
+#multi-modal .multi-target-fieldset {
+  margin-top: 6px;
+}
+
+#multi-modal .start-action {
+  margin-top: 12px;
+}
+
 .duel-meta-row {
   margin: 14px 0;
   padding: 6px 0;
@@ -1600,12 +1632,37 @@ input[type="range"]:focus-visible {
   border-color: var(--light-blue);
 }
 
-.duel-summary-row article.is-active-archer .duel-volley-history {
+.duel-summary-row article.is-active-archer .duel-volley-item,
+.duel-summary-row article.is-active-archer .duel-volley-empty {
+  color: #fff;
+}
+
+.duel-summary-row article.is-winner-archer {
+  background: #2d6a4f;
+  border-color: #2d6a4f;
+  color: white !important;
+}
+
+.duel-summary-row article.is-winner-archer,
+.duel-summary-row article.is-winner-archer span,
+.duel-summary-row article.is-winner-archer strong,
+.duel-summary-row article.is-winner-archer .stats-unit {
+  color: #fff;
+}
+
+.duel-summary-row article.is-winner-archer #duel-p1-label,
+.duel-summary-row article.is-winner-archer #duel-p2-label,
+.duel-summary-row article.is-winner-archer #duel-total-p1,
+.duel-summary-row article.is-winner-archer #duel-total-p2 {
+  color: #fff;
+}
+
+.duel-summary-row article.is-winner-archer .duel-volley-history {
   border-top-color: rgba(255, 255, 255, 0.5);
 }
 
-.duel-summary-row article.is-active-archer .duel-volley-item,
-.duel-summary-row article.is-active-archer .duel-volley-empty {
+.duel-summary-row article.is-winner-archer .duel-volley-item,
+.duel-summary-row article.is-winner-archer .duel-volley-empty {
   color: #fff;
 }
 

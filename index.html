@@ -520,11 +520,11 @@
           <div class="duel-names-row">
             <label for="duel-name-p1">
               <span class="label-inline">Archer n°1</span>
-              <input id="duel-name-p1" type="text" placeholder="Nom archer 1" maxlength="30" autocomplete="off" />
+              <input id="duel-name-p1" type="text" placeholder="Nom archer 1" maxlength="12" autocomplete="off" />
             </label>
             <label for="duel-name-p2">
               <span class="label-inline">Archer n°2</span>
-              <input id="duel-name-p2" type="text" placeholder="Nom archer 2" maxlength="30" autocomplete="off" />
+              <input id="duel-name-p2" type="text" placeholder="Nom archer 2" maxlength="12" autocomplete="off" />
             </label>
           </div>
             <label for="multi-mode-select">
@@ -573,10 +573,6 @@
             </button>
           </div>
 
-          <div class="duel-meta-row">
-            <strong id="duel-volley-number"></strong>
-          </div>
-
           <div class="quick-stats quick-stats-two duel-summary-row">
             <article id="duel-summary-card-p1">
               <span id="duel-p1-label">Joueur 1</span>
@@ -602,6 +598,14 @@
               <button id="duel-step-back-btn" class="btn btn-light btn-icon back-btn" aria-label="Effacer la dernière saisie duel">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l10.6-10.6c.79-.78 2.05-.78 2.83 0M4.22 15.58l3.54 3.53c.78.79 2.04.79 2.83 0l3.53-3.53-6.36-6.36-3.54 3.54c-.78.78-.78 2.05 0 2.82Z" fill="currentColor" />
+                </svg>
+              </button>
+            </div>
+            <div class="duel-restart-action">
+              <button id="duel-restart-btn" class="btn btn-primary start-btn hidden" aria-label="Recommencer">
+                Recommencer
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
                 </svg>
               </button>
             </div>
