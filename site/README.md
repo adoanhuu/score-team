@@ -15,7 +15,7 @@ Guide détaillé pour :
 - Choisir le parcours FFTA ou FFTL
 - Configurer le nombre de cibles
 - Définir la zone de succès
-- Sélectionner le mode d'équipe ou individuel
+- Sélectionner le mode d'équipe ou Mode solo
 - Tableau comparatif des parcours disponibles
 
 ### 3. **saisie-scores.html** - Saisie des scores
