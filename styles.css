@@ -1798,9 +1798,11 @@ input[type="range"]:focus-visible {
   border-radius: 10px;
   background: #fff;
   padding: 8px 10px;
+  padding-right: 38px;
   text-align: left;
   display: grid;
   gap: 3px;
+  position: relative;
   transition: border-color 0.15s ease, background-color 0.2s ease, color 0.2s ease;
 }
 
@@ -1809,8 +1811,8 @@ input[type="range"]:focus-visible {
 }
 
 .peloton-archer-card.is-best-total {
-  background: #2d6a4f;
-  border-color: #2d6a4f;
+  background: #fff;
+  border-color: #d8e0e8;
 }
 
 .peloton-archer-card.is-best-total.is-active {
@@ -1819,7 +1821,21 @@ input[type="range"]:focus-visible {
 
 .peloton-archer-card.is-best-total .peloton-archer-card-name,
 .peloton-archer-card.is-best-total .peloton-archer-card-total {
-  color: #fff;
+  color: inherit;
+}
+
+.peloton-archer-card.is-best-total::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 20px;
+  height: 24px;
+  transform: translateY(-50%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 80'%3E%3Crect x='10' y='2' width='12' height='32' fill='%231558c0'/%3E%3Crect x='26' y='2' width='12' height='36' fill='%231558c0'/%3E%3Crect x='42' y='2' width='12' height='32' fill='%231558c0'/%3E%3Ccircle cx='32' cy='56' r='22' fill='%231558c0'/%3E%3Cpath d='m32 42 4.6 9.4 10.4 1.5-7.5 7.3 1.8 10.3-9.3-4.9-9.3 4.9 1.8-10.3-7.5-7.3 10.4-1.5z' fill='%23fff'/%3E%3C/svg%3E");
 }
 
 .peloton-archer-card.is-completed {
@@ -1859,6 +1875,7 @@ input[type="range"]:focus-visible {
 #duel-summary-card-p1,
 #duel-summary-card-p2 {
   border-width: 2px;
+  position: relative;
 }
 
 .duel-summary-row article.is-active-archer {
@@ -1871,32 +1888,47 @@ input[type="range"]:focus-visible {
 }
 
 .duel-summary-row article.is-winner-archer {
-  background: #2d6a4f;
-  border-color: #2d6a4f;
-  color: white !important;
+  background: #fff;
+  border-color: #d8e0e8;
+  color: inherit;
+  padding-right: 38px;
 }
 
 .duel-summary-row article.is-winner-archer,
 .duel-summary-row article.is-winner-archer span,
 .duel-summary-row article.is-winner-archer strong,
 .duel-summary-row article.is-winner-archer .stats-unit {
-  color: #fff;
+  color: inherit;
 }
 
 .duel-summary-row article.is-winner-archer #duel-p1-label,
 .duel-summary-row article.is-winner-archer #duel-p2-label,
 .duel-summary-row article.is-winner-archer #duel-total-p1,
 .duel-summary-row article.is-winner-archer #duel-total-p2 {
-  color: #fff;
+  color: inherit;
 }
 
 .duel-summary-row article.is-winner-archer .duel-volley-history {
-  border-top-color: rgba(255, 255, 255, 0.5);
+  border-top-color: var(--line);
 }
 
 .duel-summary-row article.is-winner-archer .duel-volley-item,
 .duel-summary-row article.is-winner-archer .duel-volley-empty {
-  color: #fff;
+  color: #4b5b66;
+}
+
+.duel-summary-row article.is-winner-archer::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 20px;
+  height: 24px;
+  transform: translateY(-50%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 80'%3E%3Crect x='10' y='2' width='12' height='32' fill='%231558c0'/%3E%3Crect x='26' y='2' width='12' height='36' fill='%231558c0'/%3E%3Crect x='42' y='2' width='12' height='32' fill='%231558c0'/%3E%3Ccircle cx='32' cy='56' r='22' fill='%231558c0'/%3E%3Cpath d='m32 42 4.6 9.4 10.4 1.5-7.5 7.3 1.8 10.3-9.3-4.9-9.3 4.9 1.8-10.3-7.5-7.3 10.4-1.5z' fill='%23fff'/%3E%3C/svg%3E");
 }
 
 .multi-target-fieldset {
