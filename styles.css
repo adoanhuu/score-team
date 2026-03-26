@@ -1765,8 +1765,15 @@ input[type="range"]:focus-visible {
 
 #peloton-station-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
+  margin: 16px 0;
+}
+
+.peloton-station-label {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 4px;
 }
 
 #peloton-station-archer-name {
@@ -2961,8 +2968,11 @@ input[type="range"]:focus-visible {
 }
 
 .peloton-station-number {
-  font-size: 1.2rem;
+  font-size: 1.8rem;
   font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 
 .peloton-station-archer-name {

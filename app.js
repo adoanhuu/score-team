@@ -2946,7 +2946,7 @@ function renderPelotonHistorySwiper(container, options = {}) {
         <article class="peloton-history-archer-card">
           <header class="peloton-history-slide-head">
             <strong class="peloton-history-slide-name">${archer.name}</strong>
-            <span class="peloton-history-slide-total">${total} pts</span>
+            <span class="peloton-history-slide-total">${total}pts</span>
           </header>
           <div class="peloton-history-slide-body" data-archer-index="${archer.index}"></div>
         </article>
@@ -3323,7 +3323,7 @@ function renderPelotonArchersGrid() {
       card.classList.add("is-best-total");
     }
     card.setAttribute("role", "listitem");
-    card.innerHTML = `<span class="peloton-archer-card-name">${archer.name}</span><span class="peloton-archer-card-total">${total} pts</span>`;
+    card.innerHTML = `<span class="peloton-archer-card-name">${archer.name}</span><span class="peloton-archer-card-total">${total}pts</span>`;
 
     els.pelotonArchersGrid.appendChild(card);
   });
