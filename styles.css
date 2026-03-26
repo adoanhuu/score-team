@@ -1758,6 +1758,12 @@ input[type="range"]:focus-visible {
   font-size: 1.1rem !important;
 }
 
+.peloton-history-slide-total .stats-unit,
+.peloton-archer-card-total .stats-unit {
+  font-weight: 400;
+  margin-left: 0;
+}
+
 .peloton-history-slide-body .duel-volley-history {
   max-height: none;
   overflow-y: visible;
