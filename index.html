@@ -249,7 +249,6 @@
               </svg>
             </button>
           </div>
-          <div id="points-rule-hint" class="points-rule-hint hidden" aria-live="polite"></div>
         </div>
 
         <h3>Historique des volées</h3>
@@ -603,6 +602,7 @@
           </div>
 
           <div id="duel-score-entry-panel" class="score-entry-sticky">
+            <div id="duel-current-shoot-display" class="current-shoot-display"></div>
             <div class="points-pad-container">
               <div id="duel-points-pad" class="points-pad"></div>
               <button id="duel-step-back-btn" class="btn btn-light btn-icon back-btn" aria-label="Effacer la dernière saisie duel">
@@ -641,9 +641,10 @@
             </button>
           </div>
           
-          <div class="modal-content" style="padding: 16px;">
-            <h4 id="peloton-station-header" style="margin: 0 0 16px 0; font-size: 0.875rem; color: #555;">
-              Cible <span id="peloton-station-number">1</span> <span id="peloton-station-archer-name">archers</span>
+          <div class="modal-content">
+            <h4 id="peloton-station-header" class="peloton-station-header">
+              Cible <span id="peloton-station-number" class="peloton-station-number">1</span> 
+              <span id="peloton-station-archer-name" class="peloton-station-archer-name"></span>
             </h4>
             <div id="peloton-archers-grid" class="peloton-archers-grid" role="list"></div>
           </div>
@@ -655,6 +656,7 @@
           </div>
 
           <div id="peloton-score-entry-panel" class="score-entry-sticky">
+            <div id="peloton-current-shoot-display" class="current-shoot-display"></div>
             <div class="points-pad-container">
               <div id="peloton-points-pad" class="points-pad"></div>
               <button id="peloton-step-back-btn" class="btn btn-light btn-icon back-btn" aria-label="Effacer la dernière saisie peloton">
@@ -663,7 +665,6 @@
                 </svg>
               </button>
             </div>
-            <div id="peloton-points-rule-hint" class="points-rule-hint hidden" aria-live="polite"></div>
             <div class="duel-restart-action">
               <button id="peloton-restart-btn" class="btn btn-primary start-btn hidden" aria-label="Recommencer">
                 Recommencer

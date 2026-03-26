@@ -1692,6 +1692,17 @@ input[type="range"]:focus-visible {
   width: 100%;
 }
 
+#peloton-station-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#peloton-station-archer-name {
+  margin-left: auto;
+  text-align: right;
+}
+
 .peloton-archers-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2808,4 +2819,15 @@ input[type="range"]:focus-visible {
 
 .hidden {
   display: none;
+}
+
+.peloton-station-number {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.peloton-station-archer-name {
+  background-color: var(--line);
+  padding: 8px 12px;
+  border-radius: 8px;
 }

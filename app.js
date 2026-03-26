@@ -76,7 +76,6 @@ const els = {
   scoreEntryPanel: document.getElementById("score-entry-panel"),
   targetGroupSelect: document.getElementById("target-group-select"),
   pointsPad: document.getElementById("points-pad"),
-  pointsRuleHint: document.getElementById("points-rule-hint"),
   currentShootDisplay: document.getElementById("current-shoot-display"),
   liveVolleyHistoryWrap: document.getElementById("live-volley-history-wrap"),
   liveVolleyHistoryBody: document.getElementById("live-volley-history-body"),
@@ -214,8 +213,8 @@ const els = {
   pelotonTotal: document.getElementById("peloton-total"),
   pelotonCurrentCard: document.getElementById("peloton-current-card"),
   pelotonHistory: document.getElementById("peloton-history"),
+  pelotonCurrentShootDisplay: document.getElementById("peloton-current-shoot-display"),
   pelotonPointsPad: document.getElementById("peloton-points-pad"),
-  pelotonPointsRuleHint: document.getElementById("peloton-points-rule-hint"),
   pelotonStepBackBtn: document.getElementById("peloton-step-back-btn"),
   pelotonRestartBtn: document.getElementById("peloton-restart-btn"),
   pelotonScoreEntryPanel: document.getElementById("peloton-score-entry-panel"),
@@ -230,6 +229,7 @@ const els = {
   duelTotalP2: document.getElementById("duel-total-p2"),
   duelCurrentP1: document.getElementById("duel-current-p1"),
   duelCurrentP2: document.getElementById("duel-current-p2"),
+  duelCurrentShootDisplay: document.getElementById("duel-current-shoot-display"),
   duelPointsPad: document.getElementById("duel-points-pad"),
   duelPointsRuleHint: document.getElementById("duel-points-rule-hint"),
   duelStepBackBtn: document.getElementById("duel-step-back-btn"),
@@ -807,8 +807,6 @@ function renderPad() {
     }
     els.pointsPad.appendChild(button);
   });
-
-  updatePointsRuleHint(els.pointsRuleHint, state.activeRuleset, state.currentArrowIndex);
 }
 
 function updateScoringHeader() {
@@ -883,6 +881,26 @@ function updateCurrentShootDisplay() {
     })
     .join("");
     els.currentShootDisplay.innerHTML = `${pills}`;
+}
+
+function renderCurrentShootPills(container, arrows, arrowCount) {
+  if (!container) return;
+  const source = Array.isArray(arrows) ? arrows : [];
+  const normalized = Array(arrowCount).fill(null).map((_, index) => source[index] ?? null);
+  const pills = normalized
+    .map((value) => {
+      const label = formatScore(value);
+      const scoreClass = value === null
+        ? "is-empty"
+        : value === 0
+          ? "is-miss"
+          : value === FIELD_X
+            ? "is-x"
+            : "is-hit";
+      return `<span class="current-shoot-pill ${scoreClass}">${label}</span>`;
+    })
+    .join("");
+  container.innerHTML = pills;
 }
 
 function refreshScoringView(options = {}) {
@@ -2751,6 +2769,7 @@ function resetDuelStateFromMultiConfig() {
     scoresP2: Array(targetCount).fill(null).map(() => Array(arrowsPerTarget).fill(null)),
     nameP1: "",
     nameP2: "",
+    previewLocked: false,
     completed: false,
   };
 }
@@ -2772,6 +2791,7 @@ function getDuelTotal(scores) {
 function renderDuelPad() {
   if (!els.duelPointsPad) return;
   els.duelPointsPad.innerHTML = "";
+  const isLocked = Boolean(state.duel.previewLocked) || state.duel.completed;
   const selectablePoints = getSelectablePointsForArrow(
     state.duel.ruleset,
     "individual",
@@ -2785,7 +2805,7 @@ function renderDuelPad() {
     if (score === 0) button.classList.add("zero");
     if (score === FIELD_X) button.classList.add("x-score");
     button.textContent = scoreLabel(score);
-    if (state.duel.completed) {
+    if (isLocked) {
       button.disabled = true;
       button.classList.add("lock-disabled");
     } else {
@@ -2800,6 +2820,7 @@ function renderDuelPad() {
 function renderPelotonPad() {
   if (!els.pelotonPointsPad) return;
   els.pelotonPointsPad.innerHTML = "";
+  const isLocked = Boolean(state.peloton?.previewLocked) || state.peloton.completed;
   const selectablePoints = getSelectablePointsForArrow(
     state.peloton.ruleset,
     "individual",
@@ -2813,7 +2834,7 @@ function renderPelotonPad() {
     if (score === 0) button.classList.add("zero");
     if (score === FIELD_X) button.classList.add("x-score");
     button.textContent = scoreLabel(score);
-    if (state.peloton.completed) {
+    if (isLocked) {
       button.disabled = true;
       button.classList.add("lock-disabled");
     } else {
@@ -2821,8 +2842,6 @@ function renderPelotonPad() {
     }
     els.pelotonPointsPad.appendChild(button);
   });
-
-  updatePointsRuleHint(els.pelotonPointsRuleHint, state.peloton.ruleset, state.peloton.currentArrowIndex);
 }
 
 function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarget, options = {}) {
@@ -2915,6 +2934,10 @@ function renderDuelView() {
     const labelIndex = completed ? targetCount : safeIndex + 1;
     els.duelTargetCounter.textContent = `Cible ${labelIndex}/${targetCount}`;
   }
+  const duelCurrentArrows = completed
+    ? []
+    : (activePlayer === 1 ? scoresP1[safeIndex] : scoresP2[safeIndex]);
+  renderCurrentShootPills(els.duelCurrentShootDisplay, duelCurrentArrows, arrowsPerTarget);
   if (els.duelActivePlayer) {
     els.duelActivePlayer.textContent = completed ? "Saisie terminée" : `Tour: ${activePlayer === 1 ? displayP1 : displayP2}`;
   }
@@ -2924,7 +2947,7 @@ function renderDuelView() {
     els.duelSummaryCardP1.classList.toggle("is-active-archer", p1Active);
     els.duelSummaryCardP2.classList.toggle("is-active-archer", p2Active);
 
-    const hasWinner = completed && p1Total !== p2Total;
+    const hasWinner = p1Total !== p2Total;
     els.duelSummaryCardP1.classList.toggle("is-winner-archer", hasWinner && p1Total > p2Total);
     els.duelSummaryCardP2.classList.toggle("is-winner-archer", hasWinner && p2Total > p1Total);
   }
@@ -2951,7 +2974,7 @@ function renderDuelView() {
 }
 
 function registerDuelScore(score) {
-  if (state.duel.completed) return;
+  if (state.duel.completed || state.duel.previewLocked) return;
   const { currentTargetIndex, targetCount, activePlayer, currentArrowIndex, arrowsPerTarget, scoresP1, scoresP2 } = state.duel;
   if (currentTargetIndex < 0 || currentTargetIndex >= targetCount) return;
   if (!getSelectablePointsForArrow(state.duel.ruleset, "individual", currentArrowIndex, state.duel.allowedPoints).includes(score)) {
@@ -2963,6 +2986,33 @@ function registerDuelScore(score) {
     scoresP1[currentTargetIndex][currentArrowIndex] = score;
   } else {
     scoresP2[currentTargetIndex][currentArrowIndex] = score;
+  }
+
+  // Afficher la dernière flèche brièvement avant d'avancer.
+  if (currentArrowIndex >= arrowsPerTarget - 1) {
+    state.duel.previewLocked = true;
+    renderDuelView();
+
+    window.setTimeout(() => {
+      state.duel.previewLocked = false;
+      state.duel.currentArrowIndex = 0;
+
+      if (activePlayer === 1) {
+        state.duel.activePlayer = 2;
+      } else {
+        state.duel.currentTargetIndex += 1;
+        state.duel.activePlayer = 1;
+        if (state.duel.currentTargetIndex >= targetCount) {
+          state.duel.completed = true;
+          state.duel.currentTargetIndex = targetCount;
+          showFlashInfo("Saisie duel terminée.");
+        }
+      }
+
+      renderDuelView();
+    }, LAST_SCORE_PREVIEW_MS);
+
+    return;
   }
 
   // Move to next arrow or next player
@@ -3040,7 +3090,7 @@ function stepBackDuelScore() {
 }
 
 function registerPelotonScore(score) {
-  if (!state.peloton || state.peloton.completed) return;
+  if (!state.peloton || state.peloton.completed || state.peloton.previewLocked) return;
 
   const currentArcherIndex = Number(state.pelotonActiveArcherIndex);
   const { targetCount, currentTargetIndex, currentArrowIndex, arrowsPerTarget } = state.peloton;
@@ -3066,24 +3116,43 @@ function registerPelotonScore(score) {
     nextTargetIndex += 1;
   }
 
+  // Afficher la dernière flèche brièvement avant rotation/changement.
+  if (volleyCompleted) {
+    state.peloton.previewLocked = true;
+    renderPelotonView();
+
+    window.setTimeout(() => {
+      state.peloton.previewLocked = false;
+
+      // Vérifier si terminé
+      if (nextTargetIndex >= targetCount) {
+        state.peloton.completed = true;
+      } else {
+        state.peloton.currentTargetIndex = nextTargetIndex;
+        state.peloton.currentArrowIndex = nextArrowIndex;
+      }
+
+      const nextArcherId = getNextPelotonArcherId(currentArcherIndex, finishedTargetIndex);
+
+      if (nextArcherId) {
+        state.pelotonActiveArcherIndex = nextArcherId;
+        updatePelotonArcher(nextArcherId);
+        return;
+      }
+
+      showFlashInfo("Saisie peloton terminée.");
+      renderPelotonView();
+    }, LAST_SCORE_PREVIEW_MS);
+
+    return;
+  }
+
   // Vérifier si terminé
   if (nextTargetIndex >= targetCount) {
     state.peloton.completed = true;
   } else {
     state.peloton.currentTargetIndex = nextTargetIndex;
     state.peloton.currentArrowIndex = nextArrowIndex;
-  }
-
-  if (volleyCompleted) {
-    const nextArcherId = getNextPelotonArcherId(currentArcherIndex, finishedTargetIndex);
-
-    if (nextArcherId) {
-      state.pelotonActiveArcherIndex = nextArcherId;
-      updatePelotonArcher(nextArcherId);
-      return;
-    }
-
-    showFlashInfo("Saisie peloton terminée.");
   }
 
   renderPelotonView();
@@ -3402,6 +3471,10 @@ function renderPelotonView() {
   if (els.pelotonStationArcherName) {
     els.pelotonStationArcherName.textContent = getPelotonHeaderNames(activeArcherIndex, state.peloton.ruleset);
   }
+  const currentTargetScores = completed
+    ? []
+    : scores[Math.max(0, Math.min(state.peloton.currentTargetIndex, targetCount - 1))];
+  renderCurrentShootPills(els.pelotonCurrentShootDisplay, currentTargetScores, state.peloton.arrowsPerTarget);
   
   if (els.pelotonArcherLabel) {
     els.pelotonArcherLabel.textContent = name || "Archer";
