@@ -45,6 +45,10 @@ const state = {
     nameP2: "",
     completed: false,
   },
+  pelotonRoster: [],
+  pelotonByArcher: {},
+  pelotonActiveArcherIndex: null,
+  peloton: null,
 };
 
 const els = {
@@ -72,6 +76,7 @@ const els = {
   scoreEntryPanel: document.getElementById("score-entry-panel"),
   targetGroupSelect: document.getElementById("target-group-select"),
   pointsPad: document.getElementById("points-pad"),
+  pointsRuleHint: document.getElementById("points-rule-hint"),
   currentShootDisplay: document.getElementById("current-shoot-display"),
   liveVolleyHistoryWrap: document.getElementById("live-volley-history-wrap"),
   liveVolleyHistoryBody: document.getElementById("live-volley-history-body"),
@@ -187,9 +192,33 @@ const els = {
   multiModalOverlay: document.getElementById("multi-modal-overlay"),
   multiCloseBtn: document.getElementById("multi-close-btn"),
   multiRulesetSelect: document.getElementById("multi-ruleset-select"),
+  rulesetLabel: document.getElementById("ruleset-label"),
   multiModeSelect: document.getElementById("multi-mode-select"),
   multiStartBtn: document.getElementById("multi-start-btn"),
   multiTargetCountInputs: document.querySelectorAll('input[name="multi-target-count"]'),
+  targetCountFieldset: document.getElementById("target-count-fieldset"),
+  duelNamesContainer: document.getElementById("duel-names-container"),
+    duelNamesError: document.getElementById("duel-names-error"),
+  pelotonNamesContainer: document.getElementById("peloton-names-container"),
+  pelotonNamesError: document.getElementById("peloton-names-error"),
+  pelotonNameInputs: [1, 2, 3, 4, 5, 6].map((i) => document.getElementById(`peloton-name-p${i}`)),
+  pelotonModal: document.getElementById("peloton-modal"),
+  pelotonModalOverlay: document.getElementById("peloton-modal-overlay"),
+  pelotonModalTitleText: document.getElementById("peloton-modal-title-text"),
+  pelotonCloseBtn: document.getElementById("peloton-close-btn"),
+  pelotonArchersGrid: document.getElementById("peloton-archers-grid"),
+  pelotonStationNumber: document.getElementById("peloton-station-number"),
+  pelotonStationArcherName: document.getElementById("peloton-station-archer-name"),
+  pelotonSummaryCard: document.getElementById("peloton-summary-card"),
+  pelotonArcherLabel: document.getElementById("peloton-archer-label"),
+  pelotonTotal: document.getElementById("peloton-total"),
+  pelotonCurrentCard: document.getElementById("peloton-current-card"),
+  pelotonHistory: document.getElementById("peloton-history"),
+  pelotonPointsPad: document.getElementById("peloton-points-pad"),
+  pelotonPointsRuleHint: document.getElementById("peloton-points-rule-hint"),
+  pelotonStepBackBtn: document.getElementById("peloton-step-back-btn"),
+  pelotonRestartBtn: document.getElementById("peloton-restart-btn"),
+  pelotonScoreEntryPanel: document.getElementById("peloton-score-entry-panel"),
   duelModal: document.getElementById("duel-modal"),
   duelModalOverlay: document.getElementById("duel-modal-overlay"),
   duelModalTitleText: document.getElementById("duel-modal-title-text"),
@@ -202,6 +231,7 @@ const els = {
   duelCurrentP1: document.getElementById("duel-current-p1"),
   duelCurrentP2: document.getElementById("duel-current-p2"),
   duelPointsPad: document.getElementById("duel-points-pad"),
+  duelPointsRuleHint: document.getElementById("duel-points-rule-hint"),
   duelStepBackBtn: document.getElementById("duel-step-back-btn"),
   duelRestartBtn: document.getElementById("duel-restart-btn"),
   duelNameP1: document.getElementById("duel-name-p1"),
@@ -777,6 +807,8 @@ function renderPad() {
     }
     els.pointsPad.appendChild(button);
   });
+
+  updatePointsRuleHint(els.pointsRuleHint, state.activeRuleset, state.currentArrowIndex);
 }
 
 function updateScoringHeader() {
@@ -958,18 +990,67 @@ function renderLiveVolleyHistory() {
   }
 }
 
-function getSelectablePointsForCurrentArrow() {
-  if (state.activeRuleset === "nature" && state.scoringMode === "individual") {
-    const isFirstArrowOfPair = state.currentArrowIndex % 2 === 0;
+function getSelectablePointsForArrow(ruleset, scoringMode, arrowIndex, allowedPoints) {
+  const sourcePoints = Array.isArray(allowedPoints) && allowedPoints.length ? allowedPoints : [0];
+
+  if (ruleset === "nature") {
+    const isFirstArrowOfPair = arrowIndex % 2 === 0;
     const candidateScores = isFirstArrowOfPair ? [20, 15, 0] : [15, 10, 0];
-    return candidateScores.filter((score) => state.allowedPoints.includes(score));
+    return candidateScores.filter((score) => sourcePoints.includes(score));
   }
-  if (state.activeRuleset === "ar") {
+
+  if (ruleset === "ar") {
     const arrowScores = [[20, 18, 0], [16, 14, 0], [12, 10, 0]];
-    const candidates = arrowScores[state.currentArrowIndex] || [0];
-    return candidates.filter((score) => state.allowedPoints.includes(score));
+    const candidates = arrowScores[arrowIndex] || [0];
+    return candidates.filter((score) => sourcePoints.includes(score));
   }
-  return state.allowedPoints;
+
+  return sourcePoints;
+}
+
+function getSelectablePointsForCurrentArrow() {
+  return getSelectablePointsForArrow(
+    state.activeRuleset,
+    state.scoringMode,
+    state.currentArrowIndex,
+    state.allowedPoints,
+  );
+}
+
+function getScoreRuleHint(ruleset, arrowIndex) {
+  if (ruleset === "nature") {
+    const isFirstArrowOfPair = arrowIndex % 2 === 0;
+    const arrowLabel = isFirstArrowOfPair ? "1re flèche" : "2e flèche";
+    const values = isFirstArrowOfPair ? "20 / 15 / M" : "15 / 10 / M";
+    return `${arrowLabel} : ${values}`;
+  }
+
+  if (ruleset === "ar") {
+    const valuesByArrow = ["20 / 18 / M", "16 / 14 / M", "12 / 10 / M"];
+    const values = valuesByArrow[arrowIndex];
+    if (!values) return "";
+    return `Flèche ${arrowIndex + 1} : ${values}`;
+  }
+
+  return "";
+}
+
+function updatePointsRuleHint(element, ruleset, arrowIndex) {
+  if (!element) return;
+
+  const hint = getScoreRuleHint(ruleset, arrowIndex);
+  if (!hint) {
+    element.textContent = "";
+    element.classList.add("hidden");
+    return;
+  }
+
+  element.textContent = hint;
+  element.classList.remove("hidden");
+}
+
+function getSessionVolleyMaxTotal(ruleset, arrowsPerTarget, allowedPoints) {
+  return getMaxShootTotalForConfig(ruleset, "individual", arrowsPerTarget, allowedPoints);
 }
 
 function getCurrentShootPartialTotal() {
@@ -2607,11 +2688,33 @@ function openMultiModal() {
   closeHistoryModal();
   closeConfigModal();
   closeDuelModal();
+  
+  // Masquer le message d'erreur peloton
+  if (els.pelotonNamesError) {
+    els.pelotonNamesError.classList.add("hidden");
+  }
+  
+    // Masquer le message d'erreur duel
+    if (els.duelNamesError) {
+      els.duelNamesError.classList.add("hidden");
+    }
+  
   if (els.multiRulesetSelect && !els.multiRulesetSelect.value) {
     els.multiRulesetSelect.value = "nature";
   }
   if (els.multiModeSelect && !els.multiModeSelect.value) {
     els.multiModeSelect.value = "duel";
+  }
+  // Initialiser l'affichage des éléments selon le mode
+  const mode = els.multiModeSelect?.value || "duel";
+  if (mode === "duel") {
+    els.duelNamesContainer?.classList.remove("hidden");
+    els.pelotonNamesContainer?.classList.add("hidden");
+    els.targetCountFieldset?.classList.remove("hidden");
+  } else if (mode === "peloton") {
+    els.duelNamesContainer?.classList.add("hidden");
+    els.pelotonNamesContainer?.classList.remove("hidden");
+    els.targetCountFieldset?.classList.add("hidden");
   }
   els.multiModal?.classList.remove("hidden");
 }
@@ -2629,7 +2732,9 @@ function getSelectedMultiTargetCount() {
 function resetDuelStateFromMultiConfig() {
   const ruleset = els.multiRulesetSelect?.value || "3d";
   const mode = els.multiModeSelect?.value || "duel";
-  const targetCount = getSelectedMultiTargetCount();
+  const targetCount = mode === "peloton"
+    ? getTargetCountForRuleset(ruleset)
+    : getSelectedMultiTargetCount();
   const arrowsPerTarget = getArrowsPerVolley(ruleset, "team");
   const allowedPoints = [...new Set(presets[ruleset] || [0])].sort((a, b) => b - a);
 
@@ -2667,7 +2772,14 @@ function getDuelTotal(scores) {
 function renderDuelPad() {
   if (!els.duelPointsPad) return;
   els.duelPointsPad.innerHTML = "";
-  state.duel.allowedPoints.forEach((score) => {
+  const selectablePoints = getSelectablePointsForArrow(
+    state.duel.ruleset,
+    "individual",
+    state.duel.currentArrowIndex,
+    state.duel.allowedPoints,
+  );
+
+  selectablePoints.forEach((score) => {
     const button = document.createElement("button");
     button.className = "point-btn";
     if (score === 0) button.classList.add("zero");
@@ -2681,10 +2793,42 @@ function renderDuelPad() {
     }
     els.duelPointsPad.appendChild(button);
   });
+
+  updatePointsRuleHint(els.duelPointsRuleHint, state.duel.ruleset, state.duel.currentArrowIndex);
 }
 
-function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarget) {
+function renderPelotonPad() {
+  if (!els.pelotonPointsPad) return;
+  els.pelotonPointsPad.innerHTML = "";
+  const selectablePoints = getSelectablePointsForArrow(
+    state.peloton.ruleset,
+    "individual",
+    state.peloton.currentArrowIndex,
+    state.peloton.allowedPoints,
+  );
+
+  selectablePoints.forEach((score) => {
+    const button = document.createElement("button");
+    button.className = "point-btn";
+    if (score === 0) button.classList.add("zero");
+    if (score === FIELD_X) button.classList.add("x-score");
+    button.textContent = scoreLabel(score);
+    if (state.peloton.completed) {
+      button.disabled = true;
+      button.classList.add("lock-disabled");
+    } else {
+      button.addEventListener("click", () => registerPelotonScore(score));
+    }
+    els.pelotonPointsPad.appendChild(button);
+  });
+
+  updatePointsRuleHint(els.pelotonPointsRuleHint, state.peloton.ruleset, state.peloton.currentArrowIndex);
+}
+
+function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarget, options = {}) {
   if (!container) return;
+
+  const maxVolleyTotal = Number.isFinite(options.maxVolleyTotal) ? options.maxVolleyTotal : null;
 
   const isCompletedVolley = (arrows) => (
     Array.isArray(arrows)
@@ -2708,12 +2852,26 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
       .map((value) => (value === null || value === undefined ? "-" : scoreLabel(value)))
       .join(" / ");
     const targetTotal = targetArrows.reduce((sum, value) => sum + scoreToValue(value), 0);
-    const opponentArrows = Array.isArray(opponentScoresByTarget) ? opponentScoresByTarget[index] : null;
-    const bothCompleted = isCompletedVolley(targetArrows) && isCompletedVolley(opponentArrows);
-    const opponentTotal = bothCompleted
-      ? opponentArrows.reduce((sum, value) => sum + scoreToValue(value), 0)
-      : null;
-    const pillClass = bothCompleted && targetTotal > opponentTotal ? "is-green" : "is-blue";
+    const completed = isCompletedVolley(targetArrows);
+    const missCount = completed
+      ? targetArrows.reduce((count, value) => count + (scoreToValue(value) === 0 ? 1 : 0), 0)
+      : 0;
+    const isFullVolley = (
+      completed
+      && maxVolleyTotal !== null
+      && Math.abs(targetTotal - maxVolleyTotal) < 0.0001
+    );
+
+    let pillClass = "is-blue";
+    if (completed) {
+      if (missCount >= 2) {
+        pillClass = "is-red";
+      } else if (missCount === 1) {
+        pillClass = "is-orange";
+      } else if (isFullVolley) {
+        pillClass = "is-green";
+      }
+    }
 
     rows.push(`<div class="duel-volley-item"><span class="volley-pill ${pillClass}">${index + 1}</span><span class="duel-volley-values">${arrowsText}</span><span class="duel-volley-total">${targetTotal}</span></div>`);
   });
@@ -2777,11 +2935,17 @@ function renderDuelView() {
     els.duelTotalP2.innerHTML = `${p2Total}<span class="stats-unit">pts</span>`;
   }
   if (els.duelRestartBtn) {
-    els.duelRestartBtn.classList.toggle("hidden", !completed);
+    els.duelRestartBtn.classList.add("hidden");
   }
 
-  renderDuelVolleyHistory(els.duelHistoryP1, scoresP1, scoresP2);
-  renderDuelVolleyHistory(els.duelHistoryP2, scoresP2, scoresP1);
+  const duelMaxVolleyTotal = getSessionVolleyMaxTotal(
+    state.duel.ruleset,
+    state.duel.arrowsPerTarget,
+    state.duel.allowedPoints,
+  );
+
+  renderDuelVolleyHistory(els.duelHistoryP1, scoresP1, scoresP2, { maxVolleyTotal: duelMaxVolleyTotal });
+  renderDuelVolleyHistory(els.duelHistoryP2, scoresP2, scoresP1, { maxVolleyTotal: duelMaxVolleyTotal });
 
   renderDuelPad();
 }
@@ -2790,6 +2954,9 @@ function registerDuelScore(score) {
   if (state.duel.completed) return;
   const { currentTargetIndex, targetCount, activePlayer, currentArrowIndex, arrowsPerTarget, scoresP1, scoresP2 } = state.duel;
   if (currentTargetIndex < 0 || currentTargetIndex >= targetCount) return;
+  if (!getSelectablePointsForArrow(state.duel.ruleset, "individual", currentArrowIndex, state.duel.allowedPoints).includes(score)) {
+    return;
+  }
 
   // Record the arrow for the current player
   if (activePlayer === 1) {
@@ -2872,6 +3039,169 @@ function stepBackDuelScore() {
   renderDuelView();
 }
 
+function registerPelotonScore(score) {
+  if (!state.peloton || state.peloton.completed) return;
+
+  const currentArcherIndex = Number(state.pelotonActiveArcherIndex);
+  const { targetCount, currentTargetIndex, currentArrowIndex, arrowsPerTarget } = state.peloton;
+  const finishedTargetIndex = currentTargetIndex;
+  if (currentTargetIndex >= targetCount) return;
+  if (!getSelectablePointsForArrow(state.peloton.ruleset, "individual", currentArrowIndex, state.peloton.allowedPoints).includes(score)) return;
+
+  const scores = state.peloton.scores;
+  if (!scores[currentTargetIndex]) {
+    scores[currentTargetIndex] = Array(arrowsPerTarget).fill(null);
+  }
+
+  scores[currentTargetIndex][currentArrowIndex] = score;
+
+  // Déplacer à la flèche suivante
+  let nextTargetIndex = currentTargetIndex;
+  let nextArrowIndex = currentArrowIndex + 1;
+  let volleyCompleted = false;
+
+  if (nextArrowIndex >= arrowsPerTarget) {
+    volleyCompleted = true;
+    nextArrowIndex = 0;
+    nextTargetIndex += 1;
+  }
+
+  // Vérifier si terminé
+  if (nextTargetIndex >= targetCount) {
+    state.peloton.completed = true;
+  } else {
+    state.peloton.currentTargetIndex = nextTargetIndex;
+    state.peloton.currentArrowIndex = nextArrowIndex;
+  }
+
+  if (volleyCompleted) {
+    const nextArcherId = getNextPelotonArcherId(currentArcherIndex, finishedTargetIndex);
+
+    if (nextArcherId) {
+      state.pelotonActiveArcherIndex = nextArcherId;
+      updatePelotonArcher(nextArcherId);
+      return;
+    }
+
+    showFlashInfo("Saisie peloton terminée.");
+  }
+
+  renderPelotonView();
+}
+
+function renderPelotonArchersGrid() {
+  if (!els.pelotonArchersGrid) return;
+
+  els.pelotonArchersGrid.innerHTML = "";
+  const activeIndex = Number(state.pelotonActiveArcherIndex);
+
+  (state.pelotonRoster || []).forEach((archer) => {
+    const archerState = state.pelotonByArcher?.[archer.index];
+    const total = archerState ? getDuelTotal(archerState.scores || []) : 0;
+
+    const card = document.createElement("div");
+    card.className = "peloton-archer-card";
+    if (archer.index === activeIndex) {
+      card.classList.add("is-active");
+    }
+    if (archerState?.completed) {
+      card.classList.add("is-completed");
+    }
+    card.setAttribute("role", "listitem");
+    card.innerHTML = `<span class="peloton-archer-card-name">${archer.name}</span><span class="peloton-archer-card-total">${total} pts</span>`;
+
+    els.pelotonArchersGrid.appendChild(card);
+  });
+}
+
+function getPelotonHeaderNames(activeArcherIndex, ruleset) {
+  const roster = state.pelotonRoster || [];
+  const activePosition = roster.findIndex((archer) => archer.index === activeArcherIndex);
+  if (activePosition < 0) return "archers";
+
+  if (ruleset === "3d" || ruleset === "campagne") {
+    const pairCount = Math.max(1, Math.ceil(roster.length / 2));
+    const globalTargetIndex = getPelotonGlobalTargetIndex();
+    const pairStart = (globalTargetIndex % pairCount) * 2;
+    const first = roster[pairStart]?.name || "";
+    const second = roster[pairStart + 1]?.name || "";
+    return [first, second].filter(Boolean).join(" / ") || "archers";
+  }
+
+  return roster[activePosition]?.name || "archer";
+}
+
+function getPelotonGlobalTargetIndex() {
+  const archerIds = (state.pelotonRoster || []).map((archer) => archer.index);
+  let minTargetIndex = Infinity;
+
+  archerIds.forEach((archerId) => {
+    const archerState = state.pelotonByArcher?.[archerId];
+    if (!archerState || archerState.completed) return;
+    minTargetIndex = Math.min(minTargetIndex, archerState.currentTargetIndex || 0);
+  });
+
+  if (minTargetIndex === Infinity) {
+    return state.peloton?.targetCount ? Math.max(0, state.peloton.targetCount - 1) : 0;
+  }
+
+  return minTargetIndex;
+}
+
+function getNextPelotonArcherId(currentArcherIndex, finishedTargetIndex) {
+  const roster = state.pelotonRoster || [];
+  const archerIds = roster.map((archer) => archer.index);
+  const currentPosition = archerIds.indexOf(currentArcherIndex);
+  if (currentPosition < 0 || archerIds.length === 0) return null;
+
+  const getArcherState = (archerId) => state.pelotonByArcher?.[archerId] || null;
+  const ruleset = state.peloton?.ruleset || state.duel?.ruleset;
+  const isPairRuleset = ruleset === "3d" || ruleset === "campagne";
+
+  // Nature et autres parcours tirés un par un: rotation simple entre archers.
+  if (!isPairRuleset) {
+    for (let offset = 1; offset <= archerIds.length; offset += 1) {
+      const candidateId = archerIds[(currentPosition + offset) % archerIds.length];
+      const candidate = getArcherState(candidateId);
+      if (!candidate || candidate.completed) continue;
+      return candidateId;
+    }
+    return null;
+  }
+
+  // 1) Tant que tout le monde n'a pas tiré la cible courante, on reste sur cette cible.
+  for (let offset = 1; offset <= archerIds.length; offset += 1) {
+    const candidateId = archerIds[(currentPosition + offset) % archerIds.length];
+    const candidate = getArcherState(candidateId);
+    if (!candidate || candidate.completed) continue;
+    if (candidate.currentTargetIndex === finishedTargetIndex) {
+      return candidateId;
+    }
+  }
+
+  // 2) Une fois tout le monde passé, on commence la cible suivante.
+  let minTargetIndex = Infinity;
+  archerIds.forEach((archerId) => {
+    const candidate = getArcherState(archerId);
+    if (!candidate || candidate.completed) return;
+    minTargetIndex = Math.min(minTargetIndex, candidate.currentTargetIndex);
+  });
+
+  if (minTargetIndex === Infinity) {
+    return null;
+  }
+
+  for (const candidateId of archerIds) {
+    const candidate = getArcherState(candidateId);
+    if (!candidate || candidate.completed) continue;
+    if (candidate.currentTargetIndex === minTargetIndex) {
+      return candidateId;
+    }
+  }
+
+  return null;
+}
+
 function restartDuelSession() {
   const previousNameP1 = state.duel.nameP1 || "";
   const previousNameP2 = state.duel.nameP2 || "";
@@ -2886,30 +3216,228 @@ function restartDuelSession() {
 
 function openDuelModal() {
   resetDuelStateFromMultiConfig();
-  if (els.duelModalTitleText) {
-    els.duelModalTitleText.textContent = `Mode duel - ${formatRulesetLabel(state.duel.ruleset)}`;
+  const mode = els.multiModeSelect?.value || "duel";
+
+  if (mode === "duel") {
+    const duelNameP1 = els.duelNameP1 ? els.duelNameP1.value.trim() : "";
+    const duelNameP2 = els.duelNameP2 ? els.duelNameP2.value.trim() : "";
+
+    if (!duelNameP1 || !duelNameP2) {
+      els.duelNamesError?.classList.remove("hidden");
+      return;
+    }
+
+    els.duelNamesError?.classList.add("hidden");
+
+    if (els.duelModalTitleText) {
+      els.duelModalTitleText.textContent = `Mode duel - ${formatRulesetLabel(state.duel.ruleset)}`;
+    }
+    state.duel.nameP1 = duelNameP1.slice(0, 10);
+    state.duel.nameP2 = duelNameP2.slice(0, 10);
+
+    closeMultiModal();
+    closeStatsModal();
+    closeGeneralStatsModal();
+    closeHelpModal();
+    closeHistoryModal();
+    closeConfigModal();
+    renderDuelView();
+    els.duelModal?.classList.remove("hidden");
   }
-  // Récupérer les noms des joueurs depuis les champs de saisie
-  const duelNameP1 = els.duelNameP1 ? els.duelNameP1.value.trim().slice(0, 12) : "";
-  const duelNameP2 = els.duelNameP2 ? els.duelNameP2.value.trim().slice(0, 12) : "";
-  if (duelNameP1) {
-    state.duel.nameP1 = duelNameP1;
+}
+
+function openPelotonModal() {
+  resetDuelStateFromMultiConfig();
+  
+  // Récupérer les noms des 6 archers depuis les champs de saisie
+  const pelotonNames = [];
+  for (let i = 1; i <= 6; i++) {
+    const input = document.getElementById(`peloton-name-p${i}`);
+    const name = input ? input.value.trim().slice(0, 10) : "";
+    if (name) {
+      pelotonNames.push({ index: i, name });
+    }
   }
-  if (duelNameP2) {
-    state.duel.nameP2 = duelNameP2;
+  
+  if (pelotonNames.length === 0) {
+    if (els.pelotonNamesError) {
+      els.pelotonNamesError.classList.remove("hidden");
+    }
+    return;
   }
+
+  // Masquer le message d'erreur si les noms sont valides
+  if (els.pelotonNamesError) {
+    els.pelotonNamesError.classList.add("hidden");
+  }
+  
+  state.pelotonRoster = pelotonNames;
+  state.pelotonByArcher = {};
+  pelotonNames.forEach((archer) => {
+    state.pelotonByArcher[archer.index] = {
+      ...state.duel,
+      name: archer.name,
+      scores: Array(state.duel.targetCount).fill(null).map(() => Array(state.duel.arrowsPerTarget).fill(null)),
+      currentTargetIndex: 0,
+      currentArrowIndex: 0,
+      completed: false,
+    };
+  });
+  state.pelotonActiveArcherIndex = pelotonNames[0].index;
+  
   closeMultiModal();
   closeStatsModal();
   closeGeneralStatsModal();
   closeHelpModal();
   closeHistoryModal();
   closeConfigModal();
-  renderDuelView();
-  els.duelModal?.classList.remove("hidden");
+  
+  // Initialiser avec le premier archer
+  updatePelotonArcher(state.pelotonActiveArcherIndex);
+  
+  els.pelotonModal?.classList.remove("hidden");
+}
+
+function updatePelotonArcher(selectedArcherIndex = state.pelotonActiveArcherIndex) {
+  const archerIndex = Number(selectedArcherIndex);
+  if (!Number.isInteger(archerIndex)) {
+    return;
+  }
+  
+  // Récupérer le nom de l'archer sélectionné
+  const input = document.getElementById(`peloton-name-p${archerIndex}`);
+  const archerName = input ? input.value.trim().slice(0, 10) : "";
+  
+  if (!archerName) {
+    return;
+  }
+
+  if (!state.pelotonByArcher) {
+    state.pelotonByArcher = {};
+  }
+
+  if (!state.pelotonByArcher[archerIndex]) {
+    state.pelotonByArcher[archerIndex] = {
+      ...state.duel,
+      name: archerName,
+      scores: Array(state.duel.targetCount).fill(null).map(() => Array(state.duel.arrowsPerTarget).fill(null)),
+      currentTargetIndex: 0,
+      currentArrowIndex: 0,
+      completed: false,
+    };
+  }
+
+  state.pelotonByArcher[archerIndex].name = archerName;
+  state.peloton = state.pelotonByArcher[archerIndex];
+  state.pelotonActiveArcherIndex = archerIndex;
+  
+  if (els.pelotonModalTitleText) {
+    els.pelotonModalTitleText.textContent = `Mode peloton - ${formatRulesetLabel(state.peloton.ruleset)}`;
+  }
+
+  // Update the station header
+  if (els.pelotonStationNumber) {
+    els.pelotonStationNumber.textContent = String(getPelotonGlobalTargetIndex() + 1);
+  }
+  if (els.pelotonStationArcherName) {
+    els.pelotonStationArcherName.textContent = getPelotonHeaderNames(archerIndex, state.peloton.ruleset);
+  }
+  
+  renderPelotonView();
 }
 
 function closeDuelModal() {
   els.duelModal?.classList.add("hidden");
+}
+
+function renderPelotonView() {
+  if (!state.peloton) return;
+  
+  const { targetCount, scores, completed, name } = state.peloton;
+  const total = getDuelTotal(scores);
+  const activeArcherIndex = Number(state.pelotonActiveArcherIndex);
+  const globalTargetIndex = getPelotonGlobalTargetIndex();
+
+  if (els.pelotonStationNumber) {
+    els.pelotonStationNumber.textContent = String(globalTargetIndex + 1);
+  }
+  if (els.pelotonStationArcherName) {
+    els.pelotonStationArcherName.textContent = getPelotonHeaderNames(activeArcherIndex, state.peloton.ruleset);
+  }
+  
+  if (els.pelotonArcherLabel) {
+    els.pelotonArcherLabel.textContent = name || "Archer";
+  }
+  if (els.pelotonTotal) {
+    els.pelotonTotal.innerHTML = `${total}<span class="stats-unit">pts</span>`;
+  }
+  if (els.pelotonSummaryCard) {
+    els.pelotonSummaryCard.classList.toggle("is-active-archer", !completed);
+    els.pelotonSummaryCard.classList.toggle("is-winner-archer", completed);
+  }
+  if (els.pelotonHistory) {
+    els.pelotonHistory.innerHTML = "";
+    const pelotonMaxVolleyTotal = getSessionVolleyMaxTotal(
+      state.peloton.ruleset,
+      state.peloton.arrowsPerTarget,
+      state.peloton.allowedPoints,
+    );
+    renderDuelVolleyHistory(els.pelotonHistory, scores, [], { maxVolleyTotal: pelotonMaxVolleyTotal });
+  }
+  if (els.pelotonRestartBtn) {
+    els.pelotonRestartBtn.classList.add("hidden");
+  }
+
+  renderPelotonArchersGrid();
+
+  renderPelotonPad();
+}
+
+function stepBackPelotonScore() {
+  const peloton = state.peloton;
+  if (!peloton || peloton.targetCount <= 0) return;
+
+  const clearScoreAt = (targetIndex, arrowIndex) => {
+    if (!peloton.scores[targetIndex]) return;
+    peloton.scores[targetIndex][arrowIndex] = null;
+  };
+
+  if (peloton.completed) {
+    peloton.completed = false;
+    peloton.currentTargetIndex = peloton.targetCount - 1;
+    peloton.currentArrowIndex = peloton.arrowsPerTarget - 1;
+    clearScoreAt(peloton.currentTargetIndex, peloton.currentArrowIndex);
+    renderPelotonView();
+    return;
+  }
+
+  let targetIndex = peloton.currentTargetIndex;
+  let arrowIndex = peloton.currentArrowIndex;
+
+  // Rien à supprimer au très début
+  if (targetIndex === 0 && arrowIndex === 0) {
+    return;
+  }
+
+  // Effacer le score actuel
+  clearScoreAt(targetIndex, arrowIndex);
+
+  // Aller à la flèche précédente
+  if (arrowIndex > 0) {
+    arrowIndex--;
+  } else {
+    targetIndex--;
+    arrowIndex = peloton.arrowsPerTarget - 1;
+  }
+
+  peloton.currentTargetIndex = targetIndex;
+  peloton.currentArrowIndex = arrowIndex;
+
+  renderPelotonView();
+}
+
+function closePelotonModal() {
+  els.pelotonModal?.classList.add("hidden");
 }
 
 function confirmAction(message, confirmLabel = "Supprimer") {
@@ -3069,7 +3597,33 @@ els.homeConfigBtn.addEventListener("click", () => { openConfigModal(); });
 els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
 if (els.multiStartBtn) {
   els.multiStartBtn.addEventListener("click", () => {
-    openDuelModal();
+    const mode = els.multiModeSelect?.value || "duel";
+    if (mode === "duel") {
+      openDuelModal();
+    } else if (mode === "peloton") {
+      openPelotonModal();
+    }
+  });
+}
+if (els.multiModeSelect) {
+  els.multiModeSelect.addEventListener("change", (e) => {
+    const mode = e.target.value;
+    // Masquer le message d'erreur quand on change de mode
+    if (els.pelotonNamesError) {
+      els.pelotonNamesError.classList.add("hidden");
+    }
+      if (els.duelNamesError) {
+        els.duelNamesError.classList.add("hidden");
+      }
+    if (mode === "duel") {
+      els.duelNamesContainer?.classList.remove("hidden");
+      els.pelotonNamesContainer?.classList.add("hidden");
+      els.targetCountFieldset?.classList.remove("hidden");
+    } else if (mode === "peloton") {
+      els.duelNamesContainer?.classList.add("hidden");
+      els.pelotonNamesContainer?.classList.remove("hidden");
+      els.targetCountFieldset?.classList.add("hidden");
+    }
   });
 }
 if (els.setupCloseBtn) {
@@ -3163,6 +3717,37 @@ if (els.duelStepBackBtn) {
 }
 if (els.duelRestartBtn) {
   els.duelRestartBtn.addEventListener("click", restartDuelSession);
+}
+if (els.pelotonModalOverlay) {
+  els.pelotonModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.pelotonCloseBtn) {
+  els.pelotonCloseBtn.addEventListener("click", closePelotonModal);
+}
+if (els.pelotonStepBackBtn) {
+  els.pelotonStepBackBtn.addEventListener("click", () => {
+    if (!state.peloton) return;
+    stepBackPelotonScore();
+  });
+}
+if (els.pelotonRestartBtn) {
+  els.pelotonRestartBtn.addEventListener("click", () => {
+    if (!state.peloton) return;
+    const activeArcherIndex = Number(state.pelotonActiveArcherIndex);
+    const previousName = state.peloton.name || "";
+    resetDuelStateFromMultiConfig();
+    const refreshed = {
+      ...state.duel,
+      name: previousName,
+      scores: Array(state.duel.targetCount).fill(null).map(() => Array(state.duel.arrowsPerTarget).fill(null)),
+    };
+    state.peloton = refreshed;
+    if (Number.isInteger(activeArcherIndex)) {
+      state.pelotonByArcher[activeArcherIndex] = refreshed;
+    }
+    renderPelotonView();
+    showFlashInfo("Nouvel enregistrement peloton démarré.");
+  });
 }
 els.historyModeFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
 els.historyRulesetFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
