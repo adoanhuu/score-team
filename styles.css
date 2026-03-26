@@ -935,6 +935,22 @@ input[type="range"]:focus-visible {
   gap: 6px;
 }
 
+.points-rule-hint {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.04);
+  color: #485569;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.points-rule-hint.hidden {
+  display: none;
+}
+
 .score-entry-sticky {
   position: fixed;
   left: 50%;
@@ -1130,6 +1146,7 @@ input[type="range"]:focus-visible {
 
 .volley-pill.is-red {
   background: #9b2226;
+  color: #fff;
 }
 
 .row-delete-btn {
@@ -1506,13 +1523,30 @@ input[type="range"]:focus-visible {
   gap: 10px;
 }
 
-.duel-names-row label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.duel-names-row input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   font-size: 0.92rem;
-  font-weight: 600;
+  background: #fff;
+  color: #1f2a24;
 }
+
+  .duel-names-error {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background-color: #ffebee;
+    border: 1px solid #ef5350;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .duel-names-error.hidden {
+    display: none;
+  }
 
 .duel-names-row input {
   padding: 8px 10px;
@@ -1531,6 +1565,42 @@ input[type="range"]:focus-visible {
 #multi-modal .duel-names-row {
   margin-bottom: 16px;
   gap: 14px;
+}
+
+.peloton-names-row {
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.peloton-names-row input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.92rem;
+  background: #fff;
+  color: #1f2a24;
+}
+
+#multi-modal .peloton-names-row {
+  margin-bottom: 16px;
+  gap: 14px;
+}
+
+.peloton-names-error {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background-color: #ffebee;
+  border: 1px solid #ef5350;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.peloton-names-error.hidden {
+  display: none;
 }
 
 #multi-modal .multi-target-fieldset {
@@ -1575,9 +1645,7 @@ input[type="range"]:focus-visible {
 }
 
 .duel-volley-history {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px dashed var(--line);
+  padding: 6px;
   display: grid;
   gap: 3px;
   width: 100%;
@@ -1606,6 +1674,87 @@ input[type="range"]:focus-visible {
   font-size: 1.1rem;
   font-weight: 600;
 }
+
+#duel-modal .duel-current-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#peloton-modal .duel-current-row {
+  grid-template-columns: 1fr;
+}
+
+#peloton-current-card {
+  width: 100%;
+  justify-items: stretch;
+}
+
+#peloton-history {
+  width: 100%;
+}
+
+#peloton-station-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#peloton-station-archer-name {
+  margin-left: auto;
+  text-align: right;
+}
+
+.peloton-archers-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.peloton-archer-card {
+  border: 2px solid #d8e0e8;
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px 10px;
+  text-align: left;
+  display: grid;
+  gap: 3px;
+  transition: border-color 0.15s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.peloton-archer-card.is-active {
+  border-color: var(--light-blue);
+}
+
+.peloton-archer-card.is-best-total {
+  background: #2d6a4f;
+  border-color: #2d6a4f;
+}
+
+.peloton-archer-card.is-best-total.is-active {
+  border-color: var(--light-blue);
+}
+
+.peloton-archer-card.is-best-total .peloton-archer-card-name,
+.peloton-archer-card.is-best-total .peloton-archer-card-total {
+  color: #fff;
+}
+
+.peloton-archer-card.is-completed {
+  opacity: 0.8;
+}
+
+.peloton-archer-card-name {
+  font-size: 0.9rem;
+  color: #394854;
+  font-weight: 700;
+}
+
+.peloton-archer-card-total {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1f2a24;
+}
+
+
 
 .duel-volley-total {
   font-weight: 900;
@@ -2670,4 +2819,15 @@ input[type="range"]:focus-visible {
 
 .hidden {
   display: none;
+}
+
+.peloton-station-number {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.peloton-station-archer-name {
+  background-color: var(--line);
+  padding: 8px 12px;
+  border-radius: 8px;
 }
