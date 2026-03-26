@@ -3116,19 +3116,21 @@ function renderPelotonArchersGrid() {
 
 function getPelotonHeaderNames(activeArcherIndex, ruleset) {
   const roster = state.pelotonRoster || [];
-  const activePosition = roster.findIndex((archer) => archer.index === activeArcherIndex);
-  if (activePosition < 0) return "archers";
+  if (roster.length === 0) return "archers";
 
-  if (ruleset === "3d" || ruleset === "campagne") {
+  const isGroupedRuleset = ruleset === "3d" || ruleset === "campagne" || ruleset === "ar";
+  const globalTargetIndex = getPelotonGlobalTargetIndex();
+
+  if (isGroupedRuleset) {
     const pairCount = Math.max(1, Math.ceil(roster.length / 2));
-    const globalTargetIndex = getPelotonGlobalTargetIndex();
     const pairStart = (globalTargetIndex % pairCount) * 2;
     const first = roster[pairStart]?.name || "";
     const second = roster[pairStart + 1]?.name || "";
     return [first, second].filter(Boolean).join(" / ") || "archers";
   }
 
-  return roster[activePosition]?.name || "archer";
+  const leadArcherIndex = globalTargetIndex % roster.length;
+  return roster[leadArcherIndex]?.name || "archer";
 }
 
 function getPelotonGlobalTargetIndex() {
@@ -3156,7 +3158,7 @@ function getNextPelotonArcherId(currentArcherIndex, finishedTargetIndex) {
 
   const getArcherState = (archerId) => state.pelotonByArcher?.[archerId] || null;
   const ruleset = state.peloton?.ruleset || state.duel?.ruleset;
-  const isPairRuleset = ruleset === "3d" || ruleset === "campagne";
+  const isPairRuleset = ruleset === "3d" || ruleset === "campagne" || ruleset === "ar";
 
   // Nature et autres parcours tirés un par un: rotation simple entre archers.
   if (!isPairRuleset) {
