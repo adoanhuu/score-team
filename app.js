@@ -3089,11 +3089,44 @@ function registerPelotonScore(score) {
   renderPelotonView();
 }
 
+function getPelotonTotalLeaderIndices() {
+  const globalTargetIndex = getPelotonGlobalTargetIndex();
+  const allCompleted = (state.pelotonRoster || []).every((a) => state.pelotonByArcher?.[a.index]?.completed);
+
+  // N'afficher le meilleur total qu'une fois une cible terminée par tous.
+  if (!(allCompleted || globalTargetIndex > 0)) {
+    return new Set();
+  }
+
+  let bestTotal = -Infinity;
+  const leaders = new Set();
+
+  (state.pelotonRoster || []).forEach((archer) => {
+    const archerState = state.pelotonByArcher?.[archer.index];
+    if (!archerState) return;
+
+    const total = getDuelTotal(archerState.scores || []);
+    if (total > bestTotal) {
+      bestTotal = total;
+      leaders.clear();
+      leaders.add(archer.index);
+      return;
+    }
+
+    if (total === bestTotal) {
+      leaders.add(archer.index);
+    }
+  });
+
+  return leaders;
+}
+
 function renderPelotonArchersGrid() {
   if (!els.pelotonArchersGrid) return;
 
   els.pelotonArchersGrid.innerHTML = "";
   const activeIndex = Number(state.pelotonActiveArcherIndex);
+  const leaderIndices = getPelotonTotalLeaderIndices();
 
   (state.pelotonRoster || []).forEach((archer) => {
     const archerState = state.pelotonByArcher?.[archer.index];
@@ -3106,6 +3139,9 @@ function renderPelotonArchersGrid() {
     }
     if (archerState?.completed) {
       card.classList.add("is-completed");
+    }
+    if (leaderIndices.has(archer.index)) {
+      card.classList.add("is-best-total");
     }
     card.setAttribute("role", "listitem");
     card.innerHTML = `<span class="peloton-archer-card-name">${archer.name}</span><span class="peloton-archer-card-total">${total} pts</span>`;

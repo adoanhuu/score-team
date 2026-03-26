@@ -1706,11 +1706,25 @@ input[type="range"]:focus-visible {
   text-align: left;
   display: grid;
   gap: 3px;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.2s ease, color 0.2s ease;
 }
 
 .peloton-archer-card.is-active {
   border-color: var(--light-blue);
+}
+
+.peloton-archer-card.is-best-total {
+  background: #2d6a4f;
+  border-color: #2d6a4f;
+}
+
+.peloton-archer-card.is-best-total.is-active {
+  border-color: var(--light-blue);
+}
+
+.peloton-archer-card.is-best-total .peloton-archer-card-name,
+.peloton-archer-card.is-best-total .peloton-archer-card-total {
+  color: #fff;
 }
 
 .peloton-archer-card.is-completed {
@@ -1728,6 +1742,8 @@ input[type="range"]:focus-visible {
   font-weight: 800;
   color: #1f2a24;
 }
+
+
 
 .duel-volley-total {
   font-weight: 900;
