@@ -395,44 +395,49 @@ function syncFederationCheckboxes() {
 }
 
 function updateRulesetSelectOptions() {
-  const select = els.rulesetSelect;
-  if (!select) return;
-  
-  const currentValue = select.value;
-  const allOptions = select.querySelectorAll("option");
-  
-  allOptions.forEach((option) => {
-    const value = option.value;
-    if (value && appConfig.enabledRulesets.includes(value)) {
-      option.disabled = false;
-      option.style.display = "";
-    } else if (value) {
-      option.disabled = true;
-      option.style.display = "none";
+  const selects = [els.rulesetSelect, els.multiRulesetSelect].filter(Boolean);
+
+  selects.forEach((select) => {
+    const currentValue = select.value;
+    const allOptions = select.querySelectorAll("option");
+
+    allOptions.forEach((option) => {
+      const value = option.value;
+      if (value && appConfig.enabledRulesets.includes(value)) {
+        option.disabled = false;
+        option.style.display = "";
+      } else if (value) {
+        option.disabled = true;
+        option.style.display = "none";
+      }
+    });
+
+    // Masquer les optgroups vides
+    const optgroups = select.querySelectorAll("optgroup");
+    optgroups.forEach((optgroup) => {
+      const visibleOptions = Array.from(optgroup.querySelectorAll("option")).filter(
+        (opt) => opt.value && appConfig.enabledRulesets.includes(opt.value)
+      );
+      if (visibleOptions.length === 0) {
+        optgroup.style.display = "none";
+      } else {
+        optgroup.style.display = "";
+      }
+    });
+
+    // Si l'option actuelle est désactivée, sélectionner la première option activée
+    if (currentValue && !appConfig.enabledRulesets.includes(currentValue)) {
+      const firstEnabledOption = Array.from(allOptions).find(
+        (option) => option.value && appConfig.enabledRulesets.includes(option.value)
+      );
+      if (firstEnabledOption) {
+        select.value = firstEnabledOption.value;
+        if (select === els.rulesetSelect) {
+          select.dispatchEvent(new Event("change"));
+        }
+      }
     }
   });
-  
-  // Masquer les optgroups vides
-  const optgroups = select.querySelectorAll("optgroup");
-  optgroups.forEach((optgroup) => {
-    const visibleOptions = Array.from(optgroup.querySelectorAll("option")).filter(
-      (opt) => opt.value && appConfig.enabledRulesets.includes(opt.value)
-    );
-    if (visibleOptions.length === 0) {
-      optgroup.style.display = "none";
-    } else {
-      optgroup.style.display = "";
-    }
-  });
-  
-  // Si l'option actuelle est désactivée, sélectionner la première option activée
-  if (currentValue && !appConfig.enabledRulesets.includes(currentValue)) {
-    const firstEnabled = appConfig.enabledRulesets[0];
-    if (firstEnabled) {
-      select.value = firstEnabled;
-      select.dispatchEvent(new Event("change"));
-    }
-  }
 }
 
 const maxArrowValuesByRuleset = {
@@ -2717,8 +2722,17 @@ function openMultiModal() {
       els.duelNamesError.classList.add("hidden");
     }
   
-  if (els.multiRulesetSelect && !els.multiRulesetSelect.value) {
-    els.multiRulesetSelect.value = "nature";
+  if (els.multiRulesetSelect) {
+    const currentValue = els.multiRulesetSelect.value;
+    const hasCurrentEnabled = currentValue && appConfig.enabledRulesets.includes(currentValue);
+    if (!hasCurrentEnabled) {
+      const firstEnabledOption = Array.from(els.multiRulesetSelect.querySelectorAll("option")).find(
+        (option) => option.value && appConfig.enabledRulesets.includes(option.value)
+      );
+      if (firstEnabledOption) {
+        els.multiRulesetSelect.value = firstEnabledOption.value;
+      }
+    }
   }
   if (els.multiModeSelect && !els.multiModeSelect.value) {
     els.multiModeSelect.value = "duel";
