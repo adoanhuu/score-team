@@ -2917,6 +2917,102 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
   container.innerHTML = rows.join("");
 }
 
+function renderPelotonHistorySwiper(container, options = {}) {
+  if (!container) return;
+
+  const roster = state.pelotonRoster || [];
+  if (roster.length === 0) {
+    container.innerHTML = '<div class="duel-volley-empty">Aucune volée</div>';
+    return;
+  }
+
+  const maxVolleyTotal = Number.isFinite(options.maxVolleyTotal) ? options.maxVolleyTotal : null;
+  const activeArcherIndex = Number(state.pelotonActiveArcherIndex);
+  const groupedRoster = [];
+  for (let i = 0; i < roster.length; i += 2) {
+    groupedRoster.push(roster.slice(i, i + 2));
+  }
+  const activeArcherPosition = Math.max(0, roster.findIndex((archer) => archer.index === activeArcherIndex));
+  const initialSlideIndex = Math.floor(activeArcherPosition / 2);
+
+  const slideMarkup = groupedRoster.map((archerPair, pairIndex) => {
+    const activeClass = pairIndex === initialSlideIndex ? " is-active" : "";
+    const pairLabel = archerPair.map((archer) => archer.name).join(" / ");
+    const pairContent = archerPair.map((archer) => {
+      const archerState = state.pelotonByArcher?.[archer.index];
+      const total = archerState ? getDuelTotal(archerState.scores || []) : 0;
+
+      return `
+        <article class="peloton-history-archer-card">
+          <header class="peloton-history-slide-head">
+            <strong class="peloton-history-slide-name">${archer.name}</strong>
+            <span class="peloton-history-slide-total">${total} pts</span>
+          </header>
+          <div class="peloton-history-slide-body" data-archer-index="${archer.index}"></div>
+        </article>
+      `;
+    }).join("");
+
+    return `
+      <section class="peloton-history-slide${activeClass}" data-slide-index="${pairIndex}" aria-label="Historique ${pairLabel}">
+        ${pairContent}
+      </section>
+    `;
+  }).join("");
+
+  container.innerHTML = `
+    <div class="peloton-history-swiper">
+      <div class="peloton-history-track" aria-label="Historique par archer">
+        ${slideMarkup}
+      </div>
+    </div>
+  `;
+
+  const track = container.querySelector(".peloton-history-track");
+  const slides = [...container.querySelectorAll(".peloton-history-slide")];
+
+  slides.forEach((slide) => {
+    const historyBodies = [...slide.querySelectorAll(".peloton-history-slide-body")];
+    historyBodies.forEach((historyBody) => {
+      const archerIndex = Number(historyBody.dataset.archerIndex);
+      const archerState = state.pelotonByArcher?.[archerIndex];
+      renderDuelVolleyHistory(historyBody, archerState?.scores || [], [], { maxVolleyTotal });
+    });
+  });
+
+  if (!track || slides.length === 0) {
+    return;
+  }
+
+  const setActiveSlide = (index) => {
+    slides.forEach((slide, slideIndex) => {
+      slide.classList.toggle("is-active", slideIndex === index);
+    });
+  };
+
+  const scrollToSlide = (index, behavior = "smooth") => {
+    const boundedIndex = Math.max(0, Math.min(index, slides.length - 1));
+    const width = track.clientWidth || 1;
+    track.scrollTo({ left: boundedIndex * width, behavior });
+    setActiveSlide(boundedIndex);
+  };
+
+  let rafId = 0;
+  track.addEventListener("scroll", () => {
+    if (rafId) return;
+    rafId = window.requestAnimationFrame(() => {
+      const width = track.clientWidth || 1;
+      const index = Math.round(track.scrollLeft / width);
+      setActiveSlide(Math.max(0, Math.min(index, slides.length - 1)));
+      rafId = 0;
+    });
+  }, { passive: true });
+
+  window.requestAnimationFrame(() => {
+    scrollToSlide(initialSlideIndex, "auto");
+  });
+}
+
 function renderDuelView() {
   const { currentTargetIndex, targetCount, activePlayer, scoresP1, scoresP2, completed, nameP1, nameP2, currentArrowIndex, arrowsPerTarget } = state.duel;
   const safeIndex = Math.max(0, Math.min(currentTargetIndex, targetCount - 1));
@@ -3507,7 +3603,11 @@ function renderPelotonView() {
       state.peloton.arrowsPerTarget,
       state.peloton.allowedPoints,
     );
-    renderDuelVolleyHistory(els.pelotonHistory, scores, [], { maxVolleyTotal: pelotonMaxVolleyTotal });
+    if (completed) {
+      renderPelotonHistorySwiper(els.pelotonHistory, { maxVolleyTotal: pelotonMaxVolleyTotal });
+    } else {
+      renderDuelVolleyHistory(els.pelotonHistory, scores, [], { maxVolleyTotal: pelotonMaxVolleyTotal });
+    }
   }
   if (els.pelotonRestartBtn) {
     els.pelotonRestartBtn.classList.add("hidden");
