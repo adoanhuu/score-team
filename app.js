@@ -2980,6 +2980,28 @@ function renderPelotonHistorySwiper(container, options = {}) {
     });
   });
 
+  const historyCards = [...container.querySelectorAll(".peloton-history-archer-card")];
+  let isSyncingHistoryScroll = false;
+  historyCards.forEach((card) => {
+    card.addEventListener("scroll", () => {
+      if (isSyncingHistoryScroll) {
+        return;
+      }
+
+      isSyncingHistoryScroll = true;
+      const nextScrollTop = card.scrollTop;
+      historyCards.forEach((otherCard) => {
+        if (otherCard === card) {
+          return;
+        }
+        if (Math.abs(otherCard.scrollTop - nextScrollTop) > 1) {
+          otherCard.scrollTop = nextScrollTop;
+        }
+      });
+      isSyncingHistoryScroll = false;
+    }, { passive: true });
+  });
+
   if (!track || slides.length === 0) {
     return;
   }

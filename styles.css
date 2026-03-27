@@ -813,6 +813,10 @@ input[type="range"]:focus-visible {
   justify-items: center;
 }
 
+.quick-stats article.peloton-history-archer-card {
+  padding: 0 8px 8px;
+}
+
 .segment-stats {
   margin-top: 6px;
 }
@@ -1724,15 +1728,12 @@ input[type="range"]:focus-visible {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .peloton-history-track::-webkit-scrollbar {
-  height: 6px;
-}
-
-.peloton-history-track::-webkit-scrollbar-thumb {
-  background: #d8e0e8;
-  border-radius: 999px;
+  display: none;
 }
 
 .peloton-history-slide {
@@ -1753,6 +1754,15 @@ input[type="range"]:focus-visible {
   display: grid;
   align-content: start;
   gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.peloton-history-archer-card::-webkit-scrollbar {
+  display: none;
 }
 
 .peloton-history-slide-head {
@@ -1767,6 +1777,8 @@ input[type="range"]:focus-visible {
   box-shadow: 0 2px 0 rgba(214, 200, 184, 0.7);
   padding: 2px 2px 0;
   border-bottom: 1px solid var(--line);
+  width: 100%;
+  padding: 8px 0;
 }
 
 .peloton-history-slide-name {
