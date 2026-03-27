@@ -1,5 +1,5 @@
 const ARROWS_PER_VOLLEY = 6;
-const APP_VERSION = "v2.3.1";
+const APP_VERSION = "v2.3.2";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -2978,6 +2978,28 @@ function renderPelotonHistorySwiper(container, options = {}) {
       const archerState = state.pelotonByArcher?.[archerIndex];
       renderDuelVolleyHistory(historyBody, archerState?.scores || [], [], { maxVolleyTotal });
     });
+  });
+
+  const historyCards = [...container.querySelectorAll(".peloton-history-archer-card")];
+  let isSyncingHistoryScroll = false;
+  historyCards.forEach((card) => {
+    card.addEventListener("scroll", () => {
+      if (isSyncingHistoryScroll) {
+        return;
+      }
+
+      isSyncingHistoryScroll = true;
+      const nextScrollTop = card.scrollTop;
+      historyCards.forEach((otherCard) => {
+        if (otherCard === card) {
+          return;
+        }
+        if (Math.abs(otherCard.scrollTop - nextScrollTop) > 1) {
+          otherCard.scrollTop = nextScrollTop;
+        }
+      });
+      isSyncingHistoryScroll = false;
+    }, { passive: true });
   });
 
   if (!track || slides.length === 0) {

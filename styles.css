@@ -813,6 +813,10 @@ input[type="range"]:focus-visible {
   justify-items: center;
 }
 
+.quick-stats article.peloton-history-archer-card {
+  padding: 0 8px 8px;
+}
+
 .segment-stats {
   margin-top: 6px;
 }
@@ -1112,6 +1116,14 @@ input[type="range"]:focus-visible {
 
 .history-table tr:last-child td {
   border-bottom: none;
+}
+
+.history-table tbody tr:nth-child(odd) {
+  background: white;
+}
+
+.history-table tbody tr:nth-child(even) {
+  background: #f5f5f5;
 }
 
 #live-volley-history-body tr.is-edited-row td {
@@ -1661,6 +1673,16 @@ input[type="range"]:focus-visible {
   font-size: 0.95rem;
   color: #4b5b66;
   margin: 4px 0;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.duel-volley-history > .duel-volley-item:nth-child(odd) {
+  background: white;
+}
+
+.duel-volley-history > .duel-volley-item:nth-child(even) {
+  background: #f5f5f5;
 }
 
 .duel-volley-index {
@@ -1686,6 +1708,7 @@ input[type="range"]:focus-visible {
 #peloton-current-card {
   width: 100%;
   justify-items: stretch;
+  background-color: var(--line);
 }
 
 #peloton-history {
@@ -1705,23 +1728,18 @@ input[type="range"]:focus-visible {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .peloton-history-track::-webkit-scrollbar {
-  height: 6px;
-}
-
-.peloton-history-track::-webkit-scrollbar-thumb {
-  background: #d8e0e8;
-  border-radius: 999px;
+  display: none;
 }
 
 .peloton-history-slide {
   flex: 0 0 100%;
   min-width: 100%;
   scroll-snap-align: start;
-  background-color: var(--line);
-  padding: 6px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px;
@@ -1736,6 +1754,15 @@ input[type="range"]:focus-visible {
   display: grid;
   align-content: start;
   gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.peloton-history-archer-card::-webkit-scrollbar {
+  display: none;
 }
 
 .peloton-history-slide-head {
@@ -1743,8 +1770,15 @@ input[type="range"]:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+  box-shadow: 0 2px 0 rgba(214, 200, 184, 0.7);
   padding: 2px 2px 0;
   border-bottom: 1px solid var(--line);
+  width: 100%;
+  padding: 8px 0;
 }
 
 .peloton-history-slide-name {
@@ -1764,9 +1798,21 @@ input[type="range"]:focus-visible {
   margin-left: 0;
 }
 
+.peloton-history-slide-body {
+  width: 100%;
+}
+
 .peloton-history-slide-body .duel-volley-history {
   max-height: none;
   overflow-y: visible;
+}
+
+.peloton-history-slide-body > .duel-volley-item:nth-child(odd) {
+  background: white;
+}
+
+.peloton-history-slide-body > .duel-volley-item:nth-child(even) {
+  background: #f5f5f5;
 }
 
 #peloton-station-header {
