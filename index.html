@@ -44,6 +44,16 @@
           </span>
         </button>
 
+        <button class="home-tile" id="home-training-disabled-btn" aria-label="Entraînement indisponible" aria-disabled="true" disabled>
+          <span class="home-tile-badge">Bientot</span>
+          <span class="home-tile-label">
+            <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M2 8h2v8H2V8Zm3-2h3v12H5V6Zm3 4h8v4H8v-4Zm8-4h3v12h-3V6Zm4 2h2v8h-2V8Z" fill="currentColor"/>
+            </svg>
+            <span>Entraînement</span>
+          </span>
+        </button>
+
         <button class="home-tile" id="home-history-btn" aria-label="Historique">
           <span class="home-tile-label">
             <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -504,8 +514,8 @@
             <label for="multi-mode-select">
               <span class="label-inline">Mode</span>
               <select id="multi-mode-select">
-                <option value="duel">Duel</option>
                 <option value="peloton">Peloton</option>
+                <option value="duel">Duel</option>
               </select>
             </label>
             <label id="ruleset-label" for="multi-ruleset-select">
@@ -643,7 +653,7 @@
           
           <div class="modal-content">
             <h4 id="peloton-station-header" class="peloton-station-header">
-              Cible <span id="peloton-station-number" class="peloton-station-number">1</span> 
+              <span class="peloton-station-label">Cible n°<span id="peloton-station-number" class="peloton-station-number">1</span></span>
               <span id="peloton-station-archer-name" class="peloton-station-archer-name"></span>
             </h4>
             <div id="peloton-archers-grid" class="peloton-archers-grid" role="list"></div>
@@ -699,9 +709,11 @@
             <section class="help-block">
               <h4>Création d'une session</h4>
               <ul>
-                <li>Sélection du type de session (nature/Campagne/3D/3D Two Shoots/3D Hunting/Animal round).</li>
-                <li>Mode de session (équipe/individuel/mixte).</li>
-                <li>Définition de la zone de réussite</li>
+                <li>Depuis l'accueil, lancez une session via Mode solo ou Mode Multi.</li>
+                <li>Mode Multi : duel ou peloton avec choix du parcours.</li>
+                <li>En Mode Multi, la liste des parcours suit les parcours actifs définis dans Configuration.</li>
+                <li>Définition de la zone de réussite.</li>
+                <li>La tuile Entraînement est affichée en grisé : fonctionnalité bientôt disponible.</li>
               </ul>
             </section>
 
@@ -784,6 +796,7 @@
               <ul>
                 <li>Affichage les statistiques de la session en cours.</li>
                 <li>Téléchargement des données au format JSON.</li>
+                <li>Configuration des parcours visibles (appliquée au Mode solo et au Mode Multi).</li>
               </ul>
             </section>
           </div>

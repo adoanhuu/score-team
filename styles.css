@@ -1645,7 +1645,6 @@ input[type="range"]:focus-visible {
 }
 
 .duel-volley-history {
-  padding: 6px;
   display: grid;
   gap: 3px;
   width: 100%;
@@ -1661,6 +1660,7 @@ input[type="range"]:focus-visible {
   align-items: center;
   font-size: 0.95rem;
   color: #4b5b66;
+  margin: 4px 0;
 }
 
 .duel-volley-index {
@@ -1692,10 +1692,94 @@ input[type="range"]:focus-visible {
   width: 100%;
 }
 
-#peloton-station-header {
+.peloton-history-swiper {
+  display: grid;
+  gap: 8px;
+}
+
+.peloton-history-track {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+
+.peloton-history-track::-webkit-scrollbar {
+  height: 6px;
+}
+
+.peloton-history-track::-webkit-scrollbar-thumb {
+  background: #d8e0e8;
+  border-radius: 999px;
+}
+
+.peloton-history-slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  scroll-snap-align: start;
+  background-color: var(--line);
+  padding: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  border-radius: 10px;
+}
+
+.peloton-history-archer-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 6px;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.peloton-history-slide-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 2px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.peloton-history-slide-name {
+  color: var(--dark-blue) !important;
+  font-size: 1rem;
+}
+
+.peloton-history-slide-total {
+  color: var(--dark-blue) !important;
+  font-weight: 800;
+  font-size: 1.1rem !important;
+}
+
+.peloton-history-slide-total .stats-unit,
+.peloton-archer-card-total .stats-unit {
+  font-weight: 400;
+  margin-left: 0;
+}
+
+.peloton-history-slide-body .duel-volley-history {
+  max-height: none;
+  overflow-y: visible;
+}
+
+#peloton-station-header {
+  display: flex;
+  align-items: flex-end;
   gap: 6px;
+  margin: 16px 0;
+}
+
+.peloton-station-label {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 4px;
 }
 
 #peloton-station-archer-name {
@@ -1714,9 +1798,11 @@ input[type="range"]:focus-visible {
   border-radius: 10px;
   background: #fff;
   padding: 8px 10px;
+  padding-right: 38px;
   text-align: left;
   display: grid;
   gap: 3px;
+  position: relative;
   transition: border-color 0.15s ease, background-color 0.2s ease, color 0.2s ease;
 }
 
@@ -1725,8 +1811,8 @@ input[type="range"]:focus-visible {
 }
 
 .peloton-archer-card.is-best-total {
-  background: #2d6a4f;
-  border-color: #2d6a4f;
+  background: #fff;
+  border-color: #d8e0e8;
 }
 
 .peloton-archer-card.is-best-total.is-active {
@@ -1735,7 +1821,21 @@ input[type="range"]:focus-visible {
 
 .peloton-archer-card.is-best-total .peloton-archer-card-name,
 .peloton-archer-card.is-best-total .peloton-archer-card-total {
-  color: #fff;
+  color: inherit;
+}
+
+.peloton-archer-card.is-best-total::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 20px;
+  height: 24px;
+  transform: translateY(-50%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 80'%3E%3Crect x='10' y='2' width='12' height='32' fill='%231558c0'/%3E%3Crect x='26' y='2' width='12' height='36' fill='%231558c0'/%3E%3Crect x='42' y='2' width='12' height='32' fill='%231558c0'/%3E%3Ccircle cx='32' cy='56' r='22' fill='%231558c0'/%3E%3Cpath d='m32 42 4.6 9.4 10.4 1.5-7.5 7.3 1.8 10.3-9.3-4.9-9.3 4.9 1.8-10.3-7.5-7.3 10.4-1.5z' fill='%23fff'/%3E%3C/svg%3E");
 }
 
 .peloton-archer-card.is-completed {
@@ -1775,6 +1875,7 @@ input[type="range"]:focus-visible {
 #duel-summary-card-p1,
 #duel-summary-card-p2 {
   border-width: 2px;
+  position: relative;
 }
 
 .duel-summary-row article.is-active-archer {
@@ -1787,32 +1888,47 @@ input[type="range"]:focus-visible {
 }
 
 .duel-summary-row article.is-winner-archer {
-  background: #2d6a4f;
-  border-color: #2d6a4f;
-  color: white !important;
+  background: #fff;
+  border-color: #d8e0e8;
+  color: inherit;
+  padding-right: 38px;
 }
 
 .duel-summary-row article.is-winner-archer,
 .duel-summary-row article.is-winner-archer span,
 .duel-summary-row article.is-winner-archer strong,
 .duel-summary-row article.is-winner-archer .stats-unit {
-  color: #fff;
+  color: inherit;
 }
 
 .duel-summary-row article.is-winner-archer #duel-p1-label,
 .duel-summary-row article.is-winner-archer #duel-p2-label,
 .duel-summary-row article.is-winner-archer #duel-total-p1,
 .duel-summary-row article.is-winner-archer #duel-total-p2 {
-  color: #fff;
+  color: inherit;
 }
 
 .duel-summary-row article.is-winner-archer .duel-volley-history {
-  border-top-color: rgba(255, 255, 255, 0.5);
+  border-top-color: var(--line);
 }
 
 .duel-summary-row article.is-winner-archer .duel-volley-item,
 .duel-summary-row article.is-winner-archer .duel-volley-empty {
-  color: #fff;
+  color: #4b5b66;
+}
+
+.duel-summary-row article.is-winner-archer::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 20px;
+  height: 24px;
+  transform: translateY(-50%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 80'%3E%3Crect x='10' y='2' width='12' height='32' fill='%231558c0'/%3E%3Crect x='26' y='2' width='12' height='36' fill='%231558c0'/%3E%3Crect x='42' y='2' width='12' height='32' fill='%231558c0'/%3E%3Ccircle cx='32' cy='56' r='22' fill='%231558c0'/%3E%3Cpath d='m32 42 4.6 9.4 10.4 1.5-7.5 7.3 1.8 10.3-9.3-4.9-9.3 4.9 1.8-10.3-7.5-7.3 10.4-1.5z' fill='%23fff'/%3E%3C/svg%3E");
 }
 
 .multi-target-fieldset {
@@ -2707,7 +2823,8 @@ input[type="range"]:focus-visible {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr 0.8fr;
+  grid-template-rows: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
   gap: 10px;
   padding: 10px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
@@ -2717,6 +2834,7 @@ input[type="range"]:focus-visible {
 }
 
 .home-tile {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2726,16 +2844,52 @@ input[type="range"]:focus-visible {
   border: 1.5px solid var(--line);
   border-radius: 18px;
   cursor: pointer;
-  padding: 12px 8px;
+  padding: 12px 0 0;
   transition: background .13s, transform .1s;
   min-height: 0;
   -webkit-tap-highlight-color: transparent;
   color: var(--primary);
   background-color: white;
+  overflow: hidden;
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-size: 200px 200px;
 }
 
-.home-tile:hover  { background: #efe8da; }
-.home-tile:active { background: #e2d8c8; transform: scale(.97); }
+.home-tile:hover  { background-color: #efe8da; }
+.home-tile:active { background-color: #e2d8c8; transform: scale(.97); }
+
+.home-tile:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.home-tile:disabled:hover,
+.home-tile:disabled:active {
+  background: #ececec;
+  transform: none;
+}
+
+.home-tile:disabled .home-tile-label {
+  background-color: #8f8f8f;
+  border-color: #8f8f8f;
+  box-shadow: none;
+}
+
+.home-tile-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+  background: #6b7280;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
 
 .home-tile-wide {
   grid-column: 1 / -1;
@@ -2769,7 +2923,7 @@ input[type="range"]:focus-visible {
   align-items: center;
   gap: 2px;
   margin-top: auto;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   padding: 10px;
   font-size: 1.1em;
   font-weight: bold;
@@ -2777,10 +2931,11 @@ input[type="range"]:focus-visible {
   line-height: 1.2;
   background-color: var(--dark-blue);
   color: white;
-  border-radius: 8px;
+  border-radius: 0;
   width: 100%;
   border: 1px solid var(--dark-blue);
-  box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+  box-shadow: none;
+  justify-content: center;
 }
 
 .home-tile-label-icon {
@@ -2791,28 +2946,57 @@ input[type="range"]:focus-visible {
 }
 
 #home-training-btn  {
-  background: url('images/training.png') white center 10px no-repeat;
-  background-size: contain;  
+  background-image: url('images/mode-solo.png');
+  background-color: white;
 }
 #home-peloton-btn {
-  background: url('images/peloton.png') white center 10px no-repeat;
-  background-size: contain;
+  background-image: url('images/mode-multi.png');
+  background-color: white;
 }
 #home-history-btn{
-  background: url('images/history.png') white center 10px no-repeat;
-  background-size: contain;
+  background-image: url('images/history.png');
+  background-color: white;
+}
+#home-training-disabled-btn {
+  background-image: none;
+  background-color: #ececec;
+}
+
+#home-training-disabled-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('images/training.png');
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-size: 200px 200px;
+  filter: grayscale(100%);
+  opacity: 0.95;
+  pointer-events: none;
+}
+
+#home-training-disabled-btn .home-tile-badge,
+#home-training-disabled-btn .home-tile-label {
+  position: relative;
+  z-index: 1;
+}
+
+#home-training-disabled-btn .home-tile-label-icon {
+  width: 24px;
+  height: 24px;
+  margin-top: -1px;
 }
 #home-config-btn {
-  background: url('images/config.png') white center 10px no-repeat;
-  background-size: contain;
+  background-image: url('images/config.png');
+  background-color: white;
 }
 #home-stats-btn {
-  background: url('images/stats.png') white center 10px no-repeat;
-  background-size: contain;
+  background-image: url('images/stats.png');
+  background-color: white;
 }
 #home-help-btn {
-  background: url('images/help.png') white center 10px no-repeat;
-  background-size: contain;
+  background-image: url('images/help.png');
+  background-color: white;
 }
 
 /* ── ──────────────────────────────────────────────── */
@@ -2822,8 +3006,11 @@ input[type="range"]:focus-visible {
 }
 
 .peloton-station-number {
-  font-size: 1.2rem;
+  font-size: 1.8rem;
   font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 
 .peloton-station-archer-name {

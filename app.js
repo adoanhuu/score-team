@@ -1,5 +1,5 @@
 const ARROWS_PER_VOLLEY = 6;
-const APP_VERSION = "v2.3.0";
+const APP_VERSION = "v2.3.1";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -395,44 +395,49 @@ function syncFederationCheckboxes() {
 }
 
 function updateRulesetSelectOptions() {
-  const select = els.rulesetSelect;
-  if (!select) return;
-  
-  const currentValue = select.value;
-  const allOptions = select.querySelectorAll("option");
-  
-  allOptions.forEach((option) => {
-    const value = option.value;
-    if (value && appConfig.enabledRulesets.includes(value)) {
-      option.disabled = false;
-      option.style.display = "";
-    } else if (value) {
-      option.disabled = true;
-      option.style.display = "none";
+  const selects = [els.rulesetSelect, els.multiRulesetSelect].filter(Boolean);
+
+  selects.forEach((select) => {
+    const currentValue = select.value;
+    const allOptions = select.querySelectorAll("option");
+
+    allOptions.forEach((option) => {
+      const value = option.value;
+      if (value && appConfig.enabledRulesets.includes(value)) {
+        option.disabled = false;
+        option.style.display = "";
+      } else if (value) {
+        option.disabled = true;
+        option.style.display = "none";
+      }
+    });
+
+    // Masquer les optgroups vides
+    const optgroups = select.querySelectorAll("optgroup");
+    optgroups.forEach((optgroup) => {
+      const visibleOptions = Array.from(optgroup.querySelectorAll("option")).filter(
+        (opt) => opt.value && appConfig.enabledRulesets.includes(opt.value)
+      );
+      if (visibleOptions.length === 0) {
+        optgroup.style.display = "none";
+      } else {
+        optgroup.style.display = "";
+      }
+    });
+
+    // Si l'option actuelle est désactivée, sélectionner la première option activée
+    if (currentValue && !appConfig.enabledRulesets.includes(currentValue)) {
+      const firstEnabledOption = Array.from(allOptions).find(
+        (option) => option.value && appConfig.enabledRulesets.includes(option.value)
+      );
+      if (firstEnabledOption) {
+        select.value = firstEnabledOption.value;
+        if (select === els.rulesetSelect) {
+          select.dispatchEvent(new Event("change"));
+        }
+      }
     }
   });
-  
-  // Masquer les optgroups vides
-  const optgroups = select.querySelectorAll("optgroup");
-  optgroups.forEach((optgroup) => {
-    const visibleOptions = Array.from(optgroup.querySelectorAll("option")).filter(
-      (opt) => opt.value && appConfig.enabledRulesets.includes(opt.value)
-    );
-    if (visibleOptions.length === 0) {
-      optgroup.style.display = "none";
-    } else {
-      optgroup.style.display = "";
-    }
-  });
-  
-  // Si l'option actuelle est désactivée, sélectionner la première option activée
-  if (currentValue && !appConfig.enabledRulesets.includes(currentValue)) {
-    const firstEnabled = appConfig.enabledRulesets[0];
-    if (firstEnabled) {
-      select.value = firstEnabled;
-      select.dispatchEvent(new Event("change"));
-    }
-  }
 }
 
 const maxArrowValuesByRuleset = {
@@ -2717,8 +2722,17 @@ function openMultiModal() {
       els.duelNamesError.classList.add("hidden");
     }
   
-  if (els.multiRulesetSelect && !els.multiRulesetSelect.value) {
-    els.multiRulesetSelect.value = "nature";
+  if (els.multiRulesetSelect) {
+    const currentValue = els.multiRulesetSelect.value;
+    const hasCurrentEnabled = currentValue && appConfig.enabledRulesets.includes(currentValue);
+    if (!hasCurrentEnabled) {
+      const firstEnabledOption = Array.from(els.multiRulesetSelect.querySelectorAll("option")).find(
+        (option) => option.value && appConfig.enabledRulesets.includes(option.value)
+      );
+      if (firstEnabledOption) {
+        els.multiRulesetSelect.value = firstEnabledOption.value;
+      }
+    }
   }
   if (els.multiModeSelect && !els.multiModeSelect.value) {
     els.multiModeSelect.value = "duel";
@@ -2901,6 +2915,102 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
   }
 
   container.innerHTML = rows.join("");
+}
+
+function renderPelotonHistorySwiper(container, options = {}) {
+  if (!container) return;
+
+  const roster = state.pelotonRoster || [];
+  if (roster.length === 0) {
+    container.innerHTML = '<div class="duel-volley-empty">Aucune volée</div>';
+    return;
+  }
+
+  const maxVolleyTotal = Number.isFinite(options.maxVolleyTotal) ? options.maxVolleyTotal : null;
+  const activeArcherIndex = Number(state.pelotonActiveArcherIndex);
+  const groupedRoster = [];
+  for (let i = 0; i < roster.length; i += 2) {
+    groupedRoster.push(roster.slice(i, i + 2));
+  }
+  const activeArcherPosition = Math.max(0, roster.findIndex((archer) => archer.index === activeArcherIndex));
+  const initialSlideIndex = Math.floor(activeArcherPosition / 2);
+
+  const slideMarkup = groupedRoster.map((archerPair, pairIndex) => {
+    const activeClass = pairIndex === initialSlideIndex ? " is-active" : "";
+    const pairLabel = archerPair.map((archer) => archer.name).join(" / ");
+    const pairContent = archerPair.map((archer) => {
+      const archerState = state.pelotonByArcher?.[archer.index];
+      const total = archerState ? getDuelTotal(archerState.scores || []) : 0;
+
+      return `
+        <article class="peloton-history-archer-card">
+          <header class="peloton-history-slide-head">
+            <strong class="peloton-history-slide-name">${archer.name}</strong>
+            <span class="peloton-history-slide-total">${total}<span class="stats-unit">pts</span></span>
+          </header>
+          <div class="peloton-history-slide-body" data-archer-index="${archer.index}"></div>
+        </article>
+      `;
+    }).join("");
+
+    return `
+      <section class="peloton-history-slide${activeClass}" data-slide-index="${pairIndex}" aria-label="Historique ${pairLabel}">
+        ${pairContent}
+      </section>
+    `;
+  }).join("");
+
+  container.innerHTML = `
+    <div class="peloton-history-swiper">
+      <div class="peloton-history-track" aria-label="Historique par archer">
+        ${slideMarkup}
+      </div>
+    </div>
+  `;
+
+  const track = container.querySelector(".peloton-history-track");
+  const slides = [...container.querySelectorAll(".peloton-history-slide")];
+
+  slides.forEach((slide) => {
+    const historyBodies = [...slide.querySelectorAll(".peloton-history-slide-body")];
+    historyBodies.forEach((historyBody) => {
+      const archerIndex = Number(historyBody.dataset.archerIndex);
+      const archerState = state.pelotonByArcher?.[archerIndex];
+      renderDuelVolleyHistory(historyBody, archerState?.scores || [], [], { maxVolleyTotal });
+    });
+  });
+
+  if (!track || slides.length === 0) {
+    return;
+  }
+
+  const setActiveSlide = (index) => {
+    slides.forEach((slide, slideIndex) => {
+      slide.classList.toggle("is-active", slideIndex === index);
+    });
+  };
+
+  const scrollToSlide = (index, behavior = "smooth") => {
+    const boundedIndex = Math.max(0, Math.min(index, slides.length - 1));
+    const width = track.clientWidth || 1;
+    track.scrollTo({ left: boundedIndex * width, behavior });
+    setActiveSlide(boundedIndex);
+  };
+
+  let rafId = 0;
+  track.addEventListener("scroll", () => {
+    if (rafId) return;
+    rafId = window.requestAnimationFrame(() => {
+      const width = track.clientWidth || 1;
+      const index = Math.round(track.scrollLeft / width);
+      setActiveSlide(Math.max(0, Math.min(index, slides.length - 1)));
+      rafId = 0;
+    });
+  }, { passive: true });
+
+  window.requestAnimationFrame(() => {
+    scrollToSlide(initialSlideIndex, "auto");
+  });
 }
 
 function renderDuelView() {
@@ -3213,7 +3323,7 @@ function renderPelotonArchersGrid() {
       card.classList.add("is-best-total");
     }
     card.setAttribute("role", "listitem");
-    card.innerHTML = `<span class="peloton-archer-card-name">${archer.name}</span><span class="peloton-archer-card-total">${total} pts</span>`;
+    card.innerHTML = `<span class="peloton-archer-card-name">${archer.name}</span><span class="peloton-archer-card-total">${total}<span class="stats-unit">pts</span></span>`;
 
     els.pelotonArchersGrid.appendChild(card);
   });
@@ -3493,7 +3603,11 @@ function renderPelotonView() {
       state.peloton.arrowsPerTarget,
       state.peloton.allowedPoints,
     );
-    renderDuelVolleyHistory(els.pelotonHistory, scores, [], { maxVolleyTotal: pelotonMaxVolleyTotal });
+    if (completed) {
+      renderPelotonHistorySwiper(els.pelotonHistory, { maxVolleyTotal: pelotonMaxVolleyTotal });
+    } else {
+      renderDuelVolleyHistory(els.pelotonHistory, scores, [], { maxVolleyTotal: pelotonMaxVolleyTotal });
+    }
   }
   if (els.pelotonRestartBtn) {
     els.pelotonRestartBtn.classList.add("hidden");
