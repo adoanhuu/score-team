@@ -29,6 +29,7 @@ const state = {
   lastEditedVolleyIndex: null,
   progressionAxis: "",
   sessionDate: "",
+  sessionTime: "",
   generalStatsGraphEnabled: false,
   duel: {
     ruleset: "3d",
@@ -59,6 +60,7 @@ const els = {
   successZoneValue: document.getElementById("success-zone-value"),
   lieuInput: document.getElementById("lieu-input"),
   sessionDateInput: document.getElementById("session-date-input"),
+  sessionTimeInput: document.getElementById("session-time-input"),
   rulesetSelect: document.getElementById("ruleset-select"),
   scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
   setupCloseBtn: document.getElementById("setup-close-btn"),
@@ -486,6 +488,8 @@ function getSetupSnapshot() {
     scoringMode: getSelectedScoringMode(),
     weapon: els.weaponSelect ? els.weaponSelect.value : "",
     successZone: Number.parseInt(els.successZoneInput.value, 10) || 1,
+    sessionDate: els.sessionDateInput ? els.sessionDateInput.value : "",
+    sessionTime: els.sessionTimeInput ? els.sessionTimeInput.value : "",
     useTargetGroups: getSelectedUseTargetGroups(),
     showScores: getSelectedShowScores(),
   };
@@ -616,6 +620,7 @@ function persistAppState() {
             successZone: state.successZone,
             lieu: state.lieu || "",
             sessionDate: state.sessionDate || "",
+            sessionTime: state.sessionTime || "",
             scoringMode: state.scoringMode,
             weapon: state.weapon || "",
             useTargetGroups: state.useTargetGroups,
@@ -673,6 +678,12 @@ function restorePersistedState() {
   if (Number.isInteger(setup.successZone)) {
     els.successZoneInput.value = String(setup.successZone);
   }
+  if (els.sessionDateInput && typeof setup.sessionDate === "string") {
+    els.sessionDateInput.value = setup.sessionDate;
+  }
+  if (els.sessionTimeInput && typeof setup.sessionTime === "string") {
+    els.sessionTimeInput.value = setup.sessionTime;
+  }
   if (typeof setup.useTargetGroups === "boolean") {
     const targetValue = setup.useTargetGroups ? "yes" : "no";
     const input = [...els.useTargetGroupsInputs].find((i) => i.value === targetValue);
@@ -700,8 +711,12 @@ function restorePersistedState() {
   state.successZone = Number.isInteger(saved.successZone) ? saved.successZone : 1;
   state.lieu = saved.lieu || "";
   state.sessionDate = saved.sessionDate || "";
+  state.sessionTime = saved.sessionTime || "";
   if (els.sessionDateInput && saved.sessionDate) {
     els.sessionDateInput.value = saved.sessionDate;
+  }
+  if (els.sessionTimeInput && saved.sessionTime) {
+    els.sessionTimeInput.value = saved.sessionTime;
   }
   state.scoringMode = normalizeScoringMode(saved.scoringMode, saved.activeRuleset);
   state.weapon = isWeaponAllowedForRuleset(saved.weapon || "", saved.activeRuleset)
@@ -1504,6 +1519,7 @@ function startScoring() {
   state.successZone = parsedSuccessZone;
   state.lieu = els.lieuInput ? els.lieuInput.value.trim() : "";
   state.sessionDate = els.sessionDateInput ? els.sessionDateInput.value : "";
+  state.sessionTime = els.sessionTimeInput ? els.sessionTimeInput.value : "";
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = getSelectedScoringMode();
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
@@ -1571,6 +1587,7 @@ function buildResultsPayload() {
     weapon: state.weapon || "",
     lieu: state.lieu || "",
     sessionDate: state.sessionDate || "",
+    sessionTime: state.sessionTime || "",
     useTargetGroups: state.useTargetGroups,
     showScores: state.showScores,
     targetCount: state.targetCount,
@@ -2177,9 +2194,12 @@ function importHistory(file) {
 }
 
 function getHistorySortDate(entry) {
-  // Convertir sessionDate (yyyy-mm-dd) en Date
+  // Convertir sessionDate (yyyy-mm-dd) + sessionTime (HH:mm) en Date
   if (entry.sessionDate) {
-    return new Date(`${entry.sessionDate}T23:59:59`).getTime();
+    const rawTime = typeof entry.sessionTime === "string" ? entry.sessionTime : "";
+    const safeTime = /^\d{2}:\d{2}$/.test(rawTime) ? rawTime : "23:59";
+    const sessionTs = new Date(`${entry.sessionDate}T${safeTime}:59`).getTime();
+    if (!Number.isNaN(sessionTs)) return sessionTs;
   }
   // Fallback sur archivedAt ou generatedAt
   return new Date(entry.archivedAt || entry.generatedAt).getTime();
@@ -2203,6 +2223,20 @@ function formatHistoryEntryDateShort(entry) {
   const date = new Date(entry.generatedAt || entry.archivedAt);
   if (Number.isNaN(date.getTime())) return "--/--";
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+}
+
+function formatHistoryEntryTime(entry) {
+  const rawTime = typeof entry?.sessionTime === "string" ? entry.sessionTime : "";
+  if (/^\d{2}:\d{2}$/.test(rawTime)) {
+    return rawTime.replace(":", "h");
+  }
+  const date = new Date(entry?.generatedAt || entry?.archivedAt);
+  if (Number.isNaN(date.getTime())) return "--h--";
+  return date.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).replace(":", "h");
 }
 
 function syncGeneralStatsWeaponFilter() {
@@ -2527,7 +2561,7 @@ function renderHistoryList() {
   els.historyList.innerHTML = "";
   pageEntries.forEach((entry) => {
     let dateLabel = "Date inconnue";
-    let timeLabel = "--h--";
+    let timeLabel = formatHistoryEntryTime(entry);
     
     // Utiliser sessionDate (format yyyy-mm-dd) s'il existe
     if (entry.sessionDate) {
@@ -3821,6 +3855,12 @@ if (els.weaponSelect) {
   });
 }
 els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
+if (els.sessionDateInput) {
+  els.sessionDateInput.addEventListener("change", persistAppState);
+}
+if (els.sessionTimeInput) {
+  els.sessionTimeInput.addEventListener("change", persistAppState);
+}
 els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.showScoresInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.startBtn.addEventListener("click", startScoring);
@@ -4119,9 +4159,16 @@ if (!restorePersistedState()) {
 if (els.sessionDateInput && !els.sessionDateInput.value) {
   const today = new Date();
   const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
   els.sessionDateInput.value = `${yyyy}-${mm}-${dd}`;
+}
+// Initialiser l'heure de la session avec l'heure courante (format HH:mm)
+if (els.sessionTimeInput && !els.sessionTimeInput.value) {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  els.sessionTimeInput.value = `${hh}:${mm}`;
 }
 setRangeProgress(els.successZoneInput, els.successZoneInput.style.getPropertyValue("--zone-color").trim());
 setRangeProgress(els.configFullTargetTeam);
