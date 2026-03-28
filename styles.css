@@ -243,6 +243,13 @@ label {
   white-space: nowrap;
 }
 
+.session-datetime-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
 .mode-fieldset {
   border: 1px solid var(--line);
   border-radius: 10px;
