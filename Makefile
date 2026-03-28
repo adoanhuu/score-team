@@ -1,4 +1,4 @@
-.PHONY: dev dev-down deploy db-migrate-local db-migrate-remote remote select-users select-user insert-user delete-user hash-password set-user-password remote-select-users remote-select-user remote-update-user-token remote-delete-user remote-insert-user remote-delete-session remote-update-password remote-set-user-password remote-exec
+.PHONY: dev dev-down deploy db-migrate-local db-migrate-remote remote select-users select-user insert-user delete-user hash-password set-user-password remote-select-users remote-select-user remote-update-user-token remote-delete-user remote-insert-user remote-delete-session remote-update-password remote-set-user-password remote-exec select-sessions remote-select-sessions
 
 REMOTE_WRANGLER_CONFIG ?= wrangler.local.toml
 REMOTE_D1_DATABASE ?= score-team
@@ -198,3 +198,26 @@ remote-exec:
 		exit 1; \
 	fi
 	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "$(SQL)"
+
+select-sessions:
+	@db_path="$$(find .wrangler/state/v3/d1/miniflare-D1DatabaseObject -name '*.sqlite' | head -n 1)"; \
+	if [ -z "$$db_path" ]; then \
+		echo "Local D1 database not found. Run 'make db-migrate-local' first."; \
+		exit 1; \
+	fi; \
+	user_filter=''; \
+	if [ -n "$(EMAIL)" ]; then \
+		email_escaped="$$(printf '%s' "$(EMAIL)" | sed "s/'/''/g")"; \
+		user_filter=" WHERE u.email = '$$email_escaped'"; \
+	fi; \
+	sqlite3 -header -column "$$db_path" \
+		"SELECT s.id, u.email, s.date, s.time, json_extract(s.data_json, '$$.ruleset') AS ruleset, json_extract(s.data_json, '$$.weapon') AS weapon, json_extract(s.data_json, '$$.total') AS total, s.created_at FROM sessions s JOIN users u ON s.user_id = u.id$$user_filter ORDER BY s.date DESC, s.time DESC;"
+
+remote-select-sessions:
+	@user_filter=''; \
+	if [ -n "$(EMAIL)" ]; then \
+		email_escaped="$$(printf '%s' "$(EMAIL)" | sed "s/'/''/g")"; \
+		user_filter=" WHERE u.email = '$$email_escaped'"; \
+	fi; \
+	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) \
+		--command "SELECT s.id, u.email, s.date, s.time, json_extract(s.data_json, '$$.ruleset') AS ruleset, json_extract(s.data_json, '$$.weapon') AS weapon, json_extract(s.data_json, '$$.total') AS total, s.created_at FROM sessions s JOIN users u ON s.user_id = u.id$$user_filter ORDER BY s.date DESC, s.time DESC;"

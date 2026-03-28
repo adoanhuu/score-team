@@ -2188,13 +2188,26 @@ async function saveConfigToServer() {
   if (!token) return;
   try {
     if (els.configSaveServerBtn) els.configSaveServerBtn.disabled = true;
-    const response = await fetch("/api/users/configuration", {
-      method: "PUT",
-      headers: { "content-type": "application/json", "authorization": `Bearer ${token}` },
-      body: JSON.stringify({ configuration: appConfig }),
-    });
-    if (response.ok) {
-      showFlashInfo("Configuration sauvegardée.");
+    const entries = loadHistoryEntries();
+    const [configRes, sessionsRes] = await Promise.all([
+      fetch("/api/users/configuration", {
+        method: "PUT",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${token}` },
+        body: JSON.stringify({ configuration: appConfig }),
+      }),
+      fetch("/api/users/sessions", {
+        method: "PUT",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${token}` },
+        body: JSON.stringify({ entries }),
+      }),
+    ]);
+    if (configRes.ok && sessionsRes.ok) {
+      showFlashInfo(`Configuration et ${entries.length} parcours sauvegardé(s).`);
+    } else if (configRes.ok) {
+      const errData = await sessionsRes.json().catch(() => ({}));
+      showFlashInfo(`Échec de la sauvegarde des parcours : ${errData.error || sessionsRes.status}.`);
+    } else if (sessionsRes.ok) {
+      showFlashInfo("Échec de la sauvegarde de la configuration.");
     } else {
       showFlashInfo("Échec de la sauvegarde.");
     }
@@ -2210,46 +2223,65 @@ async function restoreConfigFromServer() {
   if (!token) return;
   try {
     if (els.configRestoreServerBtn) els.configRestoreServerBtn.disabled = true;
-    const response = await fetch("/api/users/configuration", {
-      headers: { "authorization": `Bearer ${token}` },
-    });
-    if (!response.ok) {
+    const [configRes, sessionsRes] = await Promise.all([
+      fetch("/api/users/configuration", { headers: { "authorization": `Bearer ${token}` } }),
+      fetch("/api/users/sessions", { headers: { "authorization": `Bearer ${token}` } }),
+    ]);
+    if (!configRes.ok && !sessionsRes.ok) {
       showFlashInfo("Échec de la restauration.");
       return;
     }
-    const data = await response.json();
-    const saved = data?.configuration;
-    if (!saved || typeof saved !== "object") {
-      showFlashInfo("Aucune configuration trouvée sur le serveur.");
-      return;
+    let restoredConfig = false;
+    let restoredSessions = 0;
+    if (configRes.ok) {
+      const data = await configRes.json();
+      const saved = data?.configuration;
+      if (saved && typeof saved === "object") {
+        if (Number.isFinite(saved.fullTarget_team)) appConfig.fullTarget_team = saved.fullTarget_team;
+        if (Number.isFinite(saved.fullTarget_individual)) appConfig.fullTarget_individual = saved.fullTarget_individual;
+        if (Number.isFinite(saved.missLimit_team)) appConfig.missLimit_team = saved.missLimit_team;
+        if (Number.isFinite(saved.missLimit_individual)) appConfig.missLimit_individual = saved.missLimit_individual;
+        if (saved.successZoneByRuleset && typeof saved.successZoneByRuleset === "object") {
+          Object.assign(appConfig.successZoneByRuleset, saved.successZoneByRuleset);
+        }
+        if (Array.isArray(saved.enabledRulesets)) {
+          appConfig.enabledRulesets = saved.enabledRulesets;
+        }
+        saveConfig();
+        syncConfigSliderMax();
+        els.configFullTargetTeam.value = String(appConfig.fullTarget_team);
+        els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
+        setRangeProgress(els.configFullTargetTeam);
+        els.configFullTargetIndiv.value = String(appConfig.fullTarget_individual);
+        els.configFullTargetIndivValue.textContent = String(appConfig.fullTarget_individual);
+        setRangeProgress(els.configFullTargetIndiv);
+        els.configMissLimitTeam.value = String(appConfig.missLimit_team);
+        els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
+        setRangeProgress(els.configMissLimitTeam);
+        els.configMissLimitIndiv.value = String(appConfig.missLimit_individual);
+        els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
+        setRangeProgress(els.configMissLimitIndiv);
+        syncRulesetCheckboxes();
+        updateRulesetSelectOptions();
+        restoredConfig = true;
+      }
     }
-    if (Number.isFinite(saved.fullTarget_team)) appConfig.fullTarget_team = saved.fullTarget_team;
-    if (Number.isFinite(saved.fullTarget_individual)) appConfig.fullTarget_individual = saved.fullTarget_individual;
-    if (Number.isFinite(saved.missLimit_team)) appConfig.missLimit_team = saved.missLimit_team;
-    if (Number.isFinite(saved.missLimit_individual)) appConfig.missLimit_individual = saved.missLimit_individual;
-    if (saved.successZoneByRuleset && typeof saved.successZoneByRuleset === "object") {
-      Object.assign(appConfig.successZoneByRuleset, saved.successZoneByRuleset);
+    if (sessionsRes.ok) {
+      const sessData = await sessionsRes.json();
+      const imported = sessData?.entries;
+      if (Array.isArray(imported) && imported.length > 0) {
+        const valid = imported.filter((e) => e && typeof e === "object" && e.generatedAt);
+        const sorted = [...valid].sort((a, b) => getHistorySortDate(b) - getHistorySortDate(a));
+        saveHistoryEntries(sorted);
+        clearPersistedState();
+        historyCurrentPage = 1;
+        restoredSessions = sorted.length;
+      }
     }
-    if (Array.isArray(saved.enabledRulesets)) {
-      appConfig.enabledRulesets = saved.enabledRulesets;
-    }
-    saveConfig();
-    syncConfigSliderMax();
-    els.configFullTargetTeam.value = String(appConfig.fullTarget_team);
-    els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
-    setRangeProgress(els.configFullTargetTeam);
-    els.configFullTargetIndiv.value = String(appConfig.fullTarget_individual);
-    els.configFullTargetIndivValue.textContent = String(appConfig.fullTarget_individual);
-    setRangeProgress(els.configFullTargetIndiv);
-    els.configMissLimitTeam.value = String(appConfig.missLimit_team);
-    els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
-    setRangeProgress(els.configMissLimitTeam);
-    els.configMissLimitIndiv.value = String(appConfig.missLimit_individual);
-    els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
-    setRangeProgress(els.configMissLimitIndiv);
-    syncRulesetCheckboxes();
-    updateRulesetSelectOptions();
-    showFlashInfo("Configuration restaurée.");
+    const parts = [];
+    if (restoredConfig) parts.push("configuration");
+    if (restoredSessions > 0) parts.push(`${restoredSessions} parcours`);
+    showFlashInfo(parts.length > 0 ? `${parts.join(" et ")} restauré(s).` : "Rien à restaurer sur le serveur.");
   } catch {
     showFlashInfo("Erreur réseau lors de la restauration.");
   } finally {
