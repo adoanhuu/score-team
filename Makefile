@@ -1,4 +1,4 @@
-.PHONY: dev dev-down deploy db-migrate-local select-users select-user insert-user delete-user remote-select-users remote-select-user remote-update-user-token remote-delete-user remote-insert-user remote-delete-session remote-update-password remote-exec
+.PHONY: dev dev-down deploy db-migrate-local db-migrate-remote remote select-users select-user insert-user delete-user hash-password set-user-password remote-select-users remote-select-user remote-update-user-token remote-delete-user remote-insert-user remote-delete-session remote-update-password remote-set-user-password remote-exec
 
 REMOTE_WRANGLER_CONFIG ?= wrangler.local.toml
 REMOTE_D1_DATABASE ?= score-team
@@ -18,6 +18,11 @@ deploy:
 
 db-migrate-local:
 	npx wrangler d1 migrations apply score-team --local --config wrangler.local.toml
+
+db-migrate-remote:
+	npx wrangler d1 migrations apply $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG)
+
+remote: db-migrate-remote
 
 select-users:
 	@db_path="$$(find .wrangler/state/v3/d1/miniflare-D1DatabaseObject -name '*.sqlite' | head -n 1)"; \
@@ -74,6 +79,39 @@ delete-user:
 	fi; \
 	sqlite3 "$$db_path" "DELETE FROM sessions WHERE user_id = $(ID); DELETE FROM users WHERE id = $(ID);"; \
 	echo "Deleted user $(ID) and related sessions if they existed."
+
+hash-password:
+	@if [ -z "$(PASSWORD)" ] && [ -z "$(PASSWORD_FILE)" ]; then \
+		echo "Usage: make hash-password PASSWORD=..."; \
+		echo "   or: make hash-password PASSWORD_FILE=./password.txt"; \
+		exit 1; \
+	fi
+	@password_input='$(PASSWORD)'; \
+	if [ -n "$(PASSWORD_FILE)" ]; then \
+		password_input="$$(cat "$(PASSWORD_FILE)")"; \
+	fi; \
+	PW="$$password_input" node -e 'const crypto = require("crypto"); const pw = process.env.PW || ""; const it = 100000; const salt = crypto.randomBytes(16); const hash = crypto.pbkdf2Sync(pw, salt, it, 32, "sha256"); process.stdout.write("pbkdf2_sha-256" + "$$" + it + "$$" + salt.toString("base64") + "$$" + hash.toString("base64") + "\n");'
+
+set-user-password:
+	@if [ -z "$(EMAIL)" ] || { [ -z "$(PASSWORD)" ] && [ -z "$(PASSWORD_FILE)" ]; }; then \
+		echo "Usage: make set-user-password EMAIL=user@example.com PASSWORD=..."; \
+		echo "   or: make set-user-password EMAIL=user@example.com PASSWORD_FILE=./password.txt"; \
+		exit 1; \
+	fi
+	@db_path="$$(find .wrangler/state/v3/d1/miniflare-D1DatabaseObject -name '*.sqlite' | head -n 1)"; \
+	if [ -z "$$db_path" ]; then \
+		echo "Local D1 database not found. Run 'make db-migrate-local' first."; \
+		exit 1; \
+	fi; \
+	password_input='$(PASSWORD)'; \
+	if [ -n "$(PASSWORD_FILE)" ]; then \
+		password_input="$$(cat "$(PASSWORD_FILE)")"; \
+	fi; \
+	password_hash="$$(PW="$$password_input" node -e 'const crypto = require("crypto"); const pw = process.env.PW || ""; const it = 100000; const salt = crypto.randomBytes(16); const hash = crypto.pbkdf2Sync(pw, salt, it, 32, "sha256"); process.stdout.write("pbkdf2_sha-256" + "$$" + it + "$$" + salt.toString("base64") + "$$" + hash.toString("base64"));')"; \
+	email_escaped="$$(printf '%s' "$(EMAIL)" | sed "s/'/''/g")"; \
+	password_hash_escaped="$$(printf '%s' "$$password_hash" | sed "s/'/''/g")"; \
+	sqlite3 "$$db_path" "UPDATE users SET password_hash = '$$password_hash_escaped' WHERE email = '$$email_escaped';"; \
+	sqlite3 -header -column "$$db_path" "SELECT id, first_name, last_name, email FROM users WHERE email = '$$email_escaped';"
 
 remote-select-users:
 	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "SELECT id, first_name, last_name, email, created_at FROM users ORDER BY id;"
@@ -137,6 +175,21 @@ remote-update-password:
 		password_hash_input="$$(cat "$(PASSWORD_HASH_FILE)")"; \
 	fi; \
 	password_hash_escaped="$$(printf '%s' "$$password_hash_input" | sed "s/'/''/g")"; \
+	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "UPDATE users SET password_hash = '$$password_hash_escaped' WHERE email = '$$email_escaped'; SELECT id, first_name, last_name, email FROM users WHERE email = '$$email_escaped';"
+
+remote-set-user-password:
+	@if [ -z "$(EMAIL)" ] || { [ -z "$(PASSWORD)" ] && [ -z "$(PASSWORD_FILE)" ]; }; then \
+		echo "Usage: make remote-set-user-password EMAIL=user@example.com PASSWORD=... [REMOTE_WRANGLER_CONFIG=wrangler.local.toml] [REMOTE_D1_DATABASE=score-team]"; \
+		echo "   or: make remote-set-user-password EMAIL=user@example.com PASSWORD_FILE=./password.txt [REMOTE_WRANGLER_CONFIG=wrangler.local.toml] [REMOTE_D1_DATABASE=score-team]"; \
+		exit 1; \
+	fi
+	@password_input='$(PASSWORD)'; \
+	if [ -n "$(PASSWORD_FILE)" ]; then \
+		password_input="$$(cat "$(PASSWORD_FILE)")"; \
+	fi; \
+	password_hash="$$(PW="$$password_input" node -e 'const crypto = require("crypto"); const pw = process.env.PW || ""; const it = 100000; const salt = crypto.randomBytes(16); const hash = crypto.pbkdf2Sync(pw, salt, it, 32, "sha256"); process.stdout.write("pbkdf2_sha-256" + "$$" + it + "$$" + salt.toString("base64") + "$$" + hash.toString("base64"));')"; \
+	email_escaped="$$(printf '%s' "$(EMAIL)" | sed "s/'/''/g")"; \
+	password_hash_escaped="$$(printf '%s' "$$password_hash" | sed "s/'/''/g")"; \
 	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "UPDATE users SET password_hash = '$$password_hash_escaped' WHERE email = '$$email_escaped'; SELECT id, first_name, last_name, email FROM users WHERE email = '$$email_escaped';"
 
 remote-exec:

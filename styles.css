@@ -2066,6 +2066,54 @@ input[type="range"]:focus-visible {
   gap: 8px;
 }
 
+.login-modal-card {
+  width: min(460px, 100%);
+}
+
+.login-form {
+  display: grid;
+  gap: 12px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.login-feedback {
+  font-size: 0.92rem;
+  color: #b42318;
+  background: #fff0ef;
+  border: 1px solid #f3c7c3;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.login-submit-btn {
+  margin-top: 4px;
+  width: 100%;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #1558c0;
+  border: 1px solid #0f469b;
+  color: #fff;
+}
+
+.login-submit-btn:hover {
+  background: #0f469b;
+}
+
+.login-submit-btn svg {
+  width: 20px;
+  height: 20px;
+  color: #fff;
+}
+
 .help-paginated-card {
   display: flex;
   flex-direction: column;
@@ -3043,6 +3091,15 @@ input[type="range"]:focus-visible {
   background-image: url('images/config.png');
   background-color: white;
 }
+#home-login-btn {
+  background-image: url('images/login.png');
+  background-color: white;
+}
+
+#home-login-btn.is-logged-in {
+  background-image: url('images/logout.png');
+}
+
 #home-stats-btn {
   background-image: url('images/stats.png');
   background-color: white;

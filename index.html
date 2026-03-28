@@ -81,6 +81,15 @@
           </span>
         </button>
 
+        <button class="home-tile" id="home-login-btn" aria-label="Connexion">
+          <span class="home-tile-label">
+            <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M17 9h-1V6.5a4 4 0 1 0-8 0V9H7a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-8a2 2 0 0 0-2-2ZM10 9V6.5a2 2 0 1 1 4 0V9h-4Zm2 9a1.8 1.8 0 0 1-.9-3.35V14a.9.9 0 0 1 1.8 0v.65A1.8 1.8 0 0 1 12 18Z" fill="currentColor"/>
+            </svg>
+            <span>Connexion</span>
+          </span>
+        </button>
+
         <button class="home-tile" id="home-help-btn" aria-label="Aide">
           <span class="home-tile-label">
             <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -808,6 +817,42 @@
           </div>
 
           <nav id="help-pagination" class="history-pagination" aria-label="Pagination aide"></nav>
+        </div>
+      </section>
+
+      <section id="login-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+        <div class="modal-overlay" id="login-modal-overlay"></div>
+        <div class="modal-card login-modal-card">
+          <div class="modal-head">
+            <h3 id="login-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M17 9h-1V6.5a4 4 0 1 0-8 0V9H7a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-8a2 2 0 0 0-2-2ZM10 9V6.5a2 2 0 1 1 4 0V9h-4Zm2 9a1.8 1.8 0 0 1-.9-3.35V14a.9.9 0 0 1 1.8 0v.65A1.8 1.8 0 0 1 12 18Z" fill="currentColor" />
+              </svg>
+              <span>Connexion</span>
+            </h3>
+            <button id="login-close-btn" class="btn btn-light btn-icon" aria-label="Fermer connexion">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <form id="login-form" class="login-form" novalidate>
+            <label>
+              Login
+              <input id="login-email-input" type="email" inputmode="email" autocomplete="username" placeholder="email@exemple.com" required />
+            </label>
+            <label>
+              Password
+              <input id="login-password-input" type="password" autocomplete="current-password" placeholder="Votre mot de passe" required />
+            </label>
+            <div id="login-feedback" class="login-feedback hidden" role="alert"></div>
+            <button id="login-submit-btn" type="submit" class="btn btn-primary btn-icon login-submit-btn" aria-label="Se connecter">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M17 9h-1V6.5a4 4 0 1 0-8 0V9H7a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-8a2 2 0 0 0-2-2ZM10 9V6.5a2 2 0 1 1 4 0V9h-4Zm2 9a1.8 1.8 0 0 1-.9-3.35V14a.9.9 0 0 1 1.8 0v.65A1.8 1.8 0 0 1 12 18Z" fill="currentColor" />
+              </svg>
+              <span>Se connecter</span>
+            </button>
+          </form>
         </div>
       </section>
 

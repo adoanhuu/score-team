@@ -6,6 +6,9 @@ const HISTORY_KEY = "score-team-history-v1";
 const CONFIG_KEY = "score-team-config-v1";
 const MAX_HISTORY_ITEMS = 50;
 const FLASH_INFO_MS = 2600;
+const AUTH_TOKEN_KEY = "score-team-auth-token-v1";
+const AUTH_USER_ID_KEY = "score-team-auth-user-id-v1";
+const AUTH_USER_EMAIL_KEY = "score-team-auth-user-email-v1";
 
 const state = {
   targetCount: 21,
@@ -188,7 +191,16 @@ const els = {
   homeHistoryBtn: document.getElementById("home-history-btn"),
   homeStatsBtn: document.getElementById("home-stats-btn"),
   homeConfigBtn: document.getElementById("home-config-btn"),
+  homeLoginBtn: document.getElementById("home-login-btn"),
   homeHelpBtn: document.getElementById("home-help-btn"),
+  loginModal: document.getElementById("login-modal"),
+  loginModalOverlay: document.getElementById("login-modal-overlay"),
+  loginCloseBtn: document.getElementById("login-close-btn"),
+  loginForm: document.getElementById("login-form"),
+  loginEmailInput: document.getElementById("login-email-input"),
+  loginPasswordInput: document.getElementById("login-password-input"),
+  loginFeedback: document.getElementById("login-feedback"),
+  loginSubmitBtn: document.getElementById("login-submit-btn"),
   multiModal: document.getElementById("multi-modal"),
   multiModalOverlay: document.getElementById("multi-modal-overlay"),
   multiCloseBtn: document.getElementById("multi-close-btn"),
@@ -346,6 +358,7 @@ function openConfigModal() {
   closeStatsModal();
   closeGeneralStatsModal();
   closeHelpModal();
+  closeLoginModal();
   closeHistoryModal();
   closeMultiModal();
   closeDuelModal();
@@ -2119,6 +2132,155 @@ function closeHelpModal() {
   els.helpModal.classList.add("hidden");
 }
 
+function setLoginFeedback(message) {
+  if (!els.loginFeedback) return;
+  if (!message) {
+    els.loginFeedback.textContent = "";
+    els.loginFeedback.classList.add("hidden");
+    return;
+  }
+  els.loginFeedback.textContent = message;
+  els.loginFeedback.classList.remove("hidden");
+}
+
+function hasStoredAuthToken() {
+  try {
+    const token = window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
+    return token.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function clearStoredAuth() {
+  try {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    window.localStorage.removeItem(AUTH_USER_ID_KEY);
+    window.localStorage.removeItem(AUTH_USER_EMAIL_KEY);
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
+function updateHomeLoginTile() {
+  if (!els.homeLoginBtn) return;
+  const labelText = els.homeLoginBtn.querySelector(".home-tile-label span:last-child");
+  const isLoggedIn = hasStoredAuthToken();
+  els.homeLoginBtn.classList.toggle("is-logged-in", isLoggedIn);
+  els.homeLoginBtn.setAttribute("aria-label", isLoggedIn ? "Déconnexion" : "Connexion");
+  if (labelText) {
+    labelText.textContent = isLoggedIn ? "Déconnexion" : "Connexion";
+  }
+}
+
+function openLoginModal() {
+  closeStatsModal();
+  closeGeneralStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  closeConfigModal();
+  closeMultiModal();
+  closeDuelModal();
+  setLoginFeedback("");
+  if (els.loginForm) {
+    els.loginForm.reset();
+  }
+  if (els.loginSubmitBtn) {
+    els.loginSubmitBtn.disabled = false;
+  }
+  if (els.loginModal) {
+    els.loginModal.classList.remove("hidden");
+  }
+  if (els.loginEmailInput) {
+    els.loginEmailInput.focus();
+  }
+}
+
+function closeLoginModal() {
+  if (els.loginModal) {
+    els.loginModal.classList.add("hidden");
+  }
+  setLoginFeedback("");
+  if (els.loginPasswordInput) {
+    els.loginPasswordInput.value = "";
+  }
+  if (els.loginSubmitBtn) {
+    els.loginSubmitBtn.disabled = false;
+  }
+}
+
+async function handleLoginSubmit(event) {
+  event.preventDefault();
+  const email = (els.loginEmailInput?.value || "").trim().toLowerCase();
+  const password = els.loginPasswordInput?.value || "";
+
+  if (!email || !password) {
+    setLoginFeedback("Login et password sont requis.");
+    return;
+  }
+
+  if (els.loginSubmitBtn) {
+    els.loginSubmitBtn.disabled = true;
+  }
+  setLoginFeedback("");
+
+  try {
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      const message = payload?.error || "Connexion impossible";
+      setLoginFeedback(message);
+      return;
+    }
+
+    const token = typeof payload?.token === "string" ? payload.token.trim() : "";
+    if (!token) {
+      setLoginFeedback("Réponse de connexion invalide.");
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+      if (payload?.id !== undefined && payload?.id !== null) {
+        window.localStorage.setItem(AUTH_USER_ID_KEY, String(payload.id));
+      }
+      if (typeof payload?.email === "string") {
+        window.localStorage.setItem(AUTH_USER_EMAIL_KEY, payload.email);
+      }
+    } catch {
+      setLoginFeedback("Impossible de stocker le token localement.");
+      return;
+    }
+
+    setLoginFeedback("Connexion réussie.");
+    const connectedAs = typeof payload?.email === "string" && payload.email ? payload.email : email;
+    window.setTimeout(() => {
+      closeLoginModal();
+      updateHomeLoginTile();
+      showFlashInfo(`Connecté : ${connectedAs}`);
+    }, 700);
+  } catch {
+    setLoginFeedback("Erreur réseau lors de la connexion.");
+  } finally {
+    if (els.loginSubmitBtn) {
+      els.loginSubmitBtn.disabled = false;
+    }
+  }
+}
+
 function downloadResultsJson() {
   if (state.shoots.length !== state.targetCount) {
     return;
@@ -3881,6 +4043,20 @@ els.homePelotonBtn.addEventListener("click", () => { openMultiModal(); });
 els.homeHistoryBtn.addEventListener("click", () => { openHistoryModal(); });
 els.homeStatsBtn.addEventListener("click", () => { openGeneralStatsModal(); });
 els.homeConfigBtn.addEventListener("click", () => { openConfigModal(); });
+if (els.homeLoginBtn) {
+  els.homeLoginBtn.addEventListener("click", async () => {
+    if (hasStoredAuthToken()) {
+      const confirmed = await confirmAction("Confirmer la déconnexion ?", "Déconnexion");
+      if (!confirmed) return;
+      clearStoredAuth();
+      updateHomeLoginTile();
+      closeLoginModal();
+      showFlashInfo("Déconnexion réussie.");
+      return;
+    }
+    openLoginModal();
+  });
+}
 els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
 if (els.multiStartBtn) {
   els.multiStartBtn.addEventListener("click", () => {
@@ -3985,6 +4161,15 @@ document.querySelectorAll(".stats-tab").forEach((btn) => {
 });
 els.helpModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 els.helpCloseBtn.addEventListener("click", closeHelpModal);
+if (els.loginModalOverlay) {
+  els.loginModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.loginCloseBtn) {
+  els.loginCloseBtn.addEventListener("click", closeLoginModal);
+}
+if (els.loginForm) {
+  els.loginForm.addEventListener("submit", handleLoginSubmit);
+}
 els.historyModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 els.historyCloseBtn.addEventListener("click", closeHistoryModal);
 if (els.multiModalOverlay) {
@@ -4059,6 +4244,9 @@ els.configImportHistoryBtn.addEventListener("click", () => {
 els.configImportHistoryInput.addEventListener("change", (e) => {
   if (e.target.files.length > 0) importHistory(e.target.files[0]);
 });
+
+updateHomeLoginTile();
+
 els.configFullTargetTeam.addEventListener("input", () => {
   appConfig.fullTarget_team = Number(els.configFullTargetTeam.value);
   els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
