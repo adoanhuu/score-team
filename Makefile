@@ -30,7 +30,7 @@ select-users:
 		echo "Local D1 database not found. Run 'make db-migrate-local' first."; \
 		exit 1; \
 	fi; \
-	sqlite3 -header -column "$$db_path" "SELECT id, first_name, last_name, email FROM users;"
+	sqlite3 -header -column "$$db_path" "SELECT id, first_name, last_name, email, configuration FROM users;"
 
 select-user:
 	@if [ -z "$(EMAIL)" ]; then \

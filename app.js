@@ -163,6 +163,8 @@ const els = {
   configExportHistoryBtn: document.getElementById("config-export-history-btn"),
   configImportHistoryBtn: document.getElementById("config-import-history-btn"),
   configImportHistoryInput: document.getElementById("config-import-history-input"),
+  configSaveServerBtn: document.getElementById("config-save-server-btn"),
+  configRestoreServerBtn: document.getElementById("config-restore-server-btn"),
   weaponSelect: document.getElementById("weapon-select"),
   volleyTitleText: document.getElementById("volley-title-text"),
   volleyCounter: document.getElementById("volley-counter"),
@@ -2173,6 +2175,88 @@ function updateHomeLoginTile() {
   }
 }
 
+function updateConfigActionButtons() {
+  const isLoggedIn = hasStoredAuthToken();
+  if (els.configExportHistoryBtn) els.configExportHistoryBtn.classList.toggle("hidden", isLoggedIn);
+  if (els.configImportHistoryBtn) els.configImportHistoryBtn.classList.toggle("hidden", isLoggedIn);
+  if (els.configSaveServerBtn) els.configSaveServerBtn.classList.toggle("hidden", !isLoggedIn);
+  if (els.configRestoreServerBtn) els.configRestoreServerBtn.classList.toggle("hidden", !isLoggedIn);
+}
+
+async function saveConfigToServer() {
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) return;
+  try {
+    if (els.configSaveServerBtn) els.configSaveServerBtn.disabled = true;
+    const response = await fetch("/api/users/configuration", {
+      method: "PUT",
+      headers: { "content-type": "application/json", "authorization": `Bearer ${token}` },
+      body: JSON.stringify({ configuration: appConfig }),
+    });
+    if (response.ok) {
+      showFlashInfo("Configuration sauvegardée.");
+    } else {
+      showFlashInfo("Échec de la sauvegarde.");
+    }
+  } catch {
+    showFlashInfo("Erreur réseau lors de la sauvegarde.");
+  } finally {
+    if (els.configSaveServerBtn) els.configSaveServerBtn.disabled = false;
+  }
+}
+
+async function restoreConfigFromServer() {
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) return;
+  try {
+    if (els.configRestoreServerBtn) els.configRestoreServerBtn.disabled = true;
+    const response = await fetch("/api/users/configuration", {
+      headers: { "authorization": `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      showFlashInfo("Échec de la restauration.");
+      return;
+    }
+    const data = await response.json();
+    const saved = data?.configuration;
+    if (!saved || typeof saved !== "object") {
+      showFlashInfo("Aucune configuration trouvée sur le serveur.");
+      return;
+    }
+    if (Number.isFinite(saved.fullTarget_team)) appConfig.fullTarget_team = saved.fullTarget_team;
+    if (Number.isFinite(saved.fullTarget_individual)) appConfig.fullTarget_individual = saved.fullTarget_individual;
+    if (Number.isFinite(saved.missLimit_team)) appConfig.missLimit_team = saved.missLimit_team;
+    if (Number.isFinite(saved.missLimit_individual)) appConfig.missLimit_individual = saved.missLimit_individual;
+    if (saved.successZoneByRuleset && typeof saved.successZoneByRuleset === "object") {
+      Object.assign(appConfig.successZoneByRuleset, saved.successZoneByRuleset);
+    }
+    if (Array.isArray(saved.enabledRulesets)) {
+      appConfig.enabledRulesets = saved.enabledRulesets;
+    }
+    saveConfig();
+    syncConfigSliderMax();
+    els.configFullTargetTeam.value = String(appConfig.fullTarget_team);
+    els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
+    setRangeProgress(els.configFullTargetTeam);
+    els.configFullTargetIndiv.value = String(appConfig.fullTarget_individual);
+    els.configFullTargetIndivValue.textContent = String(appConfig.fullTarget_individual);
+    setRangeProgress(els.configFullTargetIndiv);
+    els.configMissLimitTeam.value = String(appConfig.missLimit_team);
+    els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
+    setRangeProgress(els.configMissLimitTeam);
+    els.configMissLimitIndiv.value = String(appConfig.missLimit_individual);
+    els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
+    setRangeProgress(els.configMissLimitIndiv);
+    syncRulesetCheckboxes();
+    updateRulesetSelectOptions();
+    showFlashInfo("Configuration restaurée.");
+  } catch {
+    showFlashInfo("Erreur réseau lors de la restauration.");
+  } finally {
+    if (els.configRestoreServerBtn) els.configRestoreServerBtn.disabled = false;
+  }
+}
+
 function openLoginModal() {
   closeStatsModal();
   closeGeneralStatsModal();
@@ -2270,6 +2354,7 @@ async function handleLoginSubmit(event) {
     window.setTimeout(() => {
       closeLoginModal();
       updateHomeLoginTile();
+      updateConfigActionButtons();
       showFlashInfo(`Connecté : ${connectedAs}`);
     }, 700);
   } catch {
@@ -4050,6 +4135,7 @@ if (els.homeLoginBtn) {
       if (!confirmed) return;
       clearStoredAuth();
       updateHomeLoginTile();
+      updateConfigActionButtons();
       closeLoginModal();
       showFlashInfo("Déconnexion réussie.");
       return;
@@ -4244,8 +4330,11 @@ els.configImportHistoryBtn.addEventListener("click", () => {
 els.configImportHistoryInput.addEventListener("change", (e) => {
   if (e.target.files.length > 0) importHistory(e.target.files[0]);
 });
+if (els.configSaveServerBtn) els.configSaveServerBtn.addEventListener("click", saveConfigToServer);
+if (els.configRestoreServerBtn) els.configRestoreServerBtn.addEventListener("click", restoreConfigFromServer);
 
 updateHomeLoginTile();
+updateConfigActionButtons();
 
 els.configFullTargetTeam.addEventListener("input", () => {
   appConfig.fullTarget_team = Number(els.configFullTargetTeam.value);
