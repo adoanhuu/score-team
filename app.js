@@ -1681,7 +1681,7 @@ function startContestScoring(contest) {
     els.rulesetSelect.dispatchEvent(new Event("change"));
   }
 
-  const forcedMode = normalizeScoringMode("team", contest.ruleset);
+  const forcedMode = normalizeScoringMode("individual", contest.ruleset);
   els.scoringModeInputs.forEach((input) => {
     input.checked = input.value === forcedMode;
   });
@@ -3174,7 +3174,7 @@ function closeHistoryModal() {
   els.historyModal.classList.add("hidden");
 }
 
-function openMultiModal() {
+async function openMultiModal() {
   updateMultiContestModeAvailability();
   closeStatsModal();
   closeGeneralStatsModal();
@@ -3224,13 +3224,56 @@ function openMultiModal() {
     els.duelNamesContainer?.classList.add("hidden");
     els.pelotonNamesContainer?.classList.add("hidden");
     els.targetCountFieldset?.classList.add("hidden");
-    els.contestCodeContainer?.classList.remove("hidden");
+    const hasStoredUuid = Boolean(getStoredContestUuid());
+    if (hasStoredUuid) {
+      els.contestCodeContainer?.classList.add("hidden");
+    } else {
+      els.contestCodeContainer?.classList.remove("hidden");
+    }
   }
   els.multiModal?.classList.remove("hidden");
 }
 
 function closeMultiModal() {
   els.multiModal?.classList.add("hidden");
+}
+
+async function startContestFromStoredUuidIfAvailable() {
+  const storedContestUuid = getStoredContestUuid();
+  if (!storedContestUuid) {
+    return false;
+  }
+
+  const ruleset = (els.multiRulesetSelect?.value || "").trim();
+  if (!ruleset) {
+    showFlashInfo("Sélectionnez un type de parcours.");
+    return false;
+  }
+
+  if (els.multiStartBtn) {
+    els.multiStartBtn.disabled = true;
+  }
+
+  const contest = await connectToContest(storedContestUuid, ruleset);
+
+  if (els.multiStartBtn) {
+    els.multiStartBtn.disabled = false;
+  }
+
+  if (!contest) {
+    els.contestCodeContainer?.classList.remove("hidden");
+    els.contestCodeInput?.focus();
+    return false;
+  }
+
+  closeMultiModal();
+  closeStatsModal();
+  closeGeneralStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  closeConfigModal();
+  startContestScoring(contest);
+  return true;
 }
 
 function getSelectedMultiTargetCount() {
@@ -3245,7 +3288,7 @@ function resetDuelStateFromMultiConfig() {
   const targetCount = mode === "peloton"
     ? getTargetCountForRuleset(ruleset)
     : getSelectedMultiTargetCount();
-  const arrowsPerTarget = getArrowsPerVolley(ruleset, "team");
+  const arrowsPerTarget = getArrowsPerVolley(ruleset, "individual");
   const allowedPoints = [...new Set(presets[ruleset] || [0])].sort((a, b) => b - a);
 
   state.duel = {
@@ -4492,25 +4535,31 @@ if (els.multiStartBtn) {
       }
 
       const code = (els.contestCodeInput?.value || "").trim();
-      const storedContestUuid = getStoredContestUuid();
-      const contestUuid = code || storedContestUuid;
-      if (!contestUuid) {
+      if (!code) {
+        const startedFromStoredUuid = await startContestFromStoredUuidIfAvailable();
+        if (startedFromStoredUuid) {
+          return;
+        }
+      }
+
+      if (!code) {
         showFlashInfo("Saisissez un code concours.");
         els.contestCodeInput?.focus();
         return;
       }
 
       els.multiStartBtn.disabled = true;
-      const contest = await connectToContest(contestUuid, ruleset);
+      const contest = await connectToContest(code, ruleset);
       els.multiStartBtn.disabled = false;
       if (contest) {
+        closeMultiModal();
         startContestScoring(contest);
       }
     }
   });
 }
 if (els.multiModeSelect) {
-  els.multiModeSelect.addEventListener("change", (e) => {
+  els.multiModeSelect.addEventListener("change", async (e) => {
     const mode = e.target.value;
     // Masquer le message d'erreur quand on change de mode
     if (els.pelotonNamesError) {
@@ -4533,8 +4582,14 @@ if (els.multiModeSelect) {
       els.duelNamesContainer?.classList.add("hidden");
       els.pelotonNamesContainer?.classList.add("hidden");
       els.targetCountFieldset?.classList.add("hidden");
-      els.contestCodeContainer?.classList.remove("hidden");
-      els.contestCodeInput?.focus();
+      const hasStoredUuid = Boolean(getStoredContestUuid());
+      if (hasStoredUuid) {
+        els.contestCodeContainer?.classList.add("hidden");
+        await startContestFromStoredUuidIfAvailable();
+      } else {
+        els.contestCodeContainer?.classList.remove("hidden");
+        els.contestCodeInput?.focus();
+      }
     }
   });
 }
