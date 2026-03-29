@@ -2091,6 +2091,12 @@ input[type="range"]:focus-visible {
   padding: 8px 10px;
 }
 
+.login-feedback.is-success {
+  color: #0b5f2a;
+  background: #e9f7ee;
+  border-color: #9fd7b0;
+}
+
 .login-submit-btn {
   margin-top: 4px;
   width: 100%;

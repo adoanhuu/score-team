@@ -22,7 +22,7 @@ export async function onRequestPost({ request, env }) {
 
   try {
     const record = await env.DB.prepare(
-      "SELECT id, email, password_hash FROM users WHERE email = ? LIMIT 1"
+      "SELECT id, first_name, last_name, email, password_hash FROM users WHERE email = ? LIMIT 1"
     )
       .bind(email)
       .first();
@@ -42,7 +42,13 @@ export async function onRequestPost({ request, env }) {
       .bind(token, now, record.id)
       .run();
 
-    return jsonResponse(200, { id: record.id, email: record.email, token });
+    return jsonResponse(200, {
+      id: record.id,
+      first_name: record.first_name,
+      last_name: record.last_name,
+      email: record.email,
+      token,
+    });
   } catch (error) {
     return jsonResponse(500, { error: "Login failed" });
   }

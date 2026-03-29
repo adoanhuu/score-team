@@ -1,4 +1,4 @@
-.PHONY: dev dev-down deploy db-migrate remote-db-migrate remote select-users select-user insert-user delete-user hash-password set-user-password remote-select-users remote-select-user remote-update-user-token remote-delete-user remote-insert-user remote-delete-session remote-update-password remote-set-user-password remote-exec select-sessions remote-select-sessions select-contests select-contest insert-contest delete-contest remote-select-contests remote-select-contest remote-insert-contest remote-delete-contest select-contests-users select-contests-user insert-contests-user delete-contests-user remote-select-contests-users remote-select-contests-user remote-insert-contests-user remote-delete-contests-user
+.PHONY: dev dev-down deploy db-migrate remote-db-migrate remote select-users select-user insert-user delete-user hash-password set-user-password remote-select-users remote-select-user remote-update-user-token remote-delete-user remote-insert-user remote-delete-session remote-update-password remote-set-user-password remote-exec select-sessions remote-select-sessions select-contests select-contest insert-contest delete-contest remote-select-contests remote-select-contest remote-insert-contest remote-delete-contest select-contests-users select-contests-user insert-contests-user update-contest-user update-contests-user delete-contests-user remote-select-contests-users remote-select-contests-user remote-insert-contests-user remote-update-contests-user remote-delete-contests-user
 
 REMOTE_WRANGLER_CONFIG ?= wrangler.local.toml
 REMOTE_D1_DATABASE ?= score-team
@@ -310,13 +310,14 @@ select-contests-users:
 		exit 1; \
 	fi; \
 	filter=''; \
-	if [ -n "$(CONTEST_ID)" ]; then \
-		filter="$$filter AND cu.contest_id = $(CONTEST_ID)"; \
+	if [ -n "$(CONTEST_UUID)" ]; then \
+		contest_uuid_escaped="$$(printf '%s' "$(CONTEST_UUID)" | sed "s/'/''/g")"; \
+		filter="$$filter AND cu.contest_uuid = '$$contest_uuid_escaped'"; \
 	fi; \
 	if [ -n "$(USER_ID)" ]; then \
 		filter="$$filter AND cu.user_id = $(USER_ID)"; \
 	fi; \
-	sqlite3 -header -column "$$db_path" "SELECT cu.id, cu.contest_id, c.uuid AS contest_uuid, cu.user_id, cu.first_name, cu.last_name, cu.weapon, cu.data, cu.created_at FROM contests_users cu LEFT JOIN contests c ON c.id = cu.contest_id WHERE 1=1$$filter ORDER BY cu.id DESC;"
+	sqlite3 -header -column "$$db_path" "SELECT cu.id, cu.contest_uuid, cu.user_id, cu.first_name, cu.last_name, cu.weapon, cu.data, cu.created_at FROM contests_users cu WHERE 1=1$$filter ORDER BY cu.id DESC;"
 
 select-contests-user:
 	@if [ -z "$(ID)" ]; then \
@@ -328,11 +329,11 @@ select-contests-user:
 		echo "Local D1 database not found. Run 'make db-migrate' first."; \
 		exit 1; \
 	fi; \
-	sqlite3 -header -column "$$db_path" "SELECT id, contest_id, user_id, first_name, last_name, weapon, data, created_at FROM contests_users WHERE id = $(ID);"
+	sqlite3 -header -column "$$db_path" "SELECT id, contest_uuid, user_id, first_name, last_name, weapon, data, created_at FROM contests_users WHERE id = $(ID);"
 
 insert-contests-user:
-	@if [ -z "$(CONTEST_ID)" ] || [ -z "$(USER_ID)" ] || [ -z "$(FIRST_NAME)" ] || [ -z "$(LAST_NAME)" ] || [ -z "$(WEAPON)" ]; then \
-		echo "Usage: make insert-contests-user CONTEST_ID=... USER_ID=... FIRST_NAME=... LAST_NAME=... WEAPON=... [DATA_JSON='{}']"; \
+	@if [ -z "$(CONTEST_UUID)" ] || [ -z "$(USER_ID)" ] || [ -z "$(FIRST_NAME)" ] || [ -z "$(LAST_NAME)" ] || [ -z "$(WEAPON)" ]; then \
+		echo "Usage: make insert-contests-user CONTEST_UUID=... USER_ID=... FIRST_NAME=... LAST_NAME=... WEAPON=... [DATA_JSON='{}']"; \
 		exit 1; \
 	fi
 	@db_path="$$(find .wrangler/state/v3/d1/miniflare-D1DatabaseObject -name '*.sqlite' | head -n 1)"; \
@@ -343,11 +344,74 @@ insert-contests-user:
 	first_name_escaped="$$(printf '%s' "$(FIRST_NAME)" | sed "s/'/''/g")"; \
 	last_name_escaped="$$(printf '%s' "$(LAST_NAME)" | sed "s/'/''/g")"; \
 	weapon_escaped="$$(printf '%s' "$(WEAPON)" | sed "s/'/''/g")"; \
+	contest_uuid_escaped="$$(printf '%s' "$(CONTEST_UUID)" | sed "s/'/''/g")"; \
 	data_input='$(DATA_JSON)'; \
 	if [ -z "$$data_input" ]; then data_input='{}'; fi; \
 	data_escaped="$$(printf '%s' "$$data_input" | sed "s/'/''/g")"; \
-	sqlite3 "$$db_path" "INSERT INTO contests_users (contest_id, user_id, first_name, last_name, weapon, data) VALUES ($(CONTEST_ID), $(USER_ID), '$$first_name_escaped', '$$last_name_escaped', '$$weapon_escaped', '$$data_escaped');"; \
-	sqlite3 -header -column "$$db_path" "SELECT id, contest_id, user_id, first_name, last_name, weapon, data FROM contests_users WHERE rowid = last_insert_rowid();"
+	sqlite3 "$$db_path" "INSERT INTO contests_users (contest_uuid, user_id, first_name, last_name, weapon, data) VALUES ('$$contest_uuid_escaped', $(USER_ID), '$$first_name_escaped', '$$last_name_escaped', '$$weapon_escaped', '$$data_escaped');"; \
+	sqlite3 -header -column "$$db_path" "SELECT id, contest_uuid, user_id, first_name, last_name, weapon, data FROM contests_users WHERE rowid = last_insert_rowid();"
+
+update-contest-user: update-contests-user
+
+update-contests-user:
+	@if [ -z "$(CONTEST_UUID)" ] || [ -z "$(USER_ID)" ]; then \
+		echo "Usage: make update-contests-user CONTEST_UUID=... USER_ID=... [FIRST_NAME=...] [LAST_NAME=...] [WEAPON=...] [DATA_JSON='{}'] [CONTEST_PROGRESS_JSON='{""uuid:ruleset"":{""scoring"":{...}}}'] [CONTEST_RULESET=...]"; \
+		exit 1; \
+	fi
+	@db_path="$$(find .wrangler/state/v3/d1/miniflare-D1DatabaseObject -name '*.sqlite' | head -n 1)"; \
+	if [ -z "$$db_path" ]; then \
+		echo "Local D1 database not found. Run 'make db-migrate' first."; \
+		exit 1; \
+	fi; \
+	contest_uuid_escaped="$$(printf '%s' "$(CONTEST_UUID)" | sed "s/'/''/g")"; \
+	ruleset_input='$(CONTEST_RULESET)'; \
+	if [ -z "$$ruleset_input" ] && [ -n "$(CONTEST_PROGRESS_JSON)" ]; then \
+		ruleset_input="$$(sqlite3 "$$db_path" "SELECT ruleset FROM contests WHERE uuid = '$$contest_uuid_escaped' LIMIT 1;")"; \
+	fi; \
+	data_json_input='$(DATA_JSON)'; \
+	if [ -z "$$data_json_input" ] && [ -n "$(CONTEST_PROGRESS_JSON)" ]; then \
+		if [ -z "$$ruleset_input" ]; then \
+			echo "Cannot infer ruleset for CONTEST_UUID=$(CONTEST_UUID). Provide CONTEST_RULESET=... or DATA_JSON=..."; \
+			exit 1; \
+		fi; \
+		contest_progress_json='$(CONTEST_PROGRESS_JSON)'; \
+		contest_progress_key="$(CONTEST_UUID):$$ruleset_input"; \
+		extra_data="$$(CONTEST_PROGRESS_JSON_INPUT="$$contest_progress_json" CONTEST_PROGRESS_KEY="$$contest_progress_key" node -e 'const raw = process.env.CONTEST_PROGRESS_JSON_INPUT || ""; const key = process.env.CONTEST_PROGRESS_KEY || ""; let parsed; try { parsed = JSON.parse(raw); } catch { process.exit(2); } const scoring = parsed && parsed[key] && parsed[key].scoring; if (!scoring || typeof scoring !== "object" || Array.isArray(scoring)) { process.exit(3); } process.stdout.write(JSON.stringify(scoring));')"; \
+		status="$$?"; \
+		if [ "$$status" -eq 2 ]; then \
+			echo "CONTEST_PROGRESS_JSON is not valid JSON."; \
+			exit 1; \
+		fi; \
+		if [ "$$status" -eq 3 ]; then \
+			echo "No scoring entry found in CONTEST_PROGRESS_JSON for key $$contest_progress_key."; \
+			exit 1; \
+		fi; \
+		data_json_input="$$extra_data"; \
+	fi; \
+	set_clause=''; \
+	if [ -n "$(FIRST_NAME)" ]; then \
+		first_name_escaped="$$(printf '%s' "$(FIRST_NAME)" | sed "s/'/''/g")"; \
+		set_clause="$$set_clause, first_name = '$$first_name_escaped'"; \
+	fi; \
+	if [ -n "$(LAST_NAME)" ]; then \
+		last_name_escaped="$$(printf '%s' "$(LAST_NAME)" | sed "s/'/''/g")"; \
+		set_clause="$$set_clause, last_name = '$$last_name_escaped'"; \
+	fi; \
+	if [ -n "$(WEAPON)" ]; then \
+		weapon_escaped="$$(printf '%s' "$(WEAPON)" | sed "s/'/''/g")"; \
+		set_clause="$$set_clause, weapon = '$$weapon_escaped'"; \
+	fi; \
+	if [ -n "$$data_json_input" ]; then \
+		data_escaped="$$(printf '%s' "$$data_json_input" | sed "s/'/''/g")"; \
+		set_clause="$$set_clause, data = '$$data_escaped'"; \
+	fi; \
+	set_clause="$${set_clause#, }"; \
+	if [ -z "$$set_clause" ]; then \
+		echo "Provide at least one field to update."; \
+		exit 1; \
+	fi; \
+	sqlite3 "$$db_path" "UPDATE contests_users SET $$set_clause WHERE contest_uuid = '$$contest_uuid_escaped' AND user_id = $(USER_ID);"; \
+	sqlite3 -header -column "$$db_path" "SELECT id, contest_uuid, user_id, first_name, last_name, weapon, data, created_at FROM contests_users WHERE contest_uuid = '$$contest_uuid_escaped' AND user_id = $(USER_ID);"
 
 delete-contests-user:
 	@if [ -z "$(ID)" ]; then \
@@ -364,33 +428,86 @@ delete-contests-user:
 
 remote-select-contests-users:
 	@filter=''; \
-	if [ -n "$(CONTEST_ID)" ]; then \
-		filter="$$filter AND cu.contest_id = $(CONTEST_ID)"; \
+	if [ -n "$(CONTEST_UUID)" ]; then \
+		contest_uuid_escaped="$$(printf '%s' "$(CONTEST_UUID)" | sed "s/'/''/g")"; \
+		filter="$$filter AND cu.contest_uuid = '$$contest_uuid_escaped'"; \
 	fi; \
 	if [ -n "$(USER_ID)" ]; then \
 		filter="$$filter AND cu.user_id = $(USER_ID)"; \
 	fi; \
-	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "SELECT cu.id, cu.contest_id, c.uuid AS contest_uuid, cu.user_id, cu.first_name, cu.last_name, cu.weapon, cu.data, cu.created_at FROM contests_users cu LEFT JOIN contests c ON c.id = cu.contest_id WHERE 1=1$$filter ORDER BY cu.id DESC;"
+	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "SELECT cu.id, cu.contest_uuid, cu.user_id, cu.first_name, cu.last_name, cu.weapon, cu.data, cu.created_at FROM contests_users cu WHERE 1=1$$filter ORDER BY cu.id DESC;"
 
 remote-select-contests-user:
 	@if [ -z "$(ID)" ]; then \
 		echo "Usage: make remote-select-contests-user ID=... [REMOTE_WRANGLER_CONFIG=wrangler.local.toml] [REMOTE_D1_DATABASE=score-team]"; \
 		exit 1; \
 	fi
-	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "SELECT id, contest_id, user_id, first_name, last_name, weapon, data, created_at FROM contests_users WHERE id = $(ID);"
+	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "SELECT id, contest_uuid, user_id, first_name, last_name, weapon, data, created_at FROM contests_users WHERE id = $(ID);"
 
 remote-insert-contests-user:
-	@if [ -z "$(CONTEST_ID)" ] || [ -z "$(USER_ID)" ] || [ -z "$(FIRST_NAME)" ] || [ -z "$(LAST_NAME)" ] || [ -z "$(WEAPON)" ]; then \
-		echo "Usage: make remote-insert-contests-user CONTEST_ID=... USER_ID=... FIRST_NAME=... LAST_NAME=... WEAPON=... [DATA_JSON='{}'] [REMOTE_WRANGLER_CONFIG=wrangler.local.toml] [REMOTE_D1_DATABASE=score-team]"; \
+	@if [ -z "$(CONTEST_UUID)" ] || [ -z "$(USER_ID)" ] || [ -z "$(FIRST_NAME)" ] || [ -z "$(LAST_NAME)" ] || [ -z "$(WEAPON)" ]; then \
+		echo "Usage: make remote-insert-contests-user CONTEST_UUID=... USER_ID=... FIRST_NAME=... LAST_NAME=... WEAPON=... [DATA_JSON='{}'] [REMOTE_WRANGLER_CONFIG=wrangler.local.toml] [REMOTE_D1_DATABASE=score-team]"; \
 		exit 1; \
 	fi
 	@first_name_escaped="$$(printf '%s' "$(FIRST_NAME)" | sed "s/'/''/g")"; \
 	last_name_escaped="$$(printf '%s' "$(LAST_NAME)" | sed "s/'/''/g")"; \
 	weapon_escaped="$$(printf '%s' "$(WEAPON)" | sed "s/'/''/g")"; \
+	contest_uuid_escaped="$$(printf '%s' "$(CONTEST_UUID)" | sed "s/'/''/g")"; \
 	data_input='$(DATA_JSON)'; \
 	if [ -z "$$data_input" ]; then data_input='{}'; fi; \
 	data_escaped="$$(printf '%s' "$$data_input" | sed "s/'/''/g")"; \
-	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "INSERT INTO contests_users (contest_id, user_id, first_name, last_name, weapon, data) VALUES ($(CONTEST_ID), $(USER_ID), '$$first_name_escaped', '$$last_name_escaped', '$$weapon_escaped', '$$data_escaped'); SELECT id, contest_id, user_id, first_name, last_name, weapon, data FROM contests_users WHERE id = last_insert_rowid();"
+	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "INSERT INTO contests_users (contest_uuid, user_id, first_name, last_name, weapon, data) VALUES ('$$contest_uuid_escaped', $(USER_ID), '$$first_name_escaped', '$$last_name_escaped', '$$weapon_escaped', '$$data_escaped'); SELECT id, contest_uuid, user_id, first_name, last_name, weapon, data FROM contests_users WHERE id = last_insert_rowid();"
+
+remote-update-contests-user:
+	@if [ -z "$(CONTEST_UUID)" ] || [ -z "$(USER_ID)" ]; then \
+		echo "Usage: make remote-update-contests-user CONTEST_UUID=... USER_ID=... [FIRST_NAME=...] [LAST_NAME=...] [WEAPON=...] [DATA_JSON='{}'] [CONTEST_PROGRESS_JSON='{""uuid:ruleset"":{""scoring"":{...}}}'] [CONTEST_RULESET=...] [REMOTE_WRANGLER_CONFIG=wrangler.local.toml] [REMOTE_D1_DATABASE=score-team]"; \
+		exit 1; \
+	fi
+	@contest_uuid_escaped="$$(printf '%s' "$(CONTEST_UUID)" | sed "s/'/''/g")"; \
+	ruleset_input='$(CONTEST_RULESET)'; \
+	data_json_input='$(DATA_JSON)'; \
+	if [ -z "$$data_json_input" ] && [ -n "$(CONTEST_PROGRESS_JSON)" ]; then \
+		if [ -z "$$ruleset_input" ]; then \
+			echo "Provide CONTEST_RULESET=... when using CONTEST_PROGRESS_JSON on remote-update-contests-user."; \
+			exit 1; \
+		fi; \
+		contest_progress_json='$(CONTEST_PROGRESS_JSON)'; \
+		contest_progress_key="$(CONTEST_UUID):$$ruleset_input"; \
+		extra_data="$$(CONTEST_PROGRESS_JSON_INPUT="$$contest_progress_json" CONTEST_PROGRESS_KEY="$$contest_progress_key" node -e 'const raw = process.env.CONTEST_PROGRESS_JSON_INPUT || ""; const key = process.env.CONTEST_PROGRESS_KEY || ""; let parsed; try { parsed = JSON.parse(raw); } catch { process.exit(2); } const scoring = parsed && parsed[key] && parsed[key].scoring; if (!scoring || typeof scoring !== "object" || Array.isArray(scoring)) { process.exit(3); } process.stdout.write(JSON.stringify(scoring));')"; \
+		status="$$?"; \
+		if [ "$$status" -eq 2 ]; then \
+			echo "CONTEST_PROGRESS_JSON is not valid JSON."; \
+			exit 1; \
+		fi; \
+		if [ "$$status" -eq 3 ]; then \
+			echo "No scoring entry found in CONTEST_PROGRESS_JSON for key $$contest_progress_key."; \
+			exit 1; \
+		fi; \
+		data_json_input="$$extra_data"; \
+	fi; \
+	set_clause=''; \
+	if [ -n "$(FIRST_NAME)" ]; then \
+		first_name_escaped="$$(printf '%s' "$(FIRST_NAME)" | sed "s/'/''/g")"; \
+		set_clause="$$set_clause, first_name = '$$first_name_escaped'"; \
+	fi; \
+	if [ -n "$(LAST_NAME)" ]; then \
+		last_name_escaped="$$(printf '%s' "$(LAST_NAME)" | sed "s/'/''/g")"; \
+		set_clause="$$set_clause, last_name = '$$last_name_escaped'"; \
+	fi; \
+	if [ -n "$(WEAPON)" ]; then \
+		weapon_escaped="$$(printf '%s' "$(WEAPON)" | sed "s/'/''/g")"; \
+		set_clause="$$set_clause, weapon = '$$weapon_escaped'"; \
+	fi; \
+	if [ -n "$$data_json_input" ]; then \
+		data_escaped="$$(printf '%s' "$$data_json_input" | sed "s/'/''/g")"; \
+		set_clause="$$set_clause, data = '$$data_escaped'"; \
+	fi; \
+	set_clause="$${set_clause#, }"; \
+	if [ -z "$$set_clause" ]; then \
+		echo "Provide at least one field to update."; \
+		exit 1; \
+	fi; \
+	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "UPDATE contests_users SET $$set_clause WHERE contest_uuid = '$$contest_uuid_escaped' AND user_id = $(USER_ID); SELECT id, contest_uuid, user_id, first_name, last_name, weapon, data, created_at FROM contests_users WHERE contest_uuid = '$$contest_uuid_escaped' AND user_id = $(USER_ID);"
 
 remote-delete-contests-user:
 	@if [ -z "$(ID)" ]; then \

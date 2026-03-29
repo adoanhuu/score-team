@@ -10,6 +10,8 @@ const FLASH_INFO_MS = 2600;
 const AUTH_TOKEN_KEY = "score-team-auth-token-v1";
 const AUTH_USER_ID_KEY = "score-team-auth-user-id-v1";
 const AUTH_USER_EMAIL_KEY = "score-team-auth-user-email-v1";
+const AUTH_USER_FIRST_NAME_KEY = "score-team-auth-user-first-name-v1";
+const AUTH_USER_LAST_NAME_KEY = "score-team-auth-user-last-name-v1";
 const CONTEST_UUID_KEY = "score-team-contest-uuid-v1";
 const CONTEST_PROGRESS_KEY = "score-team-contest-progress-v1";
 
@@ -1472,6 +1474,20 @@ function registerScore(score) {
       // Save immediately when a full volley is validated.
       persistAppState();
 
+      if (state.contestMode && state.contestInfo?.uuid) {
+        const completedTargets = state.shoots.length;
+        const shouldSyncContestSession = completedTargets > 0
+          && (completedTargets % 3 === 0 || completedTargets === state.targetCount);
+        if (shouldSyncContestSession) {
+          void upsertContestUserFromLocalProfile(
+            state.contestInfo.uuid,
+            state.weapon,
+            buildContestUserDataSnapshot(),
+            state.contestInfo?.ruleset || state.activeRuleset,
+          );
+        }
+      }
+
       state.inputLocked = false;
       if (state.shoots.length === state.targetCount) {
         state.resultsPayload = buildResultsPayload();
@@ -1484,6 +1500,18 @@ function registerScore(score) {
           }
           state.completionArchived = true;
         }
+
+        if (state.contestMode && state.contestInfo?.uuid) {
+          // Force one last persisted snapshot at contest completion.
+          persistAppState();
+          void upsertContestUserFromLocalProfile(
+            state.contestInfo.uuid,
+            state.weapon,
+            buildContestUserDataSnapshot(),
+            state.contestInfo?.ruleset || state.activeRuleset,
+          );
+        }
+
         refreshScoringView({ scrollHistory: true, scrollCard: true });
         return;
       }
@@ -1803,6 +1831,87 @@ function startScoring() {
   refreshScoringView();
 }
 
+function buildContestUserDataSnapshot() {
+  const completedTargets = state.shoots.length;
+  return {
+    updatedAt: new Date().toISOString(),
+    ruleset: state.activeRuleset,
+    scoringMode: state.scoringMode,
+    targetCount: state.targetCount,
+    completedTargets,
+    arrowsPerVolley: state.arrowsPerVolley,
+    total: globalTotal(),
+    successZone: state.successZone,
+    completed: state.targetCount > 0 && completedTargets === state.targetCount,
+    shoots: state.shoots.map((volley) => [...volley]),
+    shootGroups: [...state.shootGroups],
+  };
+}
+
+function getContestScoringFromLocalStorage(contestUuid, contestRuleset = "") {
+  const uuid = typeof contestUuid === "string" ? contestUuid.trim() : "";
+  const ruleset = typeof contestRuleset === "string" ? contestRuleset.trim() : "";
+  if (!uuid || !ruleset) return null;
+
+  try {
+    const raw = window.localStorage.getItem(CONTEST_PROGRESS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const key = `${uuid}:${ruleset}`;
+    const entry = parsed?.[key];
+    const scoring = entry?.scoring;
+    if (!scoring || typeof scoring !== "object" || Array.isArray(scoring)) {
+      return null;
+    }
+
+    const updatedAt = typeof entry?.updatedAt === "string" ? entry.updatedAt : "";
+    if (updatedAt && !scoring.updatedAt) {
+      return { ...scoring, updatedAt };
+    }
+    return scoring;
+  } catch {
+    return null;
+  }
+}
+
+async function upsertContestUserFromLocalProfile(contestUuid, weapon, data = null, contestRuleset = "") {
+  const uuid = typeof contestUuid === "string" ? contestUuid.trim() : "";
+  if (!uuid) return;
+
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) return;
+
+  const firstName = (window.localStorage.getItem(AUTH_USER_FIRST_NAME_KEY) || "").trim() || "Archer";
+  const lastName = (window.localStorage.getItem(AUTH_USER_LAST_NAME_KEY) || "").trim() || "Inconnu";
+  const safeWeapon = typeof weapon === "string" && weapon.trim() ? weapon.trim() : "-";
+  const localStorageScoring = getContestScoringFromLocalStorage(uuid, contestRuleset || state.activeRuleset);
+  const memoryData = data && typeof data === "object" && !Array.isArray(data) ? data : null;
+  const localUpdatedAt = Date.parse(localStorageScoring?.updatedAt || "");
+  const memoryUpdatedAt = Date.parse(memoryData?.updatedAt || "");
+  const payloadData = Number.isFinite(memoryUpdatedAt) && (!Number.isFinite(localUpdatedAt) || memoryUpdatedAt >= localUpdatedAt)
+    ? (memoryData || localStorageScoring || undefined)
+    : (localStorageScoring || memoryData || undefined);
+
+  try {
+    await fetch("/api/contest/users", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        contest_uuid: uuid,
+        first_name: firstName,
+        last_name: lastName,
+        weapon: safeWeapon,
+        data: payloadData,
+      }),
+    });
+  } catch {
+    // Keep contest flow resilient if contest-user sync fails.
+  }
+}
+
 function startContestScoring(contest) {
   if (!contest || !contest.ruleset || !presets[contest.ruleset]) {
     showFlashInfo("Configuration concours invalide.");
@@ -1841,6 +1950,13 @@ function startContestScoring(contest) {
     refreshScoringView();
     showFlashInfo("Scores concours restaurés.");
   }
+
+  void upsertContestUserFromLocalProfile(
+    state.contestInfo?.uuid || "",
+    state.weapon,
+    buildContestUserDataSnapshot(),
+    state.contestInfo?.ruleset || state.activeRuleset,
+  );
 }
 
 function buildResultsPayload() {
@@ -2416,14 +2532,16 @@ function closeHelpModal() {
   els.helpModal.classList.add("hidden");
 }
 
-function setLoginFeedback(message) {
+function setLoginFeedback(message, tone = "error") {
   if (!els.loginFeedback) return;
+  els.loginFeedback.classList.remove("is-success", "is-error");
   if (!message) {
     els.loginFeedback.textContent = "";
     els.loginFeedback.classList.add("hidden");
     return;
   }
   els.loginFeedback.textContent = message;
+  els.loginFeedback.classList.add(tone === "success" ? "is-success" : "is-error");
   els.loginFeedback.classList.remove("hidden");
 }
 
@@ -2441,6 +2559,8 @@ function clearStoredAuth() {
     window.localStorage.removeItem(AUTH_TOKEN_KEY);
     window.localStorage.removeItem(AUTH_USER_ID_KEY);
     window.localStorage.removeItem(AUTH_USER_EMAIL_KEY);
+    window.localStorage.removeItem(AUTH_USER_FIRST_NAME_KEY);
+    window.localStorage.removeItem(AUTH_USER_LAST_NAME_KEY);
   } catch {
     // Ignore storage errors.
   }
@@ -2674,12 +2794,18 @@ async function handleLoginSubmit(event) {
       if (typeof payload?.email === "string") {
         window.localStorage.setItem(AUTH_USER_EMAIL_KEY, payload.email);
       }
+      if (typeof payload?.first_name === "string") {
+        window.localStorage.setItem(AUTH_USER_FIRST_NAME_KEY, payload.first_name);
+      }
+      if (typeof payload?.last_name === "string") {
+        window.localStorage.setItem(AUTH_USER_LAST_NAME_KEY, payload.last_name);
+      }
     } catch {
       setLoginFeedback("Impossible de stocker le token localement.");
       return;
     }
 
-    setLoginFeedback("Connexion réussie.");
+    setLoginFeedback("Connexion réussie.", "success");
     const connectedAs = typeof payload?.email === "string" && payload.email ? payload.email : email;
     window.setTimeout(() => {
       closeLoginModal();
