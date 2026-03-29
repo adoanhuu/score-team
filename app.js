@@ -1,4 +1,5 @@
 const ARROWS_PER_VOLLEY = 6;
+const TEAM_ARCHERS_PER_VOLLEY = 3;
 const APP_VERSION = "v2.3.3";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
@@ -1082,6 +1083,10 @@ function getSelectablePointsForArrow(ruleset, scoringMode, arrowIndex, allowedPo
   const sourcePoints = Array.isArray(allowedPoints) && allowedPoints.length ? allowedPoints : [0];
 
   if (ruleset === "nature") {
+    if (scoringMode === "team") {
+      const candidateScores = [20, 15, 10, 0];
+      return candidateScores.filter((score) => sourcePoints.includes(score));
+    }
     const isFirstArrowOfPair = arrowIndex % 2 === 0;
     const candidateScores = isFirstArrowOfPair ? [20, 15, 0] : [15, 10, 0];
     return candidateScores.filter((score) => sourcePoints.includes(score));
@@ -1107,6 +1112,9 @@ function getSelectablePointsForCurrentArrow() {
 
 function getScoreRuleHint(ruleset, arrowIndex) {
   if (ruleset === "nature") {
+    if (state.scoringMode === "team") {
+      return "Equipe : 20 / 15 / 10 / M, max 3x20, 6x15, 3x10";
+    }
     const isFirstArrowOfPair = arrowIndex % 2 === 0;
     const arrowLabel = isFirstArrowOfPair ? "1re flèche" : "2e flèche";
     const values = isFirstArrowOfPair ? "20 / 15 / M" : "15 / 10 / M";
@@ -1225,14 +1233,30 @@ function getVolleyPillClass(volley, total, maxVolley) {
   return "is-gray";
 }
 
+function isNatureTeamQuotaAllowed(score) {
+  const nextShoot = [...state.currentshoot];
+  nextShoot[state.currentArrowIndex] = score;
+
+  const counts = nextShoot.reduce((result, value) => {
+    if (value === 20) result.twenty += 1;
+    if (value === 15) result.fifteen += 1;
+    if (value === 10) result.ten += 1;
+    return result;
+  }, { twenty: 0, fifteen: 0, ten: 0 });
+
+  return counts.twenty <= 3 && counts.fifteen <= 6 && counts.ten <= 3;
+}
+
 function isScoreAllowedForCurrentArrow(score) {
   if (state.currentArrowIndex === 0) {
+    if (state.activeRuleset === "nature" && state.scoringMode === "team") {
+      return isNatureTeamQuotaAllowed(score);
+    }
     const maxShootTotal = getMaxShootTotalForRuleset();
     return maxShootTotal === null || score <= maxShootTotal;
   }
   if (state.activeRuleset === "nature" && state.scoringMode === "team") {
-    const previousScore = state.currentshoot[state.currentArrowIndex - 1];
-    if (previousScore !== null && previousScore !== 0 && score > previousScore) {
+    if (!isNatureTeamQuotaAllowed(score)) {
       return false;
     }
   }
@@ -1456,14 +1480,31 @@ function isFFTLRuleset(ruleset) {
 }
 
 function getArrowsPerVolley(ruleset, scoringMode) {
-  if (ruleset === "3dh") return 1;
-  if (ruleset === "ar") return 3;
-  if (ruleset === "field") return 4;
-  if (ruleset === "campagne") return 3;
-  if (ruleset === "nature") return 2;
-  if (ruleset === "3d") return scoringMode === "mixed" ? 4 : 2;
-  if (ruleset === "3d2") return 2;
-  return scoringMode === "individual" ? 2 : ARROWS_PER_VOLLEY;
+  let arrowsPerArcher = 2;
+
+  if (ruleset === "3dh") {
+    arrowsPerArcher = 1;
+  } else if (ruleset === "ar") {
+    arrowsPerArcher = 3;
+  } else if (ruleset === "field") {
+    arrowsPerArcher = 4;
+  } else if (ruleset === "campagne") {
+    arrowsPerArcher = 3;
+  } else if (ruleset === "nature") {
+    arrowsPerArcher = 2;
+  } else if (ruleset === "3d" || ruleset === "3d2") {
+    arrowsPerArcher = 2;
+  }
+
+  if (scoringMode === "mixed" && ruleset === "3d") {
+    return 4;
+  }
+
+  if (scoringMode === "team") {
+    return arrowsPerArcher * TEAM_ARCHERS_PER_VOLLEY;
+  }
+
+  return arrowsPerArcher;
 }
 
 function syncScoringModeFieldset() {
