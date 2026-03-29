@@ -940,7 +940,8 @@ function renderCurrentShootPills(container, arrows, arrowCount) {
 }
 
 function refreshScoringView(options = {}) {
-  const { scrollHistory = true } = options;
+  const { scrollHistory = true, scrollCard = false } = options;
+  syncSoloScoringCardHeight();
   renderPad();
   updateScoringHeader();
   updateCurrentShootDisplay();
@@ -950,6 +951,9 @@ function refreshScoringView(options = {}) {
   persistAppState();
   if (scrollHistory) {
     scrollLiveVolleyHistoryToBottom();
+  }
+  if (scrollCard) {
+    scrollScoringCardToBottom();
   }
 }
 
@@ -969,6 +973,36 @@ function scrollLiveVolleyHistoryToBottom() {
   }
   requestAnimationFrame(() => {
     els.liveVolleyHistoryWrap.scrollTop = els.liveVolleyHistoryWrap.scrollHeight;
+  });
+}
+
+function syncSoloScoringCardHeight() {
+  if (!els.scoringCard || !els.scoreEntryPanel) {
+    return;
+  }
+  const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const panelHeight = Math.ceil(els.scoreEntryPanel.getBoundingClientRect().height || 0);
+  const cardHeight = Math.max(320, Math.floor(viewportHeight - panelHeight));
+
+  document.documentElement.style.setProperty("--solo-score-entry-height", `${panelHeight}px`);
+  document.documentElement.style.setProperty("--solo-scoring-card-height", `${cardHeight}px`);
+}
+
+function scrollScoringCardToBottom() {
+  if (!els.scoringCard) {
+    return;
+  }
+  requestAnimationFrame(() => {
+    els.scoringCard.scrollTop = els.scoringCard.scrollHeight;
+  });
+}
+
+function scrollPelotonHistoryToBottom() {
+  if (!els.pelotonHistory) {
+    return;
+  }
+  requestAnimationFrame(() => {
+    els.pelotonHistory.scrollTop = els.pelotonHistory.scrollHeight;
   });
 }
 
@@ -1240,7 +1274,7 @@ function registerScore(score) {
 
   if (state.currentArrowIndex === state.arrowsPerVolley) {
     state.inputLocked = true;
-    refreshScoringView();
+    refreshScoringView({ scrollCard: true });
     const editingIndexSnapshot = isEditing ? state.editingVolleyIndex : null;
     const delay = isEditing ? 0 : LAST_SCORE_PREVIEW_MS;
     window.setTimeout(() => {
@@ -1267,16 +1301,16 @@ function registerScore(score) {
           state.completionArchived = true;
           showFlashInfo("Parcours enregistré dans l'historique.");
         }
-        refreshScoringView({ scrollHistory: true });
+        refreshScoringView({ scrollHistory: true, scrollCard: true });
         return;
       }
       resetRoundBuffer();
-      refreshScoringView({ scrollHistory: true });
+      refreshScoringView({ scrollHistory: true, scrollCard: true });
     }, delay);
     return;
   }
 
-  refreshScoringView({ scrollHistory: true });
+  refreshScoringView({ scrollHistory: true, scrollCard: true });
 }
 
 function editVolleyAt(index) {
@@ -3578,6 +3612,7 @@ function registerPelotonScore(score) {
   if (volleyCompleted) {
     state.peloton.previewLocked = true;
     renderPelotonView();
+    scrollPelotonHistoryToBottom();
 
     window.setTimeout(() => {
       state.peloton.previewLocked = false;
@@ -3600,6 +3635,7 @@ function registerPelotonScore(score) {
 
       showFlashInfo("Saisie peloton terminée.");
       renderPelotonView();
+      scrollPelotonHistoryToBottom();
     }, LAST_SCORE_PREVIEW_MS);
 
     return;
@@ -3614,6 +3650,7 @@ function registerPelotonScore(score) {
   }
 
   renderPelotonView();
+  scrollPelotonHistoryToBottom();
 }
 
 function getPelotonTotalLeaderIndices() {
@@ -3671,7 +3708,18 @@ function renderPelotonArchersGrid() {
       card.classList.add("is-best-total");
     }
     card.setAttribute("role", "listitem");
+    card.tabIndex = 0;
+    card.setAttribute("aria-label", `Sélectionner ${archer.name} pour modifier le score`);
     card.innerHTML = `<span class="peloton-archer-card-name">${archer.name}</span><span class="peloton-archer-card-total">${total}<span class="stats-unit">pts</span></span>`;
+
+    card.addEventListener("click", () => {
+      updatePelotonArcher(archer.index, { manualSelection: true });
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      updatePelotonArcher(archer.index, { manualSelection: true });
+    });
 
     els.pelotonArchersGrid.appendChild(card);
   });
@@ -3863,8 +3911,9 @@ function openPelotonModal() {
   els.pelotonModal?.classList.remove("hidden");
 }
 
-function updatePelotonArcher(selectedArcherIndex = state.pelotonActiveArcherIndex) {
+function updatePelotonArcher(selectedArcherIndex = state.pelotonActiveArcherIndex, options = {}) {
   const archerIndex = Number(selectedArcherIndex);
+  const manualSelection = Boolean(options?.manualSelection);
   if (!Number.isInteger(archerIndex)) {
     return;
   }
@@ -3889,10 +3938,20 @@ function updatePelotonArcher(selectedArcherIndex = state.pelotonActiveArcherInde
       currentTargetIndex: 0,
       currentArrowIndex: 0,
       completed: false,
+      editingMode: false,
     };
   }
 
   state.pelotonByArcher[archerIndex].name = archerName;
+  state.pelotonByArcher[archerIndex].editingMode = Boolean(manualSelection);
+
+  if (manualSelection && state.pelotonByArcher[archerIndex].completed) {
+    // Allow manual correction of a finished archer by reopening their last arrow.
+    state.pelotonByArcher[archerIndex].completed = false;
+    state.pelotonByArcher[archerIndex].currentTargetIndex = Math.max(0, state.pelotonByArcher[archerIndex].targetCount - 1);
+    state.pelotonByArcher[archerIndex].currentArrowIndex = Math.max(0, state.pelotonByArcher[archerIndex].arrowsPerTarget - 1);
+  }
+
   state.peloton = state.pelotonByArcher[archerIndex];
   state.pelotonActiveArcherIndex = archerIndex;
   
@@ -3906,6 +3965,10 @@ function updatePelotonArcher(selectedArcherIndex = state.pelotonActiveArcherInde
   }
   if (els.pelotonStationArcherName) {
     els.pelotonStationArcherName.textContent = getPelotonHeaderNames(archerIndex, state.peloton.ruleset);
+  }
+
+  if (manualSelection) {
+    showFlashInfo(`Archer sélectionné : ${archerName}`);
   }
   
   renderPelotonView();
@@ -3975,38 +4038,55 @@ function stepBackPelotonScore() {
     peloton.scores[targetIndex][arrowIndex] = null;
   };
 
-  if (peloton.completed) {
-    peloton.completed = false;
-    peloton.currentTargetIndex = peloton.targetCount - 1;
-    peloton.currentArrowIndex = peloton.arrowsPerTarget - 1;
-    clearScoreAt(peloton.currentTargetIndex, peloton.currentArrowIndex);
+  const findLastEnteredPosition = () => {
+    const isEditingMode = peloton.editingMode === true;
+    const currentTargetIndex = Math.max(0, Math.min(peloton.currentTargetIndex, peloton.targetCount - 1));
+    const minTargetIndex = isEditingMode
+      ? Math.max(0, currentTargetIndex - 1)
+      : 0;
+    const startingTargetIndex = peloton.completed
+      ? currentTargetIndex
+      : currentTargetIndex;
+
+    for (let targetIndex = startingTargetIndex; targetIndex >= minTargetIndex; targetIndex--) {
+      const targetScores = peloton.scores[targetIndex] || [];
+      let startArrowIndex;
+      if (targetIndex === currentTargetIndex) {
+        const isCurrentCursorFilled = Boolean(
+          targetScores[peloton.currentArrowIndex] !== null
+          && targetScores[peloton.currentArrowIndex] !== undefined
+          && peloton.currentArrowIndex < peloton.arrowsPerTarget,
+        );
+        startArrowIndex = isCurrentCursorFilled
+          ? Math.max(0, Math.min(peloton.currentArrowIndex, peloton.arrowsPerTarget - 1))
+          : Math.max(0, Math.min(peloton.currentArrowIndex - 1, peloton.arrowsPerTarget - 1));
+      } else {
+        startArrowIndex = peloton.arrowsPerTarget - 1;
+      }
+
+      for (let arrowIndex = startArrowIndex; arrowIndex >= 0; arrowIndex--) {
+        if (targetScores[arrowIndex] !== null && targetScores[arrowIndex] !== undefined) {
+          return { targetIndex, arrowIndex };
+        }
+      }
+    }
+
+    return null;
+  };
+
+  const position = findLastEnteredPosition();
+  if (!position) {
+    showFlashInfo("Début de volée atteint.");
     renderPelotonView();
     return;
   }
 
-  let targetIndex = peloton.currentTargetIndex;
-  let arrowIndex = peloton.currentArrowIndex;
-
-  // Rien à supprimer au très début
-  if (targetIndex === 0 && arrowIndex === 0) {
-    return;
-  }
-
-  // Effacer le score actuel
-  clearScoreAt(targetIndex, arrowIndex);
-
-  // Aller à la flèche précédente
-  if (arrowIndex > 0) {
-    arrowIndex--;
-  } else {
-    targetIndex--;
-    arrowIndex = peloton.arrowsPerTarget - 1;
-  }
-
-  peloton.currentTargetIndex = targetIndex;
-  peloton.currentArrowIndex = arrowIndex;
-
+  peloton.completed = false;
+  clearScoreAt(position.targetIndex, position.arrowIndex);
+  peloton.currentTargetIndex = position.targetIndex;
+  peloton.currentArrowIndex = position.arrowIndex;
   renderPelotonView();
+  scrollPelotonHistoryToBottom();
 }
 
 function closePelotonModal() {
@@ -4497,6 +4577,12 @@ setRangeProgress(els.configFullTargetTeam);
 setRangeProgress(els.configFullTargetIndiv);
 setRangeProgress(els.configMissLimitTeam);
 setRangeProgress(els.configMissLimitIndiv);
+syncSoloScoringCardHeight();
+
+window.addEventListener("resize", syncSoloScoringCardHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", syncSoloScoringCardHeight);
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

@@ -8,7 +8,9 @@
   --danger: #9b2226;
   --dark-blue: #1a4fa0;
   --light-blue: #1f6feb;
-  --bottom-dock-space: 250px;
+  --bottom-dock-space: 60px;
+  --solo-score-entry-height: 0px;
+  --solo-scoring-card-height: auto;
 }
 
 html {
@@ -125,7 +127,7 @@ body.home-underlay-active::before {
 
 #setup-card {
   display: grid;
-  gap: 32px;
+  gap: 20px;
 }
 
 .setup-head {
@@ -214,7 +216,7 @@ body.home-underlay-active::before {
 
 .grid-two {
   display: grid;
-  gap: 28px;
+  gap: 20px;
   grid-template-columns: 1fr;
 }
 
@@ -980,7 +982,9 @@ input[type="range"]:focus-visible {
 }
 
 #scoring-card {
+  height: var(--solo-scoring-card-height);
   padding-bottom: var(--bottom-dock-space);
+  overflow-y: hidden;
 }
 
 .point-btn {
@@ -1085,11 +1089,10 @@ input[type="range"]:focus-visible {
 }
 
 #live-volley-history-wrap {
-  max-height: clamp(220px, calc(100vh - var(--bottom-dock-space) - 180px), 60vh);
-  max-height: clamp(220px, calc(100dvh - var(--bottom-dock-space) - 180px), 60vh);
+  max-height: 340px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 0;
+  padding-bottom: 8px;
   scroll-padding-bottom: 8px;
 }
 
@@ -1857,6 +1860,16 @@ input[type="range"]:focus-visible {
   gap: 3px;
   position: relative;
   transition: border-color 0.15s ease, background-color 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+}
+
+.peloton-archer-card:hover {
+  border-color: #8fb6ff;
+}
+
+.peloton-archer-card:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
 .peloton-archer-card.is-active {
