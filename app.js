@@ -11,6 +11,7 @@ const AUTH_TOKEN_KEY = "score-team-auth-token-v1";
 const AUTH_USER_ID_KEY = "score-team-auth-user-id-v1";
 const AUTH_USER_EMAIL_KEY = "score-team-auth-user-email-v1";
 const CONTEST_UUID_KEY = "score-team-contest-uuid-v1";
+const CONTEST_PROGRESS_KEY = "score-team-contest-progress-v1";
 
 const state = {
   targetCount: 21,
@@ -609,8 +610,15 @@ function getGroupLabel(group) {
 }
 
 function getSelectedTargetGroup() {
+  if (!state.useTargetGroups || state.contestMode) {
+    return "";
+  }
   const checked = els.targetGroupSelect.querySelector('input[name="target-group"]:checked');
   return checked ? checked.value : "";
+}
+
+function shouldUseTargetGroupsForScoring() {
+  return state.useTargetGroups && !state.contestMode;
 }
 
 function syncTargetGroupSelect(selectedValue = null) {
@@ -665,6 +673,127 @@ function persistAppState() {
   } catch {
     // Ignore storage failures (private mode / quota).
   }
+
+  persistContestProgressState();
+}
+
+function getContestProgressStorageKey(contestInfo) {
+  if (!contestInfo) return "";
+  const uuid = typeof contestInfo.uuid === "string" ? contestInfo.uuid.trim() : "";
+  const ruleset = typeof contestInfo.ruleset === "string" ? contestInfo.ruleset.trim() : "";
+  if (!uuid || !ruleset) return "";
+  return `${uuid}:${ruleset}`;
+}
+
+function persistContestProgressState() {
+  if (!state.contestMode || !state.contestInfo) return;
+
+  const contestKey = getContestProgressStorageKey(state.contestInfo);
+  if (!contestKey) return;
+
+  const scoring = {
+    targetCount: state.targetCount,
+    successZone: state.successZone,
+    lieu: state.lieu || "",
+    sessionDate: state.sessionDate || "",
+    sessionTime: state.sessionTime || "",
+    scoringMode: state.scoringMode,
+    weapon: state.weapon || "",
+    useTargetGroups: state.useTargetGroups,
+    showScores: state.showScores,
+    arrowsPerVolley: state.arrowsPerVolley,
+    currentArrowIndex: state.currentArrowIndex,
+    shoots: state.shoots.map((volley) => [...volley]),
+    currentshoot: [...state.currentshoot],
+    activeRuleset: state.activeRuleset,
+    allowedPoints: [...state.allowedPoints],
+    shootGroups: [...state.shootGroups],
+    currentGroup: getSelectedTargetGroup(),
+    editingVolleyIndex: state.editingVolleyIndex,
+    progressionAxis: state.progressionAxis || "",
+    completionArchived: state.completionArchived,
+  };
+
+  try {
+    const raw = window.localStorage.getItem(CONTEST_PROGRESS_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const entries = parsed && typeof parsed === "object" ? parsed : {};
+    entries[contestKey] = {
+      updatedAt: new Date().toISOString(),
+      scoring,
+    };
+    window.localStorage.setItem(CONTEST_PROGRESS_KEY, JSON.stringify(entries));
+  } catch {
+    // Ignore storage failures (private mode / quota).
+  }
+}
+
+function getStoredContestProgressScoring(contestInfo) {
+  const contestKey = getContestProgressStorageKey(contestInfo);
+  if (!contestKey) return null;
+
+  try {
+    const raw = window.localStorage.getItem(CONTEST_PROGRESS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.[contestKey]?.scoring || null;
+  } catch {
+    return null;
+  }
+}
+
+function restoreContestProgressState(contestInfo, initialScoring = null) {
+  const scoring = initialScoring || getStoredContestProgressScoring(contestInfo);
+
+  if (!scoring || scoring.activeRuleset !== state.activeRuleset) {
+    return false;
+  }
+
+  state.targetCount = Number.isInteger(scoring.targetCount) ? scoring.targetCount : state.targetCount;
+  state.successZone = Number.isInteger(scoring.successZone) ? scoring.successZone : state.successZone;
+  state.lieu = scoring.lieu || "";
+  state.sessionDate = scoring.sessionDate || "";
+  state.sessionTime = scoring.sessionTime || "";
+  state.scoringMode = normalizeScoringMode(scoring.scoringMode, scoring.activeRuleset);
+  state.weapon = isWeaponAllowedForRuleset(scoring.weapon || "", scoring.activeRuleset)
+    ? scoring.weapon
+    : getWeaponsForRuleset(scoring.activeRuleset)[0];
+  state.useTargetGroups = typeof scoring.useTargetGroups === "boolean" ? scoring.useTargetGroups : state.useTargetGroups;
+  state.showScores = typeof scoring.showScores === "boolean" ? scoring.showScores : state.showScores;
+  state.arrowsPerVolley = getArrowsPerVolley(scoring.activeRuleset, state.scoringMode);
+  state.activeRuleset = scoring.activeRuleset;
+  state.allowedPoints = Array.isArray(scoring.allowedPoints) && scoring.allowedPoints.length
+    ? [...scoring.allowedPoints]
+    : [...presets[scoring.activeRuleset]];
+  state.successZone = clampSuccessZoneForConfig(
+    state.successZone,
+    state.activeRuleset,
+    state.scoringMode,
+    state.arrowsPerVolley,
+    state.allowedPoints,
+  );
+  state.shootGroups = Array.isArray(scoring.shootGroups) ? [...scoring.shootGroups] : [];
+  state.editingVolleyIndex = Number.isInteger(scoring.editingVolleyIndex) ? scoring.editingVolleyIndex : null;
+  state.shoots = Array.isArray(scoring.shoots)
+    ? scoring.shoots
+      .map((shoot) => (Array.isArray(shoot) ? [...shoot] : []))
+      .filter((shoot) => shoot.length === state.arrowsPerVolley)
+    : [];
+  state.currentshoot = Array.isArray(scoring.currentshoot)
+    ? [...scoring.currentshoot].slice(0, state.arrowsPerVolley)
+    : Array(state.arrowsPerVolley).fill(null);
+  while (state.currentshoot.length < state.arrowsPerVolley) state.currentshoot.push(null);
+  state.currentArrowIndex = Number.isInteger(scoring.currentArrowIndex)
+    ? Math.max(0, Math.min(scoring.currentArrowIndex, state.arrowsPerVolley))
+    : state.currentshoot.findIndex((value) => value === null);
+  if (state.currentArrowIndex < 0) state.currentArrowIndex = state.arrowsPerVolley;
+  state.progressionAxis = scoring.progressionAxis || "";
+  state.completionArchived = typeof scoring.completionArchived === "boolean"
+    ? scoring.completionArchived
+    : state.shoots.length === state.targetCount;
+  state.resultsPayload = state.shoots.length === state.targetCount ? buildResultsPayload() : null;
+  syncTargetGroupSelect(scoring.currentGroup);
+  return true;
 }
 
 function clearPersistedState() {
@@ -981,7 +1110,7 @@ function refreshScoringView(options = {}) {
 }
 
 function updateTargetGroupsVisibility() {
-  const show = state.useTargetGroups;
+  const show = shouldUseTargetGroupsForScoring();
   if (els.targetGroupSelect) {
     els.targetGroupSelect.style.display = show ? "" : "none";
   }
@@ -1044,7 +1173,7 @@ function renderLiveVolleyHistory() {
       ? Array(state.arrowsPerVolley).fill("-").join(" / ")
       : volley.map((value) => formatScore(value)).join(" / ");
     const totalText = isEditingRow ? "-" : String(total);
-    const groupCell = state.useTargetGroups ? `<td>${state.shootGroups[idx] || "-"}</td>` : "";
+    const groupCell = shouldUseTargetGroupsForScoring() ? `<td>${state.shootGroups[idx] || "-"}</td>` : "";
     row.innerHTML = `
       <td><span class="volley-pill ${pillClass}">${idx + 1}</span></td>
       <td>${arrowsText}</td>
@@ -1089,7 +1218,7 @@ function renderLiveVolleyHistory() {
   if (partial && state.shoots.length < state.targetCount) {
     const idx = state.shoots.length;
     const previewRow = document.createElement("tr");
-    const previewGroupCell = state.useTargetGroups ? `<td>${getSelectedTargetGroup() || "-"}</td>` : "";
+    const previewGroupCell = shouldUseTargetGroupsForScoring() ? `<td>${getSelectedTargetGroup() || "-"}</td>` : "";
     previewRow.innerHTML = `
       <td><span class="volley-pill is-gray">${idx + 1}</span></td>
       <td>${Array(state.arrowsPerVolley).fill("-").join(" / ")}</td>
@@ -1339,6 +1468,10 @@ function registerScore(score) {
         state.shoots.push(newShoot);
         state.shootGroups.push(selectedGroup);
       }
+
+      // Save immediately when a full volley is validated.
+      persistAppState();
+
       state.inputLocked = false;
       if (state.shoots.length === state.targetCount) {
         state.resultsPayload = buildResultsPayload();
@@ -1689,8 +1822,7 @@ function startContestScoring(contest) {
   updateWeaponSelectVisibility();
   updateSuccessZoneSlider();
 
-  state.contestMode = true;
-  state.contestInfo = {
+  const contestInfo = {
     id: contest.id,
     uuid: contest.uuid,
     name: contest.name || "Concours",
@@ -1698,8 +1830,17 @@ function startContestScoring(contest) {
     startDate: contest.start_date || "",
     endDate: contest.end_date || "",
   };
+  const storedContestScoring = getStoredContestProgressScoring(contestInfo);
+
+  state.contestMode = true;
+  state.contestInfo = contestInfo;
 
   startScoring();
+
+  if (restoreContestProgressState(state.contestInfo, storedContestScoring)) {
+    refreshScoringView();
+    showFlashInfo("Scores concours restaurés.");
+  }
 }
 
 function buildResultsPayload() {
@@ -3205,8 +3346,13 @@ async function openMultiModal() {
       }
     }
   }
-  if (els.multiModeSelect && !els.multiModeSelect.value) {
-    els.multiModeSelect.value = "duel";
+  if (els.multiModeSelect) {
+    const firstAvailableModeOption = Array.from(els.multiModeSelect.options).find(
+      (option) => option.value && !option.disabled && !option.hidden,
+    );
+    if (firstAvailableModeOption) {
+      els.multiModeSelect.value = firstAvailableModeOption.value;
+    }
   }
   // Initialiser l'affichage des éléments selon le mode
   const mode = els.multiModeSelect?.value || "duel";
