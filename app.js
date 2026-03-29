@@ -1068,7 +1068,7 @@ function renderLiveVolleyHistory() {
     const previewRow = document.createElement("tr");
     const previewGroupCell = state.useTargetGroups ? `<td>${getSelectedTargetGroup() || "-"}</td>` : "";
     previewRow.innerHTML = `
-      <td><span class="volley-pill is-blue">${idx + 1}</span></td>
+      <td><span class="volley-pill is-gray">${idx + 1}</span></td>
       <td>${Array(state.arrowsPerVolley).fill("-").join(" / ")}</td>
       ${previewGroupCell}
       <td class="history-total">-</td>
@@ -1222,7 +1222,7 @@ function getVolleyPillClass(volley, total, maxVolley) {
   if (isDoubleZeroVolley(volley)) return "is-red";
   if (total === maxVolley) return "is-green";
   if (hasSingleMiss(volley)) return "is-orange";
-  return "is-blue";
+  return "is-gray";
 }
 
 function isScoreAllowedForCurrentArrow(score) {
@@ -3222,6 +3222,7 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
   if (!container) return;
 
   const maxVolleyTotal = Number.isFinite(options.maxVolleyTotal) ? options.maxVolleyTotal : null;
+  const highlightBestScore = options.highlightBestScore === true;
 
   const isCompletedVolley = (arrows) => (
     Array.isArray(arrows)
@@ -3255,8 +3256,20 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
       && Math.abs(targetTotal - maxVolleyTotal) < 0.0001
     );
 
-    let pillClass = "is-blue";
-    if (completed) {
+    const opponentArrows = Array.isArray(opponentScoresByTarget?.[index])
+      ? opponentScoresByTarget[index]
+      : null;
+    const opponentCompleted = isCompletedVolley(opponentArrows);
+    const opponentTotal = opponentCompleted
+      ? opponentArrows.reduce((sum, value) => sum + scoreToValue(value), 0)
+      : null;
+
+    let pillClass = "is-gray";
+    if (highlightBestScore) {
+      if (completed && opponentCompleted && targetTotal > opponentTotal) {
+        pillClass = "is-green";
+      }
+    } else if (completed) {
       if (missCount >= 2) {
         pillClass = "is-red";
       } else if (missCount === 1) {
@@ -3266,7 +3279,13 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
       }
     }
 
-    rows.push(`<div class="duel-volley-item"><span class="volley-pill ${pillClass}">${index + 1}</span><span class="duel-volley-values">${arrowsText}</span><span class="duel-volley-total">${targetTotal}</span></div>`);
+    rows.push(`
+      <tr>
+        <td><span class="volley-pill ${pillClass}">${index + 1}</span></td>
+        <td>${arrowsText}</td>
+        <td class="history-total">${targetTotal}</td>
+      </tr>
+    `);
   });
 
   if (rows.length === 0) {
@@ -3274,7 +3293,15 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
     return;
   }
 
-  container.innerHTML = rows.join("");
+  container.innerHTML = `
+    <div class="table-wrap duel-history-table-wrap">
+      <table class="history-table duel-history-table">
+        <tbody>
+          ${rows.join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function renderPelotonHistorySwiper(container, options = {}) {
@@ -3459,8 +3486,14 @@ function renderDuelView() {
     state.duel.allowedPoints,
   );
 
-  renderDuelVolleyHistory(els.duelHistoryP1, scoresP1, scoresP2, { maxVolleyTotal: duelMaxVolleyTotal });
-  renderDuelVolleyHistory(els.duelHistoryP2, scoresP2, scoresP1, { maxVolleyTotal: duelMaxVolleyTotal });
+  renderDuelVolleyHistory(els.duelHistoryP1, scoresP1, scoresP2, {
+    maxVolleyTotal: duelMaxVolleyTotal,
+    highlightBestScore: true,
+  });
+  renderDuelVolleyHistory(els.duelHistoryP2, scoresP2, scoresP1, {
+    maxVolleyTotal: duelMaxVolleyTotal,
+    highlightBestScore: true,
+  });
 
   renderDuelPad();
 }

@@ -11,6 +11,7 @@
   --bottom-dock-space: 60px;
   --solo-score-entry-height: 0px;
   --solo-scoring-card-height: auto;
+  --live-history-max-height: 340px;
 }
 
 html {
@@ -1089,7 +1090,7 @@ input[type="range"]:focus-visible {
 }
 
 #live-volley-history-wrap {
-  max-height: 340px;
+  max-height: var(--live-history-max-height);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 8px;
@@ -1152,7 +1153,7 @@ input[type="range"]:focus-visible {
   font-size: 0.86rem;
 }
 
-.volley-pill.is-blue {
+.volley-pill.is-gray {
   background: #b8bec8;
   color: #374151;
 }
@@ -1667,44 +1668,31 @@ input[type="range"]:focus-visible {
 }
 
 .duel-volley-history {
-  display: grid;
-  gap: 3px;
+  display: block;
   width: 100%;
   text-align: left;
-  max-height: 200px;
+  max-height: var(--live-history-max-height);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-.duel-volley-item {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 6px;
-  align-items: center;
-  font-size: 0.95rem;
-  color: #4b5b66;
-  margin: 4px 0;
-  padding: 4px;
-  border-radius: 4px;
+.duel-volley-history .table-wrap {
+  margin-top: 0;
 }
 
-.duel-volley-history > .duel-volley-item:nth-child(odd) {
-  background: white;
+.duel-history-table-wrap {
+  overflow: visible;
 }
 
-.duel-volley-history > .duel-volley-item:nth-child(even) {
-  background: #f5f5f5;
+.duel-history-table {
+  width: 100%;
 }
 
-.duel-volley-index {
-  font-weight: 800;
-}
-
-.duel-volley-values {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 1.1rem;
-  font-weight: 600;
+.duel-volley-history .history-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
 }
 
 #duel-modal .duel-current-row {
@@ -1718,7 +1706,6 @@ input[type="range"]:focus-visible {
 #peloton-current-card {
   width: 100%;
   justify-items: stretch;
-  background-color: var(--line);
 }
 
 #peloton-history {
@@ -1764,7 +1751,7 @@ input[type="range"]:focus-visible {
   display: grid;
   align-content: start;
   gap: 6px;
-  max-height: 220px;
+  max-height: var(--live-history-max-height);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -1817,12 +1804,8 @@ input[type="range"]:focus-visible {
   overflow-y: visible;
 }
 
-.peloton-history-slide-body > .duel-volley-item:nth-child(odd) {
-  background: white;
-}
-
-.peloton-history-slide-body > .duel-volley-item:nth-child(even) {
-  background: #f5f5f5;
+.peloton-history-archer-card .history-table thead th {
+  top: 40px;
 }
 
 #peloton-station-header {
