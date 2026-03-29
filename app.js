@@ -10,6 +10,7 @@ const FLASH_INFO_MS = 2600;
 const AUTH_TOKEN_KEY = "score-team-auth-token-v1";
 const AUTH_USER_ID_KEY = "score-team-auth-user-id-v1";
 const AUTH_USER_EMAIL_KEY = "score-team-auth-user-email-v1";
+const CONTEST_UUID_KEY = "score-team-contest-uuid-v1";
 
 const state = {
   targetCount: 21,
@@ -54,6 +55,8 @@ const state = {
   pelotonByArcher: {},
   pelotonActiveArcherIndex: null,
   peloton: null,
+  contestMode: false,
+  contestInfo: null,
 };
 
 const els = {
@@ -211,6 +214,9 @@ const els = {
   multiRulesetSelect: document.getElementById("multi-ruleset-select"),
   rulesetLabel: document.getElementById("ruleset-label"),
   multiModeSelect: document.getElementById("multi-mode-select"),
+  multiModeOptionContest: document.getElementById("multi-mode-option-contest"),
+  contestCodeContainer: document.getElementById("contest-code-container"),
+  contestCodeInput: document.getElementById("contest-code-input"),
   multiStartBtn: document.getElementById("multi-start-btn"),
   multiTargetCountInputs: document.querySelectorAll('input[name="multi-target-count"]'),
   targetCountFieldset: document.getElementById("target-count-fieldset"),
@@ -852,15 +858,31 @@ function updateScoringHeader() {
   const totalCard = els.teamTotal ? els.teamTotal.closest("article") : null;
   const totalCardLabel = totalCard ? totalCard.querySelector("span") : null;
   if (els.volleyTitleText) {
-    els.volleyTitleText.textContent = formatRulesetLabel(state.activeRuleset);
+    if (state.contestMode && state.contestInfo) {
+      els.volleyTitleText.textContent = `${state.contestInfo.name} - ${formatRulesetLabel(state.activeRuleset)}`;
+    } else {
+      els.volleyTitleText.textContent = formatRulesetLabel(state.activeRuleset);
+    }
   }
-  if (els.volleyWeaponTitle && state.weapon) {
-    els.volleyWeaponTitle.textContent = formatWeaponLabel(state.weapon);
-  } else if (els.volleyWeaponTitle) {
-    els.volleyWeaponTitle.textContent = "";
+  if (els.volleyWeaponTitle) {
+    if (state.contestMode && state.contestInfo) {
+      const start = state.contestInfo.startDate || "-";
+      const end = state.contestInfo.endDate || "-";
+      els.volleyWeaponTitle.textContent = `${start} -> ${end}`;
+    } else if (state.weapon) {
+      els.volleyWeaponTitle.textContent = formatWeaponLabel(state.weapon);
+    } else {
+      els.volleyWeaponTitle.textContent = "";
+    }
   }
   if (els.volleyWeaponLabel) {
-    els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
+    if (state.contestMode && state.contestInfo) {
+      const start = state.contestInfo.startDate || "-";
+      const end = state.contestInfo.endDate || "-";
+      els.volleyWeaponLabel.textContent = `${start} -> ${end}`;
+    } else {
+      els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
+    }
   }
   if (els.targetCounterDisplay) {
     els.targetCounterDisplay.textContent = `${currentTarget}/${state.targetCount}`;
@@ -1321,9 +1343,13 @@ function registerScore(score) {
       if (state.shoots.length === state.targetCount) {
         state.resultsPayload = buildResultsPayload();
         if (state.resultsPayload && !state.completionArchived) {
-          state.resultsPayload = addHistoryEntry(state.resultsPayload) || state.resultsPayload;
+          if (!state.contestMode) {
+            state.resultsPayload = addHistoryEntry(state.resultsPayload) || state.resultsPayload;
+            showFlashInfo("Parcours enregistré dans l'historique.");
+          } else {
+            showFlashInfo("Concours terminé.");
+          }
           state.completionArchived = true;
-          showFlashInfo("Parcours enregistré dans l'historique.");
         }
         refreshScoringView({ scrollHistory: true, scrollCard: true });
         return;
@@ -1642,6 +1668,38 @@ function startScoring() {
   closeHelpModal();
 
   refreshScoringView();
+}
+
+function startContestScoring(contest) {
+  if (!contest || !contest.ruleset || !presets[contest.ruleset]) {
+    showFlashInfo("Configuration concours invalide.");
+    return;
+  }
+
+  if (els.rulesetSelect) {
+    els.rulesetSelect.value = contest.ruleset;
+    els.rulesetSelect.dispatchEvent(new Event("change"));
+  }
+
+  const forcedMode = normalizeScoringMode("team", contest.ruleset);
+  els.scoringModeInputs.forEach((input) => {
+    input.checked = input.value === forcedMode;
+  });
+  syncScoringModeFieldset();
+  updateWeaponSelectVisibility();
+  updateSuccessZoneSlider();
+
+  state.contestMode = true;
+  state.contestInfo = {
+    id: contest.id,
+    uuid: contest.uuid,
+    name: contest.name || "Concours",
+    ruleset: contest.ruleset,
+    startDate: contest.start_date || "",
+    endDate: contest.end_date || "",
+  };
+
+  startScoring();
 }
 
 function buildResultsPayload() {
@@ -2255,6 +2313,17 @@ function updateHomeLoginTile() {
   els.homeLoginBtn.setAttribute("aria-label", isLoggedIn ? "Déconnexion" : "Connexion");
   if (labelText) {
     labelText.textContent = isLoggedIn ? "Déconnexion" : "Connexion";
+  }
+  updateMultiContestModeAvailability();
+}
+
+function updateMultiContestModeAvailability() {
+  if (!els.multiModeOptionContest) return;
+  const isLoggedIn = hasStoredAuthToken();
+  els.multiModeOptionContest.hidden = !isLoggedIn;
+  els.multiModeOptionContest.disabled = !isLoggedIn;
+  if (!isLoggedIn && els.multiModeSelect?.value === "contest") {
+    els.multiModeSelect.value = "duel";
   }
 }
 
@@ -3106,6 +3175,7 @@ function closeHistoryModal() {
 }
 
 function openMultiModal() {
+  updateMultiContestModeAvailability();
   closeStatsModal();
   closeGeneralStatsModal();
   closeHelpModal();
@@ -3144,10 +3214,17 @@ function openMultiModal() {
     els.duelNamesContainer?.classList.remove("hidden");
     els.pelotonNamesContainer?.classList.add("hidden");
     els.targetCountFieldset?.classList.remove("hidden");
+    els.contestCodeContainer?.classList.add("hidden");
   } else if (mode === "peloton") {
     els.duelNamesContainer?.classList.add("hidden");
     els.pelotonNamesContainer?.classList.remove("hidden");
     els.targetCountFieldset?.classList.add("hidden");
+    els.contestCodeContainer?.classList.add("hidden");
+  } else if (mode === "contest") {
+    els.duelNamesContainer?.classList.add("hidden");
+    els.pelotonNamesContainer?.classList.add("hidden");
+    els.targetCountFieldset?.classList.add("hidden");
+    els.contestCodeContainer?.classList.remove("hidden");
   }
   els.multiModal?.classList.remove("hidden");
 }
@@ -4207,6 +4284,8 @@ function restart() {
   state.editingVolleyIndex = null;
   state.lastEditedVolleyIndex = null;
   state.inputLocked = false;
+  state.contestMode = false;
+  state.contestInfo = null;
   resetRoundBuffer();
   closeStatsModal();
   closeGeneralStatsModal();
@@ -4322,6 +4401,61 @@ function showSetupFromHome() {
   els.setupCard.classList.remove("hidden");
 }
 
+async function connectToContest(uuid, ruleset) {
+  try {
+    const response = await fetch("/api/contest/connect", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ uuid, ruleset }),
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      showFlashInfo(payload?.error || "Impossible de se connecter au concours.");
+      return false;
+    }
+
+    if (!payload?.exists) {
+      showFlashInfo("Concours introuvable pour ce code et ce parcours.");
+      return null;
+    }
+
+    try {
+      window.localStorage.setItem(CONTEST_UUID_KEY, uuid);
+    } catch {
+      // Ignore storage errors.
+    }
+
+    if (!payload?.contest || typeof payload.contest !== "object") {
+      showFlashInfo("Réponse concours invalide.");
+      return null;
+    }
+
+    showFlashInfo("Connexion au concours réussie.");
+    return payload.contest;
+  } catch {
+    showFlashInfo("Erreur réseau lors de la connexion au concours.");
+    return null;
+  }
+}
+
+function getStoredContestUuid() {
+  try {
+    const uuid = window.localStorage.getItem(CONTEST_UUID_KEY) || "";
+    return uuid.trim();
+  } catch {
+    return "";
+  }
+}
+
 els.homeTrainingBtn.addEventListener("click", showSetupFromHome);
 els.homePelotonBtn.addEventListener("click", () => { openMultiModal(); });
 els.homeHistoryBtn.addEventListener("click", () => { openHistoryModal(); });
@@ -4344,12 +4478,34 @@ if (els.homeLoginBtn) {
 }
 els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
 if (els.multiStartBtn) {
-  els.multiStartBtn.addEventListener("click", () => {
+  els.multiStartBtn.addEventListener("click", async () => {
     const mode = els.multiModeSelect?.value || "duel";
     if (mode === "duel") {
       openDuelModal();
     } else if (mode === "peloton") {
       openPelotonModal();
+    } else if (mode === "contest") {
+      const ruleset = (els.multiRulesetSelect?.value || "").trim();
+      if (!ruleset) {
+        showFlashInfo("Sélectionnez un type de parcours.");
+        return;
+      }
+
+      const code = (els.contestCodeInput?.value || "").trim();
+      const storedContestUuid = getStoredContestUuid();
+      const contestUuid = code || storedContestUuid;
+      if (!contestUuid) {
+        showFlashInfo("Saisissez un code concours.");
+        els.contestCodeInput?.focus();
+        return;
+      }
+
+      els.multiStartBtn.disabled = true;
+      const contest = await connectToContest(contestUuid, ruleset);
+      els.multiStartBtn.disabled = false;
+      if (contest) {
+        startContestScoring(contest);
+      }
     }
   });
 }
@@ -4367,10 +4523,18 @@ if (els.multiModeSelect) {
       els.duelNamesContainer?.classList.remove("hidden");
       els.pelotonNamesContainer?.classList.add("hidden");
       els.targetCountFieldset?.classList.remove("hidden");
+      els.contestCodeContainer?.classList.add("hidden");
     } else if (mode === "peloton") {
       els.duelNamesContainer?.classList.add("hidden");
       els.pelotonNamesContainer?.classList.remove("hidden");
       els.targetCountFieldset?.classList.add("hidden");
+      els.contestCodeContainer?.classList.add("hidden");
+    } else if (mode === "contest") {
+      els.duelNamesContainer?.classList.add("hidden");
+      els.pelotonNamesContainer?.classList.add("hidden");
+      els.targetCountFieldset?.classList.add("hidden");
+      els.contestCodeContainer?.classList.remove("hidden");
+      els.contestCodeInput?.focus();
     }
   });
 }

@@ -1590,6 +1590,10 @@ input[type="range"]:focus-visible {
   gap: 14px;
 }
 
+#multi-modal #contest-code-container {
+  grid-template-columns: 1fr;
+}
+
 .peloton-names-row {
   margin-bottom: 10px;
   display: grid;
