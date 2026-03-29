@@ -1,0 +1,8 @@
+# Local-only Wrangler config for D1 migrations (do not commit the real file)
+name = "score-team"
+compatibility_date = "2026-02-26"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "score-team"
+database_id = "PUT-YOUR-D1-ID-HERE"

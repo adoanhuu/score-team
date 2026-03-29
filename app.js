@@ -1,11 +1,15 @@
 const ARROWS_PER_VOLLEY = 6;
-const APP_VERSION = "v2.3.3";
+const TEAM_ARCHERS_PER_VOLLEY = 3;
+const APP_VERSION = "v2.3.4";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
 const CONFIG_KEY = "score-team-config-v1";
 const MAX_HISTORY_ITEMS = 50;
 const FLASH_INFO_MS = 2600;
+const AUTH_TOKEN_KEY = "score-team-auth-token-v1";
+const AUTH_USER_ID_KEY = "score-team-auth-user-id-v1";
+const AUTH_USER_EMAIL_KEY = "score-team-auth-user-email-v1";
 
 const state = {
   targetCount: 21,
@@ -145,6 +149,7 @@ const els = {
   statsEvolutionRange: document.getElementById("stats-evolution-range"),
   statsEvolutionAxis: document.getElementById("stats-evolution-axis"),
   statsFullCount: document.getElementById("stats-full-count"),
+  statsMissCount: document.getElementById("stats-miss-count"),
   statsDoubleMissCount: document.getElementById("stats-double-miss-count"),
   statsScoreDist: document.getElementById("stats-score-dist"),
   statsTabSummary: document.getElementById("stats-tab-summary"),
@@ -160,6 +165,8 @@ const els = {
   configExportHistoryBtn: document.getElementById("config-export-history-btn"),
   configImportHistoryBtn: document.getElementById("config-import-history-btn"),
   configImportHistoryInput: document.getElementById("config-import-history-input"),
+  configSaveServerBtn: document.getElementById("config-save-server-btn"),
+  configRestoreServerBtn: document.getElementById("config-restore-server-btn"),
   weaponSelect: document.getElementById("weapon-select"),
   volleyTitleText: document.getElementById("volley-title-text"),
   volleyCounter: document.getElementById("volley-counter"),
@@ -188,7 +195,16 @@ const els = {
   homeHistoryBtn: document.getElementById("home-history-btn"),
   homeStatsBtn: document.getElementById("home-stats-btn"),
   homeConfigBtn: document.getElementById("home-config-btn"),
+  homeLoginBtn: document.getElementById("home-login-btn"),
   homeHelpBtn: document.getElementById("home-help-btn"),
+  loginModal: document.getElementById("login-modal"),
+  loginModalOverlay: document.getElementById("login-modal-overlay"),
+  loginCloseBtn: document.getElementById("login-close-btn"),
+  loginForm: document.getElementById("login-form"),
+  loginEmailInput: document.getElementById("login-email-input"),
+  loginPasswordInput: document.getElementById("login-password-input"),
+  loginFeedback: document.getElementById("login-feedback"),
+  loginSubmitBtn: document.getElementById("login-submit-btn"),
   multiModal: document.getElementById("multi-modal"),
   multiModalOverlay: document.getElementById("multi-modal-overlay"),
   multiCloseBtn: document.getElementById("multi-close-btn"),
@@ -346,6 +362,7 @@ function openConfigModal() {
   closeStatsModal();
   closeGeneralStatsModal();
   closeHelpModal();
+  closeLoginModal();
   closeHistoryModal();
   closeMultiModal();
   closeDuelModal();
@@ -924,7 +941,8 @@ function renderCurrentShootPills(container, arrows, arrowCount) {
 }
 
 function refreshScoringView(options = {}) {
-  const { scrollHistory = true } = options;
+  const { scrollHistory = true, scrollCard = false } = options;
+  syncSoloScoringCardHeight();
   renderPad();
   updateScoringHeader();
   updateCurrentShootDisplay();
@@ -934,6 +952,9 @@ function refreshScoringView(options = {}) {
   persistAppState();
   if (scrollHistory) {
     scrollLiveVolleyHistoryToBottom();
+  }
+  if (scrollCard) {
+    scrollScoringCardToBottom();
   }
 }
 
@@ -953,6 +974,36 @@ function scrollLiveVolleyHistoryToBottom() {
   }
   requestAnimationFrame(() => {
     els.liveVolleyHistoryWrap.scrollTop = els.liveVolleyHistoryWrap.scrollHeight;
+  });
+}
+
+function syncSoloScoringCardHeight() {
+  if (!els.scoringCard || !els.scoreEntryPanel) {
+    return;
+  }
+  const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const panelHeight = Math.ceil(els.scoreEntryPanel.getBoundingClientRect().height || 0);
+  const cardHeight = Math.max(320, Math.floor(viewportHeight - panelHeight));
+
+  document.documentElement.style.setProperty("--solo-score-entry-height", `${panelHeight}px`);
+  document.documentElement.style.setProperty("--solo-scoring-card-height", `${cardHeight}px`);
+}
+
+function scrollScoringCardToBottom() {
+  if (!els.scoringCard) {
+    return;
+  }
+  requestAnimationFrame(() => {
+    els.scoringCard.scrollTop = els.scoringCard.scrollHeight;
+  });
+}
+
+function scrollPelotonHistoryToBottom() {
+  if (!els.pelotonHistory) {
+    return;
+  }
+  requestAnimationFrame(() => {
+    els.pelotonHistory.scrollTop = els.pelotonHistory.scrollHeight;
   });
 }
 
@@ -1018,7 +1069,7 @@ function renderLiveVolleyHistory() {
     const previewRow = document.createElement("tr");
     const previewGroupCell = state.useTargetGroups ? `<td>${getSelectedTargetGroup() || "-"}</td>` : "";
     previewRow.innerHTML = `
-      <td><span class="volley-pill is-blue">${idx + 1}</span></td>
+      <td><span class="volley-pill is-gray">${idx + 1}</span></td>
       <td>${Array(state.arrowsPerVolley).fill("-").join(" / ")}</td>
       ${previewGroupCell}
       <td class="history-total">-</td>
@@ -1032,6 +1083,10 @@ function getSelectablePointsForArrow(ruleset, scoringMode, arrowIndex, allowedPo
   const sourcePoints = Array.isArray(allowedPoints) && allowedPoints.length ? allowedPoints : [0];
 
   if (ruleset === "nature") {
+    if (scoringMode === "team") {
+      const candidateScores = [20, 15, 10, 0];
+      return candidateScores.filter((score) => sourcePoints.includes(score));
+    }
     const isFirstArrowOfPair = arrowIndex % 2 === 0;
     const candidateScores = isFirstArrowOfPair ? [20, 15, 0] : [15, 10, 0];
     return candidateScores.filter((score) => sourcePoints.includes(score));
@@ -1057,6 +1112,9 @@ function getSelectablePointsForCurrentArrow() {
 
 function getScoreRuleHint(ruleset, arrowIndex) {
   if (ruleset === "nature") {
+    if (state.scoringMode === "team") {
+      return "Equipe : 20 / 15 / 10 / M, max 3x20, 6x15, 3x10";
+    }
     const isFirstArrowOfPair = arrowIndex % 2 === 0;
     const arrowLabel = isFirstArrowOfPair ? "1re flèche" : "2e flèche";
     const values = isFirstArrowOfPair ? "20 / 15 / M" : "15 / 10 / M";
@@ -1172,17 +1230,33 @@ function getVolleyPillClass(volley, total, maxVolley) {
   if (isDoubleZeroVolley(volley)) return "is-red";
   if (total === maxVolley) return "is-green";
   if (hasSingleMiss(volley)) return "is-orange";
-  return "is-blue";
+  return "is-gray";
+}
+
+function isNatureTeamQuotaAllowed(score) {
+  const nextShoot = [...state.currentshoot];
+  nextShoot[state.currentArrowIndex] = score;
+
+  const counts = nextShoot.reduce((result, value) => {
+    if (value === 20) result.twenty += 1;
+    if (value === 15) result.fifteen += 1;
+    if (value === 10) result.ten += 1;
+    return result;
+  }, { twenty: 0, fifteen: 0, ten: 0 });
+
+  return counts.twenty <= 3 && counts.fifteen <= 6 && counts.ten <= 3;
 }
 
 function isScoreAllowedForCurrentArrow(score) {
   if (state.currentArrowIndex === 0) {
+    if (state.activeRuleset === "nature" && state.scoringMode === "team") {
+      return isNatureTeamQuotaAllowed(score);
+    }
     const maxShootTotal = getMaxShootTotalForRuleset();
     return maxShootTotal === null || score <= maxShootTotal;
   }
   if (state.activeRuleset === "nature" && state.scoringMode === "team") {
-    const previousScore = state.currentshoot[state.currentArrowIndex - 1];
-    if (previousScore !== null && previousScore !== 0 && score > previousScore) {
+    if (!isNatureTeamQuotaAllowed(score)) {
       return false;
     }
   }
@@ -1224,7 +1298,7 @@ function registerScore(score) {
 
   if (state.currentArrowIndex === state.arrowsPerVolley) {
     state.inputLocked = true;
-    refreshScoringView();
+    refreshScoringView({ scrollCard: true });
     const editingIndexSnapshot = isEditing ? state.editingVolleyIndex : null;
     const delay = isEditing ? 0 : LAST_SCORE_PREVIEW_MS;
     window.setTimeout(() => {
@@ -1251,16 +1325,16 @@ function registerScore(score) {
           state.completionArchived = true;
           showFlashInfo("Parcours enregistré dans l'historique.");
         }
-        refreshScoringView({ scrollHistory: true });
+        refreshScoringView({ scrollHistory: true, scrollCard: true });
         return;
       }
       resetRoundBuffer();
-      refreshScoringView({ scrollHistory: true });
+      refreshScoringView({ scrollHistory: true, scrollCard: true });
     }, delay);
     return;
   }
 
-  refreshScoringView({ scrollHistory: true });
+  refreshScoringView({ scrollHistory: true, scrollCard: true });
 }
 
 function editVolleyAt(index) {
@@ -1406,14 +1480,31 @@ function isFFTLRuleset(ruleset) {
 }
 
 function getArrowsPerVolley(ruleset, scoringMode) {
-  if (ruleset === "3dh") return 1;
-  if (ruleset === "ar") return 3;
-  if (ruleset === "field") return 4;
-  if (ruleset === "campagne") return 3;
-  if (ruleset === "nature") return 2;
-  if (ruleset === "3d") return scoringMode === "mixed" ? 4 : 2;
-  if (ruleset === "3d2") return 2;
-  return scoringMode === "individual" ? 2 : ARROWS_PER_VOLLEY;
+  let arrowsPerArcher = 2;
+
+  if (ruleset === "3dh") {
+    arrowsPerArcher = 1;
+  } else if (ruleset === "ar") {
+    arrowsPerArcher = 3;
+  } else if (ruleset === "field") {
+    arrowsPerArcher = 4;
+  } else if (ruleset === "campagne") {
+    arrowsPerArcher = 3;
+  } else if (ruleset === "nature") {
+    arrowsPerArcher = 2;
+  } else if (ruleset === "3d" || ruleset === "3d2") {
+    arrowsPerArcher = 2;
+  }
+
+  if (scoringMode === "mixed" && ruleset === "3d") {
+    return 4;
+  }
+
+  if (scoringMode === "team") {
+    return arrowsPerArcher * TEAM_ARCHERS_PER_VOLLEY;
+  }
+
+  return arrowsPerArcher;
 }
 
 function syncScoringModeFieldset() {
@@ -2016,9 +2107,16 @@ function openStatsModalFromPayload(payload) {
   els.statsGlobalBar.style.background = getBarColorByZoneRatio(avgVolley, successZone);
   renderEvolutionChart(totals, maxVolley, successZone, payload.targetCount || totals.length);
   const fullCount = totals.filter((total) => total === maxVolley).length;
+  const missCount = volleys.reduce(
+    (sum, volley) => sum + (volley.arrows || []).filter((score) => score === 0).length,
+    0,
+  );
   const doubleMissCount = volleys.filter((volley) => isDoubleZeroVolley(volley.arrows || [])).length;
   const totalArrows = volleys.length * (payload.arrowsPerVolley || state.arrowsPerVolley);
   els.statsFullCount.textContent = String(fullCount);
+  if (els.statsMissCount) {
+    els.statsMissCount.textContent = String(missCount);
+  }
   els.statsDoubleMissCount.textContent = String(doubleMissCount);
   const fullCard = els.statsFullCount.closest("article");
   const missCard = els.statsDoubleMissCount.closest("article");
@@ -2117,6 +2215,275 @@ function openHelpModal() {
 
 function closeHelpModal() {
   els.helpModal.classList.add("hidden");
+}
+
+function setLoginFeedback(message) {
+  if (!els.loginFeedback) return;
+  if (!message) {
+    els.loginFeedback.textContent = "";
+    els.loginFeedback.classList.add("hidden");
+    return;
+  }
+  els.loginFeedback.textContent = message;
+  els.loginFeedback.classList.remove("hidden");
+}
+
+function hasStoredAuthToken() {
+  try {
+    const token = window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
+    return token.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function clearStoredAuth() {
+  try {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    window.localStorage.removeItem(AUTH_USER_ID_KEY);
+    window.localStorage.removeItem(AUTH_USER_EMAIL_KEY);
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
+function updateHomeLoginTile() {
+  if (!els.homeLoginBtn) return;
+  const labelText = els.homeLoginBtn.querySelector(".home-tile-label span:last-child");
+  const isLoggedIn = hasStoredAuthToken();
+  els.homeLoginBtn.classList.toggle("is-logged-in", isLoggedIn);
+  els.homeLoginBtn.setAttribute("aria-label", isLoggedIn ? "Déconnexion" : "Connexion");
+  if (labelText) {
+    labelText.textContent = isLoggedIn ? "Déconnexion" : "Connexion";
+  }
+}
+
+function updateConfigActionButtons() {
+  const isLoggedIn = hasStoredAuthToken();
+  if (els.configExportHistoryBtn) els.configExportHistoryBtn.classList.toggle("hidden", isLoggedIn);
+  if (els.configImportHistoryBtn) els.configImportHistoryBtn.classList.toggle("hidden", isLoggedIn);
+  if (els.configSaveServerBtn) els.configSaveServerBtn.classList.toggle("hidden", !isLoggedIn);
+  if (els.configRestoreServerBtn) els.configRestoreServerBtn.classList.toggle("hidden", !isLoggedIn);
+}
+
+async function saveConfigToServer() {
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) return;
+  try {
+    if (els.configSaveServerBtn) els.configSaveServerBtn.disabled = true;
+    const entries = loadHistoryEntries();
+    const [configRes, sessionsRes] = await Promise.all([
+      fetch("/api/users/configuration", {
+        method: "PUT",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${token}` },
+        body: JSON.stringify({ configuration: appConfig }),
+      }),
+      fetch("/api/users/sessions", {
+        method: "PUT",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${token}` },
+        body: JSON.stringify({ entries }),
+      }),
+    ]);
+    if (configRes.ok && sessionsRes.ok) {
+      showFlashInfo(`Configuration et ${entries.length} parcours sauvegardé(s).`);
+    } else if (configRes.ok) {
+      const errData = await sessionsRes.json().catch(() => ({}));
+      showFlashInfo(`Échec de la sauvegarde des parcours : ${errData.error || sessionsRes.status}.`);
+    } else if (sessionsRes.ok) {
+      showFlashInfo("Échec de la sauvegarde de la configuration.");
+    } else {
+      showFlashInfo("Échec de la sauvegarde.");
+    }
+  } catch {
+    showFlashInfo("Erreur réseau lors de la sauvegarde.");
+  } finally {
+    if (els.configSaveServerBtn) els.configSaveServerBtn.disabled = false;
+  }
+}
+
+async function restoreConfigFromServer() {
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) return;
+    const confirmed = await confirmAction(
+      "Restaurer la configuration et l'historique depuis le serveur ? Les données locales seront remplacées.",
+      "Restaurer",
+    );
+    if (!confirmed) return;
+  try {
+    if (els.configRestoreServerBtn) els.configRestoreServerBtn.disabled = true;
+    const [configRes, sessionsRes] = await Promise.all([
+      fetch("/api/users/configuration", { headers: { "authorization": `Bearer ${token}` } }),
+      fetch("/api/users/sessions", { headers: { "authorization": `Bearer ${token}` } }),
+    ]);
+    if (!configRes.ok && !sessionsRes.ok) {
+      showFlashInfo("Échec de la restauration.");
+      return;
+    }
+    let restoredConfig = false;
+    let restoredSessions = 0;
+    if (configRes.ok) {
+      const data = await configRes.json();
+      const saved = data?.configuration;
+      if (saved && typeof saved === "object") {
+        if (Number.isFinite(saved.fullTarget_team)) appConfig.fullTarget_team = saved.fullTarget_team;
+        if (Number.isFinite(saved.fullTarget_individual)) appConfig.fullTarget_individual = saved.fullTarget_individual;
+        if (Number.isFinite(saved.missLimit_team)) appConfig.missLimit_team = saved.missLimit_team;
+        if (Number.isFinite(saved.missLimit_individual)) appConfig.missLimit_individual = saved.missLimit_individual;
+        if (saved.successZoneByRuleset && typeof saved.successZoneByRuleset === "object") {
+          Object.assign(appConfig.successZoneByRuleset, saved.successZoneByRuleset);
+        }
+        if (Array.isArray(saved.enabledRulesets)) {
+          appConfig.enabledRulesets = saved.enabledRulesets;
+        }
+        saveConfig();
+        syncConfigSliderMax();
+        els.configFullTargetTeam.value = String(appConfig.fullTarget_team);
+        els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
+        setRangeProgress(els.configFullTargetTeam);
+        els.configFullTargetIndiv.value = String(appConfig.fullTarget_individual);
+        els.configFullTargetIndivValue.textContent = String(appConfig.fullTarget_individual);
+        setRangeProgress(els.configFullTargetIndiv);
+        els.configMissLimitTeam.value = String(appConfig.missLimit_team);
+        els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
+        setRangeProgress(els.configMissLimitTeam);
+        els.configMissLimitIndiv.value = String(appConfig.missLimit_individual);
+        els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
+        setRangeProgress(els.configMissLimitIndiv);
+        syncRulesetCheckboxes();
+        updateRulesetSelectOptions();
+        restoredConfig = true;
+      }
+    }
+    if (sessionsRes.ok) {
+      const sessData = await sessionsRes.json();
+      const imported = sessData?.entries;
+      if (Array.isArray(imported) && imported.length > 0) {
+        const valid = imported.filter((e) => e && typeof e === "object" && e.generatedAt);
+        const sorted = [...valid].sort((a, b) => getHistorySortDate(b) - getHistorySortDate(a));
+        saveHistoryEntries(sorted);
+        clearPersistedState();
+        historyCurrentPage = 1;
+        restoredSessions = sorted.length;
+      }
+    }
+    const parts = [];
+    if (restoredConfig) parts.push("configuration");
+    if (restoredSessions > 0) parts.push(`${restoredSessions} parcours`);
+    showFlashInfo(parts.length > 0 ? `${parts.join(" et ")} restauré(s).` : "Rien à restaurer sur le serveur.");
+  } catch {
+    showFlashInfo("Erreur réseau lors de la restauration.");
+  } finally {
+    if (els.configRestoreServerBtn) els.configRestoreServerBtn.disabled = false;
+  }
+}
+
+function openLoginModal() {
+  closeStatsModal();
+  closeGeneralStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  closeConfigModal();
+  closeMultiModal();
+  closeDuelModal();
+  setLoginFeedback("");
+  if (els.loginForm) {
+    els.loginForm.reset();
+  }
+  if (els.loginSubmitBtn) {
+    els.loginSubmitBtn.disabled = false;
+  }
+  if (els.loginModal) {
+    els.loginModal.classList.remove("hidden");
+  }
+  if (els.loginEmailInput) {
+    els.loginEmailInput.focus();
+  }
+}
+
+function closeLoginModal() {
+  if (els.loginModal) {
+    els.loginModal.classList.add("hidden");
+  }
+  setLoginFeedback("");
+  if (els.loginPasswordInput) {
+    els.loginPasswordInput.value = "";
+  }
+  if (els.loginSubmitBtn) {
+    els.loginSubmitBtn.disabled = false;
+  }
+}
+
+async function handleLoginSubmit(event) {
+  event.preventDefault();
+  const email = (els.loginEmailInput?.value || "").trim().toLowerCase();
+  const password = els.loginPasswordInput?.value || "";
+
+  if (!email || !password) {
+    setLoginFeedback("Login et password sont requis.");
+    return;
+  }
+
+  if (els.loginSubmitBtn) {
+    els.loginSubmitBtn.disabled = true;
+  }
+  setLoginFeedback("");
+
+  try {
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      const message = payload?.error || "Connexion impossible";
+      setLoginFeedback(message);
+      return;
+    }
+
+    const token = typeof payload?.token === "string" ? payload.token.trim() : "";
+    if (!token) {
+      setLoginFeedback("Réponse de connexion invalide.");
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+      if (payload?.id !== undefined && payload?.id !== null) {
+        window.localStorage.setItem(AUTH_USER_ID_KEY, String(payload.id));
+      }
+      if (typeof payload?.email === "string") {
+        window.localStorage.setItem(AUTH_USER_EMAIL_KEY, payload.email);
+      }
+    } catch {
+      setLoginFeedback("Impossible de stocker le token localement.");
+      return;
+    }
+
+    setLoginFeedback("Connexion réussie.");
+    const connectedAs = typeof payload?.email === "string" && payload.email ? payload.email : email;
+    window.setTimeout(() => {
+      closeLoginModal();
+      updateHomeLoginTile();
+      updateConfigActionButtons();
+      showFlashInfo(`Connecté : ${connectedAs}`);
+    }, 700);
+  } catch {
+    setLoginFeedback("Erreur réseau lors de la connexion.");
+  } finally {
+    if (els.loginSubmitBtn) {
+      els.loginSubmitBtn.disabled = false;
+    }
+  }
 }
 
 function downloadResultsJson() {
@@ -2896,6 +3263,7 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
   if (!container) return;
 
   const maxVolleyTotal = Number.isFinite(options.maxVolleyTotal) ? options.maxVolleyTotal : null;
+  const highlightBestScore = options.highlightBestScore === true;
 
   const isCompletedVolley = (arrows) => (
     Array.isArray(arrows)
@@ -2929,8 +3297,20 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
       && Math.abs(targetTotal - maxVolleyTotal) < 0.0001
     );
 
-    let pillClass = "is-blue";
-    if (completed) {
+    const opponentArrows = Array.isArray(opponentScoresByTarget?.[index])
+      ? opponentScoresByTarget[index]
+      : null;
+    const opponentCompleted = isCompletedVolley(opponentArrows);
+    const opponentTotal = opponentCompleted
+      ? opponentArrows.reduce((sum, value) => sum + scoreToValue(value), 0)
+      : null;
+
+    let pillClass = "is-gray";
+    if (highlightBestScore) {
+      if (completed && opponentCompleted && targetTotal > opponentTotal) {
+        pillClass = "is-green";
+      }
+    } else if (completed) {
       if (missCount >= 2) {
         pillClass = "is-red";
       } else if (missCount === 1) {
@@ -2940,7 +3320,13 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
       }
     }
 
-    rows.push(`<div class="duel-volley-item"><span class="volley-pill ${pillClass}">${index + 1}</span><span class="duel-volley-values">${arrowsText}</span><span class="duel-volley-total">${targetTotal}</span></div>`);
+    rows.push(`
+      <tr>
+        <td><span class="volley-pill ${pillClass}">${index + 1}</span></td>
+        <td>${arrowsText}</td>
+        <td class="history-total">${targetTotal}</td>
+      </tr>
+    `);
   });
 
   if (rows.length === 0) {
@@ -2948,7 +3334,15 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
     return;
   }
 
-  container.innerHTML = rows.join("");
+  container.innerHTML = `
+    <div class="table-wrap duel-history-table-wrap">
+      <table class="history-table duel-history-table">
+        <tbody>
+          ${rows.join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function renderPelotonHistorySwiper(container, options = {}) {
@@ -3133,8 +3527,14 @@ function renderDuelView() {
     state.duel.allowedPoints,
   );
 
-  renderDuelVolleyHistory(els.duelHistoryP1, scoresP1, scoresP2, { maxVolleyTotal: duelMaxVolleyTotal });
-  renderDuelVolleyHistory(els.duelHistoryP2, scoresP2, scoresP1, { maxVolleyTotal: duelMaxVolleyTotal });
+  renderDuelVolleyHistory(els.duelHistoryP1, scoresP1, scoresP2, {
+    maxVolleyTotal: duelMaxVolleyTotal,
+    highlightBestScore: true,
+  });
+  renderDuelVolleyHistory(els.duelHistoryP2, scoresP2, scoresP1, {
+    maxVolleyTotal: duelMaxVolleyTotal,
+    highlightBestScore: true,
+  });
 
   renderDuelPad();
 }
@@ -3286,6 +3686,7 @@ function registerPelotonScore(score) {
   if (volleyCompleted) {
     state.peloton.previewLocked = true;
     renderPelotonView();
+    scrollPelotonHistoryToBottom();
 
     window.setTimeout(() => {
       state.peloton.previewLocked = false;
@@ -3308,6 +3709,7 @@ function registerPelotonScore(score) {
 
       showFlashInfo("Saisie peloton terminée.");
       renderPelotonView();
+      scrollPelotonHistoryToBottom();
     }, LAST_SCORE_PREVIEW_MS);
 
     return;
@@ -3322,6 +3724,7 @@ function registerPelotonScore(score) {
   }
 
   renderPelotonView();
+  scrollPelotonHistoryToBottom();
 }
 
 function getPelotonTotalLeaderIndices() {
@@ -3379,7 +3782,18 @@ function renderPelotonArchersGrid() {
       card.classList.add("is-best-total");
     }
     card.setAttribute("role", "listitem");
+    card.tabIndex = 0;
+    card.setAttribute("aria-label", `Sélectionner ${archer.name} pour modifier le score`);
     card.innerHTML = `<span class="peloton-archer-card-name">${archer.name}</span><span class="peloton-archer-card-total">${total}<span class="stats-unit">pts</span></span>`;
+
+    card.addEventListener("click", () => {
+      updatePelotonArcher(archer.index, { manualSelection: true });
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      updatePelotonArcher(archer.index, { manualSelection: true });
+    });
 
     els.pelotonArchersGrid.appendChild(card);
   });
@@ -3571,8 +3985,9 @@ function openPelotonModal() {
   els.pelotonModal?.classList.remove("hidden");
 }
 
-function updatePelotonArcher(selectedArcherIndex = state.pelotonActiveArcherIndex) {
+function updatePelotonArcher(selectedArcherIndex = state.pelotonActiveArcherIndex, options = {}) {
   const archerIndex = Number(selectedArcherIndex);
+  const manualSelection = Boolean(options?.manualSelection);
   if (!Number.isInteger(archerIndex)) {
     return;
   }
@@ -3597,10 +4012,20 @@ function updatePelotonArcher(selectedArcherIndex = state.pelotonActiveArcherInde
       currentTargetIndex: 0,
       currentArrowIndex: 0,
       completed: false,
+      editingMode: false,
     };
   }
 
   state.pelotonByArcher[archerIndex].name = archerName;
+  state.pelotonByArcher[archerIndex].editingMode = Boolean(manualSelection);
+
+  if (manualSelection && state.pelotonByArcher[archerIndex].completed) {
+    // Allow manual correction of a finished archer by reopening their last arrow.
+    state.pelotonByArcher[archerIndex].completed = false;
+    state.pelotonByArcher[archerIndex].currentTargetIndex = Math.max(0, state.pelotonByArcher[archerIndex].targetCount - 1);
+    state.pelotonByArcher[archerIndex].currentArrowIndex = Math.max(0, state.pelotonByArcher[archerIndex].arrowsPerTarget - 1);
+  }
+
   state.peloton = state.pelotonByArcher[archerIndex];
   state.pelotonActiveArcherIndex = archerIndex;
   
@@ -3614,6 +4039,10 @@ function updatePelotonArcher(selectedArcherIndex = state.pelotonActiveArcherInde
   }
   if (els.pelotonStationArcherName) {
     els.pelotonStationArcherName.textContent = getPelotonHeaderNames(archerIndex, state.peloton.ruleset);
+  }
+
+  if (manualSelection) {
+    showFlashInfo(`Archer sélectionné : ${archerName}`);
   }
   
   renderPelotonView();
@@ -3683,38 +4112,55 @@ function stepBackPelotonScore() {
     peloton.scores[targetIndex][arrowIndex] = null;
   };
 
-  if (peloton.completed) {
-    peloton.completed = false;
-    peloton.currentTargetIndex = peloton.targetCount - 1;
-    peloton.currentArrowIndex = peloton.arrowsPerTarget - 1;
-    clearScoreAt(peloton.currentTargetIndex, peloton.currentArrowIndex);
+  const findLastEnteredPosition = () => {
+    const isEditingMode = peloton.editingMode === true;
+    const currentTargetIndex = Math.max(0, Math.min(peloton.currentTargetIndex, peloton.targetCount - 1));
+    const minTargetIndex = isEditingMode
+      ? Math.max(0, currentTargetIndex - 1)
+      : 0;
+    const startingTargetIndex = peloton.completed
+      ? currentTargetIndex
+      : currentTargetIndex;
+
+    for (let targetIndex = startingTargetIndex; targetIndex >= minTargetIndex; targetIndex--) {
+      const targetScores = peloton.scores[targetIndex] || [];
+      let startArrowIndex;
+      if (targetIndex === currentTargetIndex) {
+        const isCurrentCursorFilled = Boolean(
+          targetScores[peloton.currentArrowIndex] !== null
+          && targetScores[peloton.currentArrowIndex] !== undefined
+          && peloton.currentArrowIndex < peloton.arrowsPerTarget,
+        );
+        startArrowIndex = isCurrentCursorFilled
+          ? Math.max(0, Math.min(peloton.currentArrowIndex, peloton.arrowsPerTarget - 1))
+          : Math.max(0, Math.min(peloton.currentArrowIndex - 1, peloton.arrowsPerTarget - 1));
+      } else {
+        startArrowIndex = peloton.arrowsPerTarget - 1;
+      }
+
+      for (let arrowIndex = startArrowIndex; arrowIndex >= 0; arrowIndex--) {
+        if (targetScores[arrowIndex] !== null && targetScores[arrowIndex] !== undefined) {
+          return { targetIndex, arrowIndex };
+        }
+      }
+    }
+
+    return null;
+  };
+
+  const position = findLastEnteredPosition();
+  if (!position) {
+    showFlashInfo("Début de volée atteint.");
     renderPelotonView();
     return;
   }
 
-  let targetIndex = peloton.currentTargetIndex;
-  let arrowIndex = peloton.currentArrowIndex;
-
-  // Rien à supprimer au très début
-  if (targetIndex === 0 && arrowIndex === 0) {
-    return;
-  }
-
-  // Effacer le score actuel
-  clearScoreAt(targetIndex, arrowIndex);
-
-  // Aller à la flèche précédente
-  if (arrowIndex > 0) {
-    arrowIndex--;
-  } else {
-    targetIndex--;
-    arrowIndex = peloton.arrowsPerTarget - 1;
-  }
-
-  peloton.currentTargetIndex = targetIndex;
-  peloton.currentArrowIndex = arrowIndex;
-
+  peloton.completed = false;
+  clearScoreAt(position.targetIndex, position.arrowIndex);
+  peloton.currentTargetIndex = position.targetIndex;
+  peloton.currentArrowIndex = position.arrowIndex;
   renderPelotonView();
+  scrollPelotonHistoryToBottom();
 }
 
 function closePelotonModal() {
@@ -3881,6 +4327,21 @@ els.homePelotonBtn.addEventListener("click", () => { openMultiModal(); });
 els.homeHistoryBtn.addEventListener("click", () => { openHistoryModal(); });
 els.homeStatsBtn.addEventListener("click", () => { openGeneralStatsModal(); });
 els.homeConfigBtn.addEventListener("click", () => { openConfigModal(); });
+if (els.homeLoginBtn) {
+  els.homeLoginBtn.addEventListener("click", async () => {
+    if (hasStoredAuthToken()) {
+      const confirmed = await confirmAction("Confirmer la déconnexion ?", "Déconnexion");
+      if (!confirmed) return;
+      clearStoredAuth();
+      updateHomeLoginTile();
+      updateConfigActionButtons();
+      closeLoginModal();
+      showFlashInfo("Déconnexion réussie.");
+      return;
+    }
+    openLoginModal();
+  });
+}
 els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
 if (els.multiStartBtn) {
   els.multiStartBtn.addEventListener("click", () => {
@@ -3985,6 +4446,15 @@ document.querySelectorAll(".stats-tab").forEach((btn) => {
 });
 els.helpModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 els.helpCloseBtn.addEventListener("click", closeHelpModal);
+if (els.loginModalOverlay) {
+  els.loginModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.loginCloseBtn) {
+  els.loginCloseBtn.addEventListener("click", closeLoginModal);
+}
+if (els.loginForm) {
+  els.loginForm.addEventListener("submit", handleLoginSubmit);
+}
 els.historyModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 els.historyCloseBtn.addEventListener("click", closeHistoryModal);
 if (els.multiModalOverlay) {
@@ -4059,6 +4529,12 @@ els.configImportHistoryBtn.addEventListener("click", () => {
 els.configImportHistoryInput.addEventListener("change", (e) => {
   if (e.target.files.length > 0) importHistory(e.target.files[0]);
 });
+if (els.configSaveServerBtn) els.configSaveServerBtn.addEventListener("click", saveConfigToServer);
+if (els.configRestoreServerBtn) els.configRestoreServerBtn.addEventListener("click", restoreConfigFromServer);
+
+updateHomeLoginTile();
+updateConfigActionButtons();
+
 els.configFullTargetTeam.addEventListener("input", () => {
   appConfig.fullTarget_team = Number(els.configFullTargetTeam.value);
   els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
@@ -4175,6 +4651,12 @@ setRangeProgress(els.configFullTargetTeam);
 setRangeProgress(els.configFullTargetIndiv);
 setRangeProgress(els.configMissLimitTeam);
 setRangeProgress(els.configMissLimitIndiv);
+syncSoloScoringCardHeight();
+
+window.addEventListener("resize", syncSoloScoringCardHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", syncSoloScoringCardHeight);
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
