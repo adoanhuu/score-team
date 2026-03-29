@@ -2221,6 +2221,11 @@ async function saveConfigToServer() {
 async function restoreConfigFromServer() {
   const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
   if (!token) return;
+    const confirmed = await confirmAction(
+      "Restaurer la configuration et l'historique depuis le serveur ? Les données locales seront remplacées.",
+      "Restaurer",
+    );
+    if (!confirmed) return;
   try {
     if (els.configRestoreServerBtn) els.configRestoreServerBtn.disabled = true;
     const [configRes, sessionsRes] = await Promise.all([
