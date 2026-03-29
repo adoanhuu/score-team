@@ -6,6 +6,9 @@ const HISTORY_KEY = "score-team-history-v1";
 const CONFIG_KEY = "score-team-config-v1";
 const MAX_HISTORY_ITEMS = 50;
 const FLASH_INFO_MS = 2600;
+const AUTH_TOKEN_KEY = "score-team-auth-token-v1";
+const AUTH_USER_ID_KEY = "score-team-auth-user-id-v1";
+const AUTH_USER_EMAIL_KEY = "score-team-auth-user-email-v1";
 
 const state = {
   targetCount: 21,
@@ -160,6 +163,8 @@ const els = {
   configExportHistoryBtn: document.getElementById("config-export-history-btn"),
   configImportHistoryBtn: document.getElementById("config-import-history-btn"),
   configImportHistoryInput: document.getElementById("config-import-history-input"),
+  configSaveServerBtn: document.getElementById("config-save-server-btn"),
+  configRestoreServerBtn: document.getElementById("config-restore-server-btn"),
   weaponSelect: document.getElementById("weapon-select"),
   volleyTitleText: document.getElementById("volley-title-text"),
   volleyCounter: document.getElementById("volley-counter"),
@@ -188,7 +193,16 @@ const els = {
   homeHistoryBtn: document.getElementById("home-history-btn"),
   homeStatsBtn: document.getElementById("home-stats-btn"),
   homeConfigBtn: document.getElementById("home-config-btn"),
+  homeLoginBtn: document.getElementById("home-login-btn"),
   homeHelpBtn: document.getElementById("home-help-btn"),
+  loginModal: document.getElementById("login-modal"),
+  loginModalOverlay: document.getElementById("login-modal-overlay"),
+  loginCloseBtn: document.getElementById("login-close-btn"),
+  loginForm: document.getElementById("login-form"),
+  loginEmailInput: document.getElementById("login-email-input"),
+  loginPasswordInput: document.getElementById("login-password-input"),
+  loginFeedback: document.getElementById("login-feedback"),
+  loginSubmitBtn: document.getElementById("login-submit-btn"),
   multiModal: document.getElementById("multi-modal"),
   multiModalOverlay: document.getElementById("multi-modal-overlay"),
   multiCloseBtn: document.getElementById("multi-close-btn"),
@@ -346,6 +360,7 @@ function openConfigModal() {
   closeStatsModal();
   closeGeneralStatsModal();
   closeHelpModal();
+  closeLoginModal();
   closeHistoryModal();
   closeMultiModal();
   closeDuelModal();
@@ -2119,6 +2134,275 @@ function closeHelpModal() {
   els.helpModal.classList.add("hidden");
 }
 
+function setLoginFeedback(message) {
+  if (!els.loginFeedback) return;
+  if (!message) {
+    els.loginFeedback.textContent = "";
+    els.loginFeedback.classList.add("hidden");
+    return;
+  }
+  els.loginFeedback.textContent = message;
+  els.loginFeedback.classList.remove("hidden");
+}
+
+function hasStoredAuthToken() {
+  try {
+    const token = window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
+    return token.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function clearStoredAuth() {
+  try {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    window.localStorage.removeItem(AUTH_USER_ID_KEY);
+    window.localStorage.removeItem(AUTH_USER_EMAIL_KEY);
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
+function updateHomeLoginTile() {
+  if (!els.homeLoginBtn) return;
+  const labelText = els.homeLoginBtn.querySelector(".home-tile-label span:last-child");
+  const isLoggedIn = hasStoredAuthToken();
+  els.homeLoginBtn.classList.toggle("is-logged-in", isLoggedIn);
+  els.homeLoginBtn.setAttribute("aria-label", isLoggedIn ? "Déconnexion" : "Connexion");
+  if (labelText) {
+    labelText.textContent = isLoggedIn ? "Déconnexion" : "Connexion";
+  }
+}
+
+function updateConfigActionButtons() {
+  const isLoggedIn = hasStoredAuthToken();
+  if (els.configExportHistoryBtn) els.configExportHistoryBtn.classList.toggle("hidden", isLoggedIn);
+  if (els.configImportHistoryBtn) els.configImportHistoryBtn.classList.toggle("hidden", isLoggedIn);
+  if (els.configSaveServerBtn) els.configSaveServerBtn.classList.toggle("hidden", !isLoggedIn);
+  if (els.configRestoreServerBtn) els.configRestoreServerBtn.classList.toggle("hidden", !isLoggedIn);
+}
+
+async function saveConfigToServer() {
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) return;
+  try {
+    if (els.configSaveServerBtn) els.configSaveServerBtn.disabled = true;
+    const entries = loadHistoryEntries();
+    const [configRes, sessionsRes] = await Promise.all([
+      fetch("/api/users/configuration", {
+        method: "PUT",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${token}` },
+        body: JSON.stringify({ configuration: appConfig }),
+      }),
+      fetch("/api/users/sessions", {
+        method: "PUT",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${token}` },
+        body: JSON.stringify({ entries }),
+      }),
+    ]);
+    if (configRes.ok && sessionsRes.ok) {
+      showFlashInfo(`Configuration et ${entries.length} parcours sauvegardé(s).`);
+    } else if (configRes.ok) {
+      const errData = await sessionsRes.json().catch(() => ({}));
+      showFlashInfo(`Échec de la sauvegarde des parcours : ${errData.error || sessionsRes.status}.`);
+    } else if (sessionsRes.ok) {
+      showFlashInfo("Échec de la sauvegarde de la configuration.");
+    } else {
+      showFlashInfo("Échec de la sauvegarde.");
+    }
+  } catch {
+    showFlashInfo("Erreur réseau lors de la sauvegarde.");
+  } finally {
+    if (els.configSaveServerBtn) els.configSaveServerBtn.disabled = false;
+  }
+}
+
+async function restoreConfigFromServer() {
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) return;
+    const confirmed = await confirmAction(
+      "Restaurer la configuration et l'historique depuis le serveur ? Les données locales seront remplacées.",
+      "Restaurer",
+    );
+    if (!confirmed) return;
+  try {
+    if (els.configRestoreServerBtn) els.configRestoreServerBtn.disabled = true;
+    const [configRes, sessionsRes] = await Promise.all([
+      fetch("/api/users/configuration", { headers: { "authorization": `Bearer ${token}` } }),
+      fetch("/api/users/sessions", { headers: { "authorization": `Bearer ${token}` } }),
+    ]);
+    if (!configRes.ok && !sessionsRes.ok) {
+      showFlashInfo("Échec de la restauration.");
+      return;
+    }
+    let restoredConfig = false;
+    let restoredSessions = 0;
+    if (configRes.ok) {
+      const data = await configRes.json();
+      const saved = data?.configuration;
+      if (saved && typeof saved === "object") {
+        if (Number.isFinite(saved.fullTarget_team)) appConfig.fullTarget_team = saved.fullTarget_team;
+        if (Number.isFinite(saved.fullTarget_individual)) appConfig.fullTarget_individual = saved.fullTarget_individual;
+        if (Number.isFinite(saved.missLimit_team)) appConfig.missLimit_team = saved.missLimit_team;
+        if (Number.isFinite(saved.missLimit_individual)) appConfig.missLimit_individual = saved.missLimit_individual;
+        if (saved.successZoneByRuleset && typeof saved.successZoneByRuleset === "object") {
+          Object.assign(appConfig.successZoneByRuleset, saved.successZoneByRuleset);
+        }
+        if (Array.isArray(saved.enabledRulesets)) {
+          appConfig.enabledRulesets = saved.enabledRulesets;
+        }
+        saveConfig();
+        syncConfigSliderMax();
+        els.configFullTargetTeam.value = String(appConfig.fullTarget_team);
+        els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
+        setRangeProgress(els.configFullTargetTeam);
+        els.configFullTargetIndiv.value = String(appConfig.fullTarget_individual);
+        els.configFullTargetIndivValue.textContent = String(appConfig.fullTarget_individual);
+        setRangeProgress(els.configFullTargetIndiv);
+        els.configMissLimitTeam.value = String(appConfig.missLimit_team);
+        els.configMissLimitTeamValue.textContent = String(appConfig.missLimit_team);
+        setRangeProgress(els.configMissLimitTeam);
+        els.configMissLimitIndiv.value = String(appConfig.missLimit_individual);
+        els.configMissLimitIndivValue.textContent = String(appConfig.missLimit_individual);
+        setRangeProgress(els.configMissLimitIndiv);
+        syncRulesetCheckboxes();
+        updateRulesetSelectOptions();
+        restoredConfig = true;
+      }
+    }
+    if (sessionsRes.ok) {
+      const sessData = await sessionsRes.json();
+      const imported = sessData?.entries;
+      if (Array.isArray(imported) && imported.length > 0) {
+        const valid = imported.filter((e) => e && typeof e === "object" && e.generatedAt);
+        const sorted = [...valid].sort((a, b) => getHistorySortDate(b) - getHistorySortDate(a));
+        saveHistoryEntries(sorted);
+        clearPersistedState();
+        historyCurrentPage = 1;
+        restoredSessions = sorted.length;
+      }
+    }
+    const parts = [];
+    if (restoredConfig) parts.push("configuration");
+    if (restoredSessions > 0) parts.push(`${restoredSessions} parcours`);
+    showFlashInfo(parts.length > 0 ? `${parts.join(" et ")} restauré(s).` : "Rien à restaurer sur le serveur.");
+  } catch {
+    showFlashInfo("Erreur réseau lors de la restauration.");
+  } finally {
+    if (els.configRestoreServerBtn) els.configRestoreServerBtn.disabled = false;
+  }
+}
+
+function openLoginModal() {
+  closeStatsModal();
+  closeGeneralStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  closeConfigModal();
+  closeMultiModal();
+  closeDuelModal();
+  setLoginFeedback("");
+  if (els.loginForm) {
+    els.loginForm.reset();
+  }
+  if (els.loginSubmitBtn) {
+    els.loginSubmitBtn.disabled = false;
+  }
+  if (els.loginModal) {
+    els.loginModal.classList.remove("hidden");
+  }
+  if (els.loginEmailInput) {
+    els.loginEmailInput.focus();
+  }
+}
+
+function closeLoginModal() {
+  if (els.loginModal) {
+    els.loginModal.classList.add("hidden");
+  }
+  setLoginFeedback("");
+  if (els.loginPasswordInput) {
+    els.loginPasswordInput.value = "";
+  }
+  if (els.loginSubmitBtn) {
+    els.loginSubmitBtn.disabled = false;
+  }
+}
+
+async function handleLoginSubmit(event) {
+  event.preventDefault();
+  const email = (els.loginEmailInput?.value || "").trim().toLowerCase();
+  const password = els.loginPasswordInput?.value || "";
+
+  if (!email || !password) {
+    setLoginFeedback("Login et password sont requis.");
+    return;
+  }
+
+  if (els.loginSubmitBtn) {
+    els.loginSubmitBtn.disabled = true;
+  }
+  setLoginFeedback("");
+
+  try {
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      const message = payload?.error || "Connexion impossible";
+      setLoginFeedback(message);
+      return;
+    }
+
+    const token = typeof payload?.token === "string" ? payload.token.trim() : "";
+    if (!token) {
+      setLoginFeedback("Réponse de connexion invalide.");
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+      if (payload?.id !== undefined && payload?.id !== null) {
+        window.localStorage.setItem(AUTH_USER_ID_KEY, String(payload.id));
+      }
+      if (typeof payload?.email === "string") {
+        window.localStorage.setItem(AUTH_USER_EMAIL_KEY, payload.email);
+      }
+    } catch {
+      setLoginFeedback("Impossible de stocker le token localement.");
+      return;
+    }
+
+    setLoginFeedback("Connexion réussie.");
+    const connectedAs = typeof payload?.email === "string" && payload.email ? payload.email : email;
+    window.setTimeout(() => {
+      closeLoginModal();
+      updateHomeLoginTile();
+      updateConfigActionButtons();
+      showFlashInfo(`Connecté : ${connectedAs}`);
+    }, 700);
+  } catch {
+    setLoginFeedback("Erreur réseau lors de la connexion.");
+  } finally {
+    if (els.loginSubmitBtn) {
+      els.loginSubmitBtn.disabled = false;
+    }
+  }
+}
+
 function downloadResultsJson() {
   if (state.shoots.length !== state.targetCount) {
     return;
@@ -3881,6 +4165,21 @@ els.homePelotonBtn.addEventListener("click", () => { openMultiModal(); });
 els.homeHistoryBtn.addEventListener("click", () => { openHistoryModal(); });
 els.homeStatsBtn.addEventListener("click", () => { openGeneralStatsModal(); });
 els.homeConfigBtn.addEventListener("click", () => { openConfigModal(); });
+if (els.homeLoginBtn) {
+  els.homeLoginBtn.addEventListener("click", async () => {
+    if (hasStoredAuthToken()) {
+      const confirmed = await confirmAction("Confirmer la déconnexion ?", "Déconnexion");
+      if (!confirmed) return;
+      clearStoredAuth();
+      updateHomeLoginTile();
+      updateConfigActionButtons();
+      closeLoginModal();
+      showFlashInfo("Déconnexion réussie.");
+      return;
+    }
+    openLoginModal();
+  });
+}
 els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
 if (els.multiStartBtn) {
   els.multiStartBtn.addEventListener("click", () => {
@@ -3985,6 +4284,15 @@ document.querySelectorAll(".stats-tab").forEach((btn) => {
 });
 els.helpModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 els.helpCloseBtn.addEventListener("click", closeHelpModal);
+if (els.loginModalOverlay) {
+  els.loginModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.loginCloseBtn) {
+  els.loginCloseBtn.addEventListener("click", closeLoginModal);
+}
+if (els.loginForm) {
+  els.loginForm.addEventListener("submit", handleLoginSubmit);
+}
 els.historyModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 els.historyCloseBtn.addEventListener("click", closeHistoryModal);
 if (els.multiModalOverlay) {
@@ -4059,6 +4367,12 @@ els.configImportHistoryBtn.addEventListener("click", () => {
 els.configImportHistoryInput.addEventListener("change", (e) => {
   if (e.target.files.length > 0) importHistory(e.target.files[0]);
 });
+if (els.configSaveServerBtn) els.configSaveServerBtn.addEventListener("click", saveConfigToServer);
+if (els.configRestoreServerBtn) els.configRestoreServerBtn.addEventListener("click", restoreConfigFromServer);
+
+updateHomeLoginTile();
+updateConfigActionButtons();
+
 els.configFullTargetTeam.addEventListener("input", () => {
   appConfig.fullTarget_team = Number(els.configFullTargetTeam.value);
   els.configFullTargetTeamValue.textContent = String(appConfig.fullTarget_team);
