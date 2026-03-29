@@ -148,6 +148,7 @@ const els = {
   statsEvolutionRange: document.getElementById("stats-evolution-range"),
   statsEvolutionAxis: document.getElementById("stats-evolution-axis"),
   statsFullCount: document.getElementById("stats-full-count"),
+  statsMissCount: document.getElementById("stats-miss-count"),
   statsDoubleMissCount: document.getElementById("stats-double-miss-count"),
   statsScoreDist: document.getElementById("stats-score-dist"),
   statsTabSummary: document.getElementById("stats-tab-summary"),
@@ -2031,9 +2032,16 @@ function openStatsModalFromPayload(payload) {
   els.statsGlobalBar.style.background = getBarColorByZoneRatio(avgVolley, successZone);
   renderEvolutionChart(totals, maxVolley, successZone, payload.targetCount || totals.length);
   const fullCount = totals.filter((total) => total === maxVolley).length;
+  const missCount = volleys.reduce(
+    (sum, volley) => sum + (volley.arrows || []).filter((score) => score === 0).length,
+    0,
+  );
   const doubleMissCount = volleys.filter((volley) => isDoubleZeroVolley(volley.arrows || [])).length;
   const totalArrows = volleys.length * (payload.arrowsPerVolley || state.arrowsPerVolley);
   els.statsFullCount.textContent = String(fullCount);
+  if (els.statsMissCount) {
+    els.statsMissCount.textContent = String(missCount);
+  }
   els.statsDoubleMissCount.textContent = String(doubleMissCount);
   const fullCard = els.statsFullCount.closest("article");
   const missCard = els.statsDoubleMissCount.closest("article");
