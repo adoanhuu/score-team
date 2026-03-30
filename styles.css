@@ -850,6 +850,37 @@ input[type="range"]:focus-visible {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 }
+.solo-options-panel {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.solo-options-panel > summary {
+  cursor: pointer;
+  font-weight: 700;
+  user-select: none;
+  list-style: none;
+}
+.solo-options-panel > summary::-webkit-details-marker {
+  display: none;
+}
+.solo-options-panel > summary::marker {
+  content: "";
+}
+.solo-options-panel > summary::after {
+  content: "▾";
+  float: right;
+  transition: transform 0.2s ease;
+}
+.solo-options-panel:not([open]) > summary::after {
+  transform: rotate(-90deg);
+}
+.solo-options-panel-body {
+  padding-top: 12px;
+  display: grid;
+  gap: 12px;
+}
 
 .arrow-cell {
   background: #fff;

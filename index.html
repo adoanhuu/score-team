@@ -111,7 +111,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M12 12c2.76 0 5-2.24 5-5S14.76 2 12 2 7 4.24 7 7s2.24 5 5 5Zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5Z" fill="currentColor"/>
             </svg>
-            <span>Mode solo</span>
+            <span>Individuel</span>
           </h2>
           <div class="setup-head-actions">
             <button id="setup-close-btn" class="btn btn-light btn-icon home-btn" aria-label="Fermer">
@@ -152,12 +152,12 @@
             <fieldset class="mode-fieldset">
               <legend>Mode de saisie</legend>
               <label class="mode-option">
-                <input type="radio" name="scoring-mode" value="team" checked />
-                <span>Équipe</span>
+                <input type="radio" name="scoring-mode" value="individual" />
+                <span>Individuel</span>
               </label>
               <label class="mode-option">
-                <input type="radio" name="scoring-mode" value="individual" />
-                <span>Mode solo</span>
+                <input type="radio" name="scoring-mode" value="team" checked />
+                <span>Équipe</span>
               </label>
               <label class="mode-option">
                 <input type="radio" name="scoring-mode" value="mixed" />
@@ -177,41 +177,46 @@
             </label>
           </div>
         </div>
-        <label>
-          Zone de réussite (pts / volée)
-          <div class="slider-row">
-            <input id="success-zone-input" type="range" min="1" max="120" step="1" value="1" />
-            <strong id="success-zone-value">1</strong>
+        <details id="solo-options-panel" class="solo-options-panel">
+          <summary>Plus d'options</summary>
+          <div class="solo-options-panel-body">
+            <label>
+              Zone de réussite (pts / volée)
+              <div class="slider-row">
+                <input id="success-zone-input" type="range" min="1" max="120" step="1" value="1" />
+                <strong id="success-zone-value">1</strong>
+              </div>
+            </label>
+            <label>
+              Lieu
+              <input id="lieu-input" type="text" placeholder="Ex : Forêt de Rambouillet" autocomplete="off" maxlength="30" />
+            </label>
+            <div class="setup-options-row">
+              <fieldset class="use-target-groups-fieldset">
+                <legend>Catégories de cibles</legend>
+                <label class="checkbox-label">
+                  <input type="radio" name="use-target-groups" value="yes" checked />
+                  <span>Oui</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="radio" name="use-target-groups" value="no" />
+                  <span>Non</span>
+                </label>
+              </fieldset>
+              <fieldset class="show-scores-fieldset">
+                <legend>Afficher des scores</legend>
+                <label class="checkbox-label">
+                  <input type="radio" name="show-scores" value="yes" checked />
+                  <span>Oui</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="radio" name="show-scores" value="no" />
+                  <span>Non</span>
+                </label>
+              </fieldset>
+            </div>
           </div>
-        </label>
-        <label>
-          Lieu
-          <input id="lieu-input" type="text" placeholder="Ex : Forêt de Rambouillet" autocomplete="off" maxlength="30" />
-        </label>
-        <div class="setup-options-row">
-          <fieldset class="use-target-groups-fieldset">
-            <legend>Catégories de cibles</legend>
-            <label class="checkbox-label">
-              <input type="radio" name="use-target-groups" value="yes" checked />
-              <span>Oui</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="radio" name="use-target-groups" value="no" />
-              <span>Non</span>
-            </label>
-          </fieldset>
-          <fieldset class="show-scores-fieldset">
-            <legend>Afficher des scores</legend>
-            <label class="checkbox-label">
-              <input type="radio" name="show-scores" value="yes" checked />
-              <span>Oui</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="radio" name="show-scores" value="no" />
-              <span>Non</span>
-            </label>
-          </fieldset>
-        </div>
+        </details>
         <div class="start-action">
           <button id="start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer la saisie">
             Démarrer
@@ -569,6 +574,10 @@
           <div id="peloton-names-error" class="peloton-names-error hidden" role="alert">
             Veuillez renseigner au moins un nom d'archer
           </div>
+          <label id="contest-weapon-container" class="hidden" for="multi-contest-weapon-select">
+            <span class="label-inline">Type d'arme</span>
+            <select id="multi-contest-weapon-select"></select>
+          </label>
           <div id="contest-code-container" class="duel-names-row hidden">
             <input id="contest-code-input" type="text" placeholder="Code concours" maxlength="40" autocomplete="off" />
           </div>
@@ -1022,7 +1031,7 @@
             <select id="history-mode-filter" aria-label="Filtre mode">
               <option value="all">Tous modes</option>
               <option value="team">Équipe</option>
-              <option value="individual">Mode solo</option>
+              <option value="individual">Individuel</option>
               <option value="mixed">Mixte</option>
             </select>
             <button id="history-reset-filters-btn" class="btn btn-light btn-icon" aria-label="Réinitialiser les filtres">
