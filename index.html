@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#2d6a4f" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Archery Team Score" />
-    <title>Archery Team Score</title>
+    <meta name="apple-mobile-web-app-title" content="Capi Scoring" />
+    <title>Capi Scoring</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.png" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-maskable-192.png" />
@@ -17,10 +17,10 @@
     <section id="home-screen" class="home-screen" role="main" aria-label="Accueil">
       <header class="home-header">
         <div class="home-header-wrapper">
-        <img src="icons/icon.png" alt="Archery Team Score" class="home-logo" />
+        <img src="icons/icon.png" alt="Capi Scoring" class="home-logo" />
         <div class="home-header-text">
-          <h1 class="home-title">Archery Team Score</h1>
-          <p class="home-subtitle">Gestion des scores de tir à l'arc</p>
+          <h1 id="home-title" class="home-title">Capi Scoring</h1>
+          <p id="home-subtitle" class="home-subtitle"></p>
         </div>
         </div>
       </header>
@@ -1059,8 +1059,15 @@
           </div>
         </div>
       </section>
+
+      <section id="welcome-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Message de bienvenue">
+        <div class="modal-overlay" id="welcome-modal-overlay"></div>
+        <div class="modal-card welcome-modal-card">
+          <p id="welcome-modal-message" class="welcome-modal-message">Bienvenue</p>
+        </div>
+      </section>
       <footer class="app-footer">
-        <p>Archery Team Score &copy; 2026 Alain DOAN-HUU - <span id="app-version" class="app-footer-version"></span></p>
+        <p>Capi Scoring &copy; 2026 Alain DOAN-HUU - <span id="app-version" class="app-footer-version"></span></p>
       </footer>
     </main>
 

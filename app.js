@@ -15,6 +15,7 @@ const AUTH_USER_LAST_NAME_KEY = "score-team-auth-user-last-name-v1";
 const CONTEST_UUID_KEY = "score-team-contest-uuid-v1";
 const CONTEST_PROGRESS_KEY = "score-team-contest-progress-v1";
 const CONTEST_WEAPON_KEY = "score-team-contest-weapon-v1";
+const WELCOME_MODAL_MS = 2000;
 
 const state = {
   targetCount: 21,
@@ -64,6 +65,8 @@ const state = {
 };
 
 const els = {
+  homeTitle: document.getElementById("home-title"),
+  homeSubtitle: document.getElementById("home-subtitle"),
   setupCard: document.getElementById("setup-card"),
   scoringCard: document.getElementById("scoring-card"),
   targetsCountText: document.getElementById("targets-count-text"),
@@ -131,6 +134,9 @@ const els = {
   confirmModalMessage: document.getElementById("confirm-modal-message"),
   confirmModalCancelBtn: document.getElementById("confirm-modal-cancel-btn"),
   confirmModalConfirmBtn: document.getElementById("confirm-modal-confirm-btn"),
+  welcomeModal: document.getElementById("welcome-modal"),
+  welcomeModalOverlay: document.getElementById("welcome-modal-overlay"),
+  welcomeModalMessage: document.getElementById("welcome-modal-message"),
   historyModeFilter: document.getElementById("history-mode-filter"),
   historyRulesetFilter: document.getElementById("history-ruleset-filter"),
   historyResetFiltersBtn: document.getElementById("history-reset-filters-btn"),
@@ -292,6 +298,7 @@ const presets = {
 };
 
 let statsCommentsSaveFeedbackTimeout = null;
+let welcomeModalTimer = null;
 
 function scoreToValue(s) {
   return s === FIELD_X ? 5 : (s ?? 0);
@@ -2639,6 +2646,26 @@ function updateHomeLoginTile() {
   updateMultiContestModeAvailability();
 }
 
+function updateHomeHeader() {
+  if (els.homeTitle) {
+    els.homeTitle.textContent = "Capi Scoring";
+  }
+  if (!els.homeSubtitle) return;
+
+  let firstName = "";
+  let lastName = "";
+  try {
+    firstName = (window.localStorage.getItem(AUTH_USER_FIRST_NAME_KEY) || "").trim();
+    lastName = (window.localStorage.getItem(AUTH_USER_LAST_NAME_KEY) || "").trim();
+  } catch {
+    firstName = "";
+    lastName = "";
+  }
+
+  const fullName = [firstName, lastName.toUpperCase()].filter(Boolean).join(" ");
+  els.homeSubtitle.textContent = fullName;
+}
+
 function updateMultiContestModeAvailability() {
   if (!els.multiModeOptionContest) return;
   const isLoggedIn = hasStoredAuthToken();
@@ -2804,6 +2831,27 @@ function closeLoginModal() {
   }
 }
 
+function openWelcomeModal(title, message) {
+  if (!els.welcomeModal || !els.welcomeModalMessage) return;
+  if (welcomeModalTimer) {
+    window.clearTimeout(welcomeModalTimer);
+    welcomeModalTimer = null;
+  }
+  els.welcomeModalMessage.textContent = message;
+  els.welcomeModal.classList.remove("hidden");
+  welcomeModalTimer = window.setTimeout(() => {
+    closeWelcomeModal();
+  }, WELCOME_MODAL_MS);
+}
+
+function closeWelcomeModal() {
+  if (welcomeModalTimer) {
+    window.clearTimeout(welcomeModalTimer);
+    welcomeModalTimer = null;
+  }
+  els.welcomeModal?.classList.add("hidden");
+}
+
 async function handleLoginSubmit(event) {
   event.preventDefault();
   const email = (els.loginEmailInput?.value || "").trim().toLowerCase();
@@ -2868,10 +2916,13 @@ async function handleLoginSubmit(event) {
 
     setLoginFeedback("Connexion réussie.", "success");
     const connectedAs = typeof payload?.email === "string" && payload.email ? payload.email : email;
+    const firstName = typeof payload?.first_name === "string" && payload.first_name ? payload.first_name : "Archer";
     window.setTimeout(() => {
       closeLoginModal();
       updateHomeLoginTile();
+      updateHomeHeader();
       updateConfigActionButtons();
+      openWelcomeModal("Bienvenue", `Bienvenue à ${firstName}`);
       showFlashInfo(`Connecté : ${connectedAs}`);
     }, 700);
   } catch {
@@ -4847,10 +4898,13 @@ if (els.homeLoginBtn) {
     if (hasStoredAuthToken()) {
       const confirmed = await confirmAction("Confirmer la déconnexion ?", "Déconnexion");
       if (!confirmed) return;
+      const firstName = (window.localStorage.getItem(AUTH_USER_FIRST_NAME_KEY) || "").trim() || "Archer";
       clearStoredAuth();
       updateHomeLoginTile();
+      updateHomeHeader();
       updateConfigActionButtons();
       closeLoginModal();
+      openWelcomeModal("À bientôt", `À bientôt ${firstName}`);
       showFlashInfo("Déconnexion réussie.");
       return;
     }
@@ -5023,6 +5077,9 @@ if (els.loginModalOverlay) {
 if (els.loginCloseBtn) {
   els.loginCloseBtn.addEventListener("click", closeLoginModal);
 }
+if (els.welcomeModalOverlay) {
+  els.welcomeModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
 if (els.loginForm) {
   els.loginForm.addEventListener("submit", handleLoginSubmit);
 }
@@ -5104,6 +5161,7 @@ if (els.configSaveServerBtn) els.configSaveServerBtn.addEventListener("click", s
 if (els.configRestoreServerBtn) els.configRestoreServerBtn.addEventListener("click", restoreConfigFromServer);
 
 updateHomeLoginTile();
+updateHomeHeader();
 updateConfigActionButtons();
 
 els.configFullTargetTeam.addEventListener("input", () => {
