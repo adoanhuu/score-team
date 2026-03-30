@@ -1,6 +1,6 @@
 const ARROWS_PER_VOLLEY = 6;
 const TEAM_ARCHERS_PER_VOLLEY = 3;
-const APP_VERSION = "v2.3.5";
+const APP_VERSION = "v2.3.6";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -14,6 +14,8 @@ const AUTH_USER_FIRST_NAME_KEY = "score-team-auth-user-first-name-v1";
 const AUTH_USER_LAST_NAME_KEY = "score-team-auth-user-last-name-v1";
 const CONTEST_UUID_KEY = "score-team-contest-uuid-v1";
 const CONTEST_PROGRESS_KEY = "score-team-contest-progress-v1";
+const CONTEST_WEAPON_KEY = "score-team-contest-weapon-v1";
+const WELCOME_MODAL_MS = 2000;
 
 const state = {
   targetCount: 21,
@@ -63,6 +65,8 @@ const state = {
 };
 
 const els = {
+  homeTitle: document.getElementById("home-title"),
+  homeSubtitle: document.getElementById("home-subtitle"),
   setupCard: document.getElementById("setup-card"),
   scoringCard: document.getElementById("scoring-card"),
   targetsCountText: document.getElementById("targets-count-text"),
@@ -130,6 +134,9 @@ const els = {
   confirmModalMessage: document.getElementById("confirm-modal-message"),
   confirmModalCancelBtn: document.getElementById("confirm-modal-cancel-btn"),
   confirmModalConfirmBtn: document.getElementById("confirm-modal-confirm-btn"),
+  welcomeModal: document.getElementById("welcome-modal"),
+  welcomeModalOverlay: document.getElementById("welcome-modal-overlay"),
+  welcomeModalMessage: document.getElementById("welcome-modal-message"),
   historyModeFilter: document.getElementById("history-mode-filter"),
   historyRulesetFilter: document.getElementById("history-ruleset-filter"),
   historyResetFiltersBtn: document.getElementById("history-reset-filters-btn"),
@@ -174,6 +181,7 @@ const els = {
   configSaveServerBtn: document.getElementById("config-save-server-btn"),
   configRestoreServerBtn: document.getElementById("config-restore-server-btn"),
   weaponSelect: document.getElementById("weapon-select"),
+  soloOptionsPanel: document.getElementById("solo-options-panel"),
   volleyTitleText: document.getElementById("volley-title-text"),
   volleyCounter: document.getElementById("volley-counter"),
   volleyWeaponLabel: document.getElementById("volley-weapon-label"),
@@ -220,6 +228,8 @@ const els = {
   multiModeOptionContest: document.getElementById("multi-mode-option-contest"),
   contestCodeContainer: document.getElementById("contest-code-container"),
   contestCodeInput: document.getElementById("contest-code-input"),
+  contestWeaponContainer: document.getElementById("contest-weapon-container"),
+  multiContestWeaponSelect: document.getElementById("multi-contest-weapon-select"),
   multiStartBtn: document.getElementById("multi-start-btn"),
   multiTargetCountInputs: document.querySelectorAll('input[name="multi-target-count"]'),
   targetCountFieldset: document.getElementById("target-count-fieldset"),
@@ -288,6 +298,7 @@ const presets = {
 };
 
 let statsCommentsSaveFeedbackTimeout = null;
+let welcomeModalTimer = null;
 
 function scoreToValue(s) {
   return s === FIELD_X ? 5 : (s ?? 0);
@@ -597,6 +608,48 @@ function syncWeaponSelectOptions(preferredWeapon = null) {
     .map((weapon) => `<option value="${weapon.code}">${weapon.code} - ${weapon.libelle}</option>`)
     .join("");
   els.weaponSelect.value = selectedWeapon;
+}
+
+function syncMultiContestWeaponSelectOptions(preferredWeapon = null) {
+  if (!els.multiContestWeaponSelect) return;
+  const ruleset = els.multiRulesetSelect?.value || els.rulesetSelect.value;
+  const federation = getFederationByRuleset(ruleset);
+  const federationWeapons = weaponsByFederation[federation] || [];
+  const allowedWeapons = getWeaponsForRuleset(ruleset);
+  const currentWeapon = preferredWeapon || els.multiContestWeaponSelect.value;
+  const selectedWeapon = allowedWeapons.includes(currentWeapon)
+    ? currentWeapon
+    : (allowedWeapons[0] || "");
+
+  els.multiContestWeaponSelect.innerHTML = federationWeapons
+    .map((weapon) => `<option value="${weapon.code}">${weapon.code} - ${weapon.libelle}</option>`)
+    .join("");
+
+  if (selectedWeapon) {
+    els.multiContestWeaponSelect.value = selectedWeapon;
+  }
+}
+
+function getStoredContestWeapon() {
+  try {
+    return (window.localStorage.getItem(CONTEST_WEAPON_KEY) || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function storeContestWeapon(weapon) {
+  if (typeof weapon !== "string") return;
+  const normalizedWeapon = weapon.trim();
+  try {
+    if (!normalizedWeapon) {
+      window.localStorage.removeItem(CONTEST_WEAPON_KEY);
+      return;
+    }
+    window.localStorage.setItem(CONTEST_WEAPON_KEY, normalizedWeapon);
+  } catch {
+    // Ignore storage failures.
+  }
 }
 
 function getGroupLabel(group) {
@@ -1616,7 +1669,8 @@ function updateWeaponSelectVisibility() {
   const scoringMode = getSelectedScoringMode();
   const weaponWrapper = document.getElementById("weapon-select-wrapper");
   if (weaponWrapper) {
-    weaponWrapper.style.display = scoringMode === "team" ? "none" : "block";
+    const shouldShowWeapon = scoringMode !== "team" || state.contestMode;
+    weaponWrapper.style.display = shouldShowWeapon ? "block" : "none";
   }
 }
 
@@ -1912,7 +1966,7 @@ async function upsertContestUserFromLocalProfile(contestUuid, weapon, data = nul
   }
 }
 
-function startContestScoring(contest) {
+function startContestScoring(contest, preferredWeapon = "") {
   if (!contest || !contest.ruleset || !presets[contest.ruleset]) {
     showFlashInfo("Configuration concours invalide.");
     return;
@@ -1927,6 +1981,20 @@ function startContestScoring(contest) {
   els.scoringModeInputs.forEach((input) => {
     input.checked = input.value === forcedMode;
   });
+
+  if (
+    els.weaponSelect
+    && typeof preferredWeapon === "string"
+    && preferredWeapon
+    && isWeaponAllowedForRuleset(preferredWeapon, contest.ruleset)
+  ) {
+    els.weaponSelect.value = preferredWeapon;
+  }
+
+  if (els.weaponSelect?.value) {
+    storeContestWeapon(els.weaponSelect.value);
+  }
+
   syncScoringModeFieldset();
   updateWeaponSelectVisibility();
   updateSuccessZoneSlider();
@@ -2578,10 +2646,30 @@ function updateHomeLoginTile() {
   updateMultiContestModeAvailability();
 }
 
+function updateHomeHeader() {
+  if (els.homeTitle) {
+    els.homeTitle.textContent = "Capi Scoring";
+  }
+  if (!els.homeSubtitle) return;
+
+  let firstName = "";
+  let lastName = "";
+  try {
+    firstName = (window.localStorage.getItem(AUTH_USER_FIRST_NAME_KEY) || "").trim();
+    lastName = (window.localStorage.getItem(AUTH_USER_LAST_NAME_KEY) || "").trim();
+  } catch {
+    firstName = "";
+    lastName = "";
+  }
+
+  const fullName = [firstName, lastName.toUpperCase()].filter(Boolean).join(" ");
+  els.homeSubtitle.textContent = fullName;
+}
+
 function updateMultiContestModeAvailability() {
   if (!els.multiModeOptionContest) return;
   const isLoggedIn = hasStoredAuthToken();
-  els.multiModeOptionContest.hidden = !isLoggedIn;
+  els.multiModeOptionContest.hidden = false;
   els.multiModeOptionContest.disabled = !isLoggedIn;
   if (!isLoggedIn && els.multiModeSelect?.value === "contest") {
     els.multiModeSelect.value = "duel";
@@ -2743,6 +2831,27 @@ function closeLoginModal() {
   }
 }
 
+function openWelcomeModal(title, message) {
+  if (!els.welcomeModal || !els.welcomeModalMessage) return;
+  if (welcomeModalTimer) {
+    window.clearTimeout(welcomeModalTimer);
+    welcomeModalTimer = null;
+  }
+  els.welcomeModalMessage.textContent = message;
+  els.welcomeModal.classList.remove("hidden");
+  welcomeModalTimer = window.setTimeout(() => {
+    closeWelcomeModal();
+  }, WELCOME_MODAL_MS);
+}
+
+function closeWelcomeModal() {
+  if (welcomeModalTimer) {
+    window.clearTimeout(welcomeModalTimer);
+    welcomeModalTimer = null;
+  }
+  els.welcomeModal?.classList.add("hidden");
+}
+
 async function handleLoginSubmit(event) {
   event.preventDefault();
   const email = (els.loginEmailInput?.value || "").trim().toLowerCase();
@@ -2807,10 +2916,13 @@ async function handleLoginSubmit(event) {
 
     setLoginFeedback("Connexion réussie.", "success");
     const connectedAs = typeof payload?.email === "string" && payload.email ? payload.email : email;
+    const firstName = typeof payload?.first_name === "string" && payload.first_name ? payload.first_name : "Archer";
     window.setTimeout(() => {
       closeLoginModal();
       updateHomeLoginTile();
+      updateHomeHeader();
       updateConfigActionButtons();
+      openWelcomeModal("Bienvenue", `Bienvenue à ${firstName}`);
       showFlashInfo(`Connecté : ${connectedAs}`);
     }, 700);
   } catch {
@@ -3471,6 +3583,7 @@ async function openMultiModal() {
         els.multiRulesetSelect.value = firstEnabledOption.value;
       }
     }
+    syncMultiContestWeaponSelectOptions(getStoredContestWeapon());
   }
   if (els.multiModeSelect) {
     const firstAvailableModeOption = Array.from(els.multiModeSelect.options).find(
@@ -3487,11 +3600,13 @@ async function openMultiModal() {
     els.pelotonNamesContainer?.classList.add("hidden");
     els.targetCountFieldset?.classList.remove("hidden");
     els.contestCodeContainer?.classList.add("hidden");
+    els.contestWeaponContainer?.classList.add("hidden");
   } else if (mode === "peloton") {
     els.duelNamesContainer?.classList.add("hidden");
     els.pelotonNamesContainer?.classList.remove("hidden");
     els.targetCountFieldset?.classList.add("hidden");
     els.contestCodeContainer?.classList.add("hidden");
+    els.contestWeaponContainer?.classList.add("hidden");
   } else if (mode === "contest") {
     els.duelNamesContainer?.classList.add("hidden");
     els.pelotonNamesContainer?.classList.add("hidden");
@@ -3502,6 +3617,8 @@ async function openMultiModal() {
     } else {
       els.contestCodeContainer?.classList.remove("hidden");
     }
+    syncMultiContestWeaponSelectOptions(getStoredContestWeapon());
+    els.contestWeaponContainer?.classList.remove("hidden");
   }
   els.multiModal?.classList.remove("hidden");
 }
@@ -3544,7 +3661,7 @@ async function startContestFromStoredUuidIfAvailable() {
   closeHelpModal();
   closeHistoryModal();
   closeConfigModal();
-  startContestScoring(contest);
+  startContestScoring(contest, els.multiContestWeaponSelect?.value || "");
   return true;
 }
 
@@ -4781,10 +4898,13 @@ if (els.homeLoginBtn) {
     if (hasStoredAuthToken()) {
       const confirmed = await confirmAction("Confirmer la déconnexion ?", "Déconnexion");
       if (!confirmed) return;
+      const firstName = (window.localStorage.getItem(AUTH_USER_FIRST_NAME_KEY) || "").trim() || "Archer";
       clearStoredAuth();
       updateHomeLoginTile();
+      updateHomeHeader();
       updateConfigActionButtons();
       closeLoginModal();
+      openWelcomeModal("À bientôt", `À bientôt ${firstName}`);
       showFlashInfo("Déconnexion réussie.");
       return;
     }
@@ -4825,9 +4945,19 @@ if (els.multiStartBtn) {
       els.multiStartBtn.disabled = false;
       if (contest) {
         closeMultiModal();
-        startContestScoring(contest);
+        startContestScoring(contest, els.multiContestWeaponSelect?.value || "");
       }
     }
+  });
+}
+if (els.multiRulesetSelect) {
+  els.multiRulesetSelect.addEventListener("change", () => {
+    syncMultiContestWeaponSelectOptions(getStoredContestWeapon());
+  });
+}
+if (els.multiContestWeaponSelect) {
+  els.multiContestWeaponSelect.addEventListener("change", () => {
+    storeContestWeapon(els.multiContestWeaponSelect.value);
   });
 }
 if (els.multiModeSelect) {
@@ -4845,11 +4975,13 @@ if (els.multiModeSelect) {
       els.pelotonNamesContainer?.classList.add("hidden");
       els.targetCountFieldset?.classList.remove("hidden");
       els.contestCodeContainer?.classList.add("hidden");
+      els.contestWeaponContainer?.classList.add("hidden");
     } else if (mode === "peloton") {
       els.duelNamesContainer?.classList.add("hidden");
       els.pelotonNamesContainer?.classList.remove("hidden");
       els.targetCountFieldset?.classList.add("hidden");
       els.contestCodeContainer?.classList.add("hidden");
+      els.contestWeaponContainer?.classList.add("hidden");
     } else if (mode === "contest") {
       els.duelNamesContainer?.classList.add("hidden");
       els.pelotonNamesContainer?.classList.add("hidden");
@@ -4862,6 +4994,8 @@ if (els.multiModeSelect) {
         els.contestCodeContainer?.classList.remove("hidden");
         els.contestCodeInput?.focus();
       }
+      syncMultiContestWeaponSelectOptions(getStoredContestWeapon());
+      els.contestWeaponContainer?.classList.remove("hidden");
     }
   });
 }
@@ -4942,6 +5076,9 @@ if (els.loginModalOverlay) {
 }
 if (els.loginCloseBtn) {
   els.loginCloseBtn.addEventListener("click", closeLoginModal);
+}
+if (els.welcomeModalOverlay) {
+  els.welcomeModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 }
 if (els.loginForm) {
   els.loginForm.addEventListener("submit", handleLoginSubmit);
@@ -5024,6 +5161,7 @@ if (els.configSaveServerBtn) els.configSaveServerBtn.addEventListener("click", s
 if (els.configRestoreServerBtn) els.configRestoreServerBtn.addEventListener("click", restoreConfigFromServer);
 
 updateHomeLoginTile();
+updateHomeHeader();
 updateConfigActionButtons();
 
 els.configFullTargetTeam.addEventListener("input", () => {

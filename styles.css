@@ -850,6 +850,37 @@ input[type="range"]:focus-visible {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 }
+.solo-options-panel {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.solo-options-panel > summary {
+  cursor: pointer;
+  font-weight: 700;
+  user-select: none;
+  list-style: none;
+}
+.solo-options-panel > summary::-webkit-details-marker {
+  display: none;
+}
+.solo-options-panel > summary::marker {
+  content: "";
+}
+.solo-options-panel > summary::after {
+  content: "▾";
+  float: right;
+  transition: transform 0.2s ease;
+}
+.solo-options-panel:not([open]) > summary::after {
+  transform: rotate(-90deg);
+}
+.solo-options-panel-body {
+  padding-top: 12px;
+  display: grid;
+  gap: 12px;
+}
 
 .arrow-cell {
   background: #fff;
@@ -2066,6 +2097,19 @@ input[type="range"]:focus-visible {
   gap: 8px;
 }
 
+.welcome-modal-card {
+  width: min(420px, 100%);
+  padding-top: 28px;
+}
+
+.welcome-modal-message {
+  margin: 8px 4px 24px;
+  color: #1f2a24;
+  font-weight: 700;
+  font-size: 1.08rem;
+  text-align: center;
+}
+
 .login-modal-card {
   width: min(460px, 100%);
 }
@@ -2899,12 +2943,14 @@ input[type="range"]:focus-visible {
   height: 60px;
   background-color: var(--dark-blue);
   margin-inline: 0;
+  border-radius: 50%;
+  border: 5px solid #0c3169;
 }
 
 .home-header-text {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   width: auto;
   gap: 2px;
 }
@@ -2915,7 +2961,7 @@ input[type="range"]:focus-visible {
   font-weight: 800;
   color: #fff;
   line-height: 1.2;
-  text-align: left;
+  text-align: center;
 }
 
 .home-subtitle {
@@ -2923,7 +2969,7 @@ input[type="range"]:focus-visible {
   font-size: 0.82rem;
   font-weight: 600;
   color: rgba(255,255,255,.75);
-  text-align: left;
+  text-align: center;
 }
 
 .home-nav {
