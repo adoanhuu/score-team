@@ -532,6 +532,7 @@
               <select id="multi-mode-select">
                 <option value="peloton">Peloton</option>
                 <option value="duel">Duel</option>
+                <option id="multi-mode-option-contest" value="contest" hidden>Concours</option>
               </select>
             </label>
             <label id="ruleset-label" for="multi-ruleset-select">
@@ -567,6 +568,9 @@
           </div>
           <div id="peloton-names-error" class="peloton-names-error hidden" role="alert">
             Veuillez renseigner au moins un nom d'archer
+          </div>
+          <div id="contest-code-container" class="duel-names-row hidden">
+            <input id="contest-code-input" type="text" placeholder="Code concours" maxlength="40" autocomplete="off" />
           </div>
             <fieldset id="target-count-fieldset" class="multi-target-fieldset">
               <legend>Nombre de cibles</legend>

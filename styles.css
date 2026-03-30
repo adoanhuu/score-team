@@ -1590,6 +1590,10 @@ input[type="range"]:focus-visible {
   gap: 14px;
 }
 
+#multi-modal #contest-code-container {
+  grid-template-columns: 1fr;
+}
+
 .peloton-names-row {
   margin-bottom: 10px;
   display: grid;
@@ -2085,6 +2089,12 @@ input[type="range"]:focus-visible {
   border: 1px solid #f3c7c3;
   border-radius: 8px;
   padding: 8px 10px;
+}
+
+.login-feedback.is-success {
+  color: #0b5f2a;
+  background: #e9f7ee;
+  border-color: #9fd7b0;
 }
 
 .login-submit-btn {

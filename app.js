@@ -1,6 +1,6 @@
 const ARROWS_PER_VOLLEY = 6;
 const TEAM_ARCHERS_PER_VOLLEY = 3;
-const APP_VERSION = "v2.3.4";
+const APP_VERSION = "v2.3.5";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -10,6 +10,10 @@ const FLASH_INFO_MS = 2600;
 const AUTH_TOKEN_KEY = "score-team-auth-token-v1";
 const AUTH_USER_ID_KEY = "score-team-auth-user-id-v1";
 const AUTH_USER_EMAIL_KEY = "score-team-auth-user-email-v1";
+const AUTH_USER_FIRST_NAME_KEY = "score-team-auth-user-first-name-v1";
+const AUTH_USER_LAST_NAME_KEY = "score-team-auth-user-last-name-v1";
+const CONTEST_UUID_KEY = "score-team-contest-uuid-v1";
+const CONTEST_PROGRESS_KEY = "score-team-contest-progress-v1";
 
 const state = {
   targetCount: 21,
@@ -54,6 +58,8 @@ const state = {
   pelotonByArcher: {},
   pelotonActiveArcherIndex: null,
   peloton: null,
+  contestMode: false,
+  contestInfo: null,
 };
 
 const els = {
@@ -211,6 +217,9 @@ const els = {
   multiRulesetSelect: document.getElementById("multi-ruleset-select"),
   rulesetLabel: document.getElementById("ruleset-label"),
   multiModeSelect: document.getElementById("multi-mode-select"),
+  multiModeOptionContest: document.getElementById("multi-mode-option-contest"),
+  contestCodeContainer: document.getElementById("contest-code-container"),
+  contestCodeInput: document.getElementById("contest-code-input"),
   multiStartBtn: document.getElementById("multi-start-btn"),
   multiTargetCountInputs: document.querySelectorAll('input[name="multi-target-count"]'),
   targetCountFieldset: document.getElementById("target-count-fieldset"),
@@ -603,8 +612,15 @@ function getGroupLabel(group) {
 }
 
 function getSelectedTargetGroup() {
+  if (!state.useTargetGroups || state.contestMode) {
+    return "";
+  }
   const checked = els.targetGroupSelect.querySelector('input[name="target-group"]:checked');
   return checked ? checked.value : "";
+}
+
+function shouldUseTargetGroupsForScoring() {
+  return state.useTargetGroups && !state.contestMode;
 }
 
 function syncTargetGroupSelect(selectedValue = null) {
@@ -659,6 +675,127 @@ function persistAppState() {
   } catch {
     // Ignore storage failures (private mode / quota).
   }
+
+  persistContestProgressState();
+}
+
+function getContestProgressStorageKey(contestInfo) {
+  if (!contestInfo) return "";
+  const uuid = typeof contestInfo.uuid === "string" ? contestInfo.uuid.trim() : "";
+  const ruleset = typeof contestInfo.ruleset === "string" ? contestInfo.ruleset.trim() : "";
+  if (!uuid || !ruleset) return "";
+  return `${uuid}:${ruleset}`;
+}
+
+function persistContestProgressState() {
+  if (!state.contestMode || !state.contestInfo) return;
+
+  const contestKey = getContestProgressStorageKey(state.contestInfo);
+  if (!contestKey) return;
+
+  const scoring = {
+    targetCount: state.targetCount,
+    successZone: state.successZone,
+    lieu: state.lieu || "",
+    sessionDate: state.sessionDate || "",
+    sessionTime: state.sessionTime || "",
+    scoringMode: state.scoringMode,
+    weapon: state.weapon || "",
+    useTargetGroups: state.useTargetGroups,
+    showScores: state.showScores,
+    arrowsPerVolley: state.arrowsPerVolley,
+    currentArrowIndex: state.currentArrowIndex,
+    shoots: state.shoots.map((volley) => [...volley]),
+    currentshoot: [...state.currentshoot],
+    activeRuleset: state.activeRuleset,
+    allowedPoints: [...state.allowedPoints],
+    shootGroups: [...state.shootGroups],
+    currentGroup: getSelectedTargetGroup(),
+    editingVolleyIndex: state.editingVolleyIndex,
+    progressionAxis: state.progressionAxis || "",
+    completionArchived: state.completionArchived,
+  };
+
+  try {
+    const raw = window.localStorage.getItem(CONTEST_PROGRESS_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const entries = parsed && typeof parsed === "object" ? parsed : {};
+    entries[contestKey] = {
+      updatedAt: new Date().toISOString(),
+      scoring,
+    };
+    window.localStorage.setItem(CONTEST_PROGRESS_KEY, JSON.stringify(entries));
+  } catch {
+    // Ignore storage failures (private mode / quota).
+  }
+}
+
+function getStoredContestProgressScoring(contestInfo) {
+  const contestKey = getContestProgressStorageKey(contestInfo);
+  if (!contestKey) return null;
+
+  try {
+    const raw = window.localStorage.getItem(CONTEST_PROGRESS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.[contestKey]?.scoring || null;
+  } catch {
+    return null;
+  }
+}
+
+function restoreContestProgressState(contestInfo, initialScoring = null) {
+  const scoring = initialScoring || getStoredContestProgressScoring(contestInfo);
+
+  if (!scoring || scoring.activeRuleset !== state.activeRuleset) {
+    return false;
+  }
+
+  state.targetCount = Number.isInteger(scoring.targetCount) ? scoring.targetCount : state.targetCount;
+  state.successZone = Number.isInteger(scoring.successZone) ? scoring.successZone : state.successZone;
+  state.lieu = scoring.lieu || "";
+  state.sessionDate = scoring.sessionDate || "";
+  state.sessionTime = scoring.sessionTime || "";
+  state.scoringMode = normalizeScoringMode(scoring.scoringMode, scoring.activeRuleset);
+  state.weapon = isWeaponAllowedForRuleset(scoring.weapon || "", scoring.activeRuleset)
+    ? scoring.weapon
+    : getWeaponsForRuleset(scoring.activeRuleset)[0];
+  state.useTargetGroups = typeof scoring.useTargetGroups === "boolean" ? scoring.useTargetGroups : state.useTargetGroups;
+  state.showScores = typeof scoring.showScores === "boolean" ? scoring.showScores : state.showScores;
+  state.arrowsPerVolley = getArrowsPerVolley(scoring.activeRuleset, state.scoringMode);
+  state.activeRuleset = scoring.activeRuleset;
+  state.allowedPoints = Array.isArray(scoring.allowedPoints) && scoring.allowedPoints.length
+    ? [...scoring.allowedPoints]
+    : [...presets[scoring.activeRuleset]];
+  state.successZone = clampSuccessZoneForConfig(
+    state.successZone,
+    state.activeRuleset,
+    state.scoringMode,
+    state.arrowsPerVolley,
+    state.allowedPoints,
+  );
+  state.shootGroups = Array.isArray(scoring.shootGroups) ? [...scoring.shootGroups] : [];
+  state.editingVolleyIndex = Number.isInteger(scoring.editingVolleyIndex) ? scoring.editingVolleyIndex : null;
+  state.shoots = Array.isArray(scoring.shoots)
+    ? scoring.shoots
+      .map((shoot) => (Array.isArray(shoot) ? [...shoot] : []))
+      .filter((shoot) => shoot.length === state.arrowsPerVolley)
+    : [];
+  state.currentshoot = Array.isArray(scoring.currentshoot)
+    ? [...scoring.currentshoot].slice(0, state.arrowsPerVolley)
+    : Array(state.arrowsPerVolley).fill(null);
+  while (state.currentshoot.length < state.arrowsPerVolley) state.currentshoot.push(null);
+  state.currentArrowIndex = Number.isInteger(scoring.currentArrowIndex)
+    ? Math.max(0, Math.min(scoring.currentArrowIndex, state.arrowsPerVolley))
+    : state.currentshoot.findIndex((value) => value === null);
+  if (state.currentArrowIndex < 0) state.currentArrowIndex = state.arrowsPerVolley;
+  state.progressionAxis = scoring.progressionAxis || "";
+  state.completionArchived = typeof scoring.completionArchived === "boolean"
+    ? scoring.completionArchived
+    : state.shoots.length === state.targetCount;
+  state.resultsPayload = state.shoots.length === state.targetCount ? buildResultsPayload() : null;
+  syncTargetGroupSelect(scoring.currentGroup);
+  return true;
 }
 
 function clearPersistedState() {
@@ -852,15 +989,31 @@ function updateScoringHeader() {
   const totalCard = els.teamTotal ? els.teamTotal.closest("article") : null;
   const totalCardLabel = totalCard ? totalCard.querySelector("span") : null;
   if (els.volleyTitleText) {
-    els.volleyTitleText.textContent = formatRulesetLabel(state.activeRuleset);
+    if (state.contestMode && state.contestInfo) {
+      els.volleyTitleText.textContent = `${state.contestInfo.name} - ${formatRulesetLabel(state.activeRuleset)}`;
+    } else {
+      els.volleyTitleText.textContent = formatRulesetLabel(state.activeRuleset);
+    }
   }
-  if (els.volleyWeaponTitle && state.weapon) {
-    els.volleyWeaponTitle.textContent = formatWeaponLabel(state.weapon);
-  } else if (els.volleyWeaponTitle) {
-    els.volleyWeaponTitle.textContent = "";
+  if (els.volleyWeaponTitle) {
+    if (state.contestMode && state.contestInfo) {
+      const start = state.contestInfo.startDate || "-";
+      const end = state.contestInfo.endDate || "-";
+      els.volleyWeaponTitle.textContent = `${start} -> ${end}`;
+    } else if (state.weapon) {
+      els.volleyWeaponTitle.textContent = formatWeaponLabel(state.weapon);
+    } else {
+      els.volleyWeaponTitle.textContent = "";
+    }
   }
   if (els.volleyWeaponLabel) {
-    els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
+    if (state.contestMode && state.contestInfo) {
+      const start = state.contestInfo.startDate || "-";
+      const end = state.contestInfo.endDate || "-";
+      els.volleyWeaponLabel.textContent = `${start} -> ${end}`;
+    } else {
+      els.volleyWeaponLabel.textContent = state.weapon ? formatWeaponLabel(state.weapon) : "";
+    }
   }
   if (els.targetCounterDisplay) {
     els.targetCounterDisplay.textContent = `${currentTarget}/${state.targetCount}`;
@@ -959,7 +1112,7 @@ function refreshScoringView(options = {}) {
 }
 
 function updateTargetGroupsVisibility() {
-  const show = state.useTargetGroups;
+  const show = shouldUseTargetGroupsForScoring();
   if (els.targetGroupSelect) {
     els.targetGroupSelect.style.display = show ? "" : "none";
   }
@@ -1022,7 +1175,7 @@ function renderLiveVolleyHistory() {
       ? Array(state.arrowsPerVolley).fill("-").join(" / ")
       : volley.map((value) => formatScore(value)).join(" / ");
     const totalText = isEditingRow ? "-" : String(total);
-    const groupCell = state.useTargetGroups ? `<td>${state.shootGroups[idx] || "-"}</td>` : "";
+    const groupCell = shouldUseTargetGroupsForScoring() ? `<td>${state.shootGroups[idx] || "-"}</td>` : "";
     row.innerHTML = `
       <td><span class="volley-pill ${pillClass}">${idx + 1}</span></td>
       <td>${arrowsText}</td>
@@ -1067,7 +1220,7 @@ function renderLiveVolleyHistory() {
   if (partial && state.shoots.length < state.targetCount) {
     const idx = state.shoots.length;
     const previewRow = document.createElement("tr");
-    const previewGroupCell = state.useTargetGroups ? `<td>${getSelectedTargetGroup() || "-"}</td>` : "";
+    const previewGroupCell = shouldUseTargetGroupsForScoring() ? `<td>${getSelectedTargetGroup() || "-"}</td>` : "";
     previewRow.innerHTML = `
       <td><span class="volley-pill is-gray">${idx + 1}</span></td>
       <td>${Array(state.arrowsPerVolley).fill("-").join(" / ")}</td>
@@ -1317,14 +1470,48 @@ function registerScore(score) {
         state.shoots.push(newShoot);
         state.shootGroups.push(selectedGroup);
       }
+
+      // Save immediately when a full volley is validated.
+      persistAppState();
+
+      if (state.contestMode && state.contestInfo?.uuid) {
+        const completedTargets = state.shoots.length;
+        const shouldSyncContestSession = completedTargets > 0
+          && (completedTargets % 3 === 0 || completedTargets === state.targetCount);
+        if (shouldSyncContestSession) {
+          void upsertContestUserFromLocalProfile(
+            state.contestInfo.uuid,
+            state.weapon,
+            buildContestUserDataSnapshot(),
+            state.contestInfo?.ruleset || state.activeRuleset,
+          );
+        }
+      }
+
       state.inputLocked = false;
       if (state.shoots.length === state.targetCount) {
         state.resultsPayload = buildResultsPayload();
         if (state.resultsPayload && !state.completionArchived) {
-          state.resultsPayload = addHistoryEntry(state.resultsPayload) || state.resultsPayload;
+          if (!state.contestMode) {
+            state.resultsPayload = addHistoryEntry(state.resultsPayload) || state.resultsPayload;
+            showFlashInfo("Parcours enregistré dans l'historique.");
+          } else {
+            showFlashInfo("Concours terminé.");
+          }
           state.completionArchived = true;
-          showFlashInfo("Parcours enregistré dans l'historique.");
         }
+
+        if (state.contestMode && state.contestInfo?.uuid) {
+          // Force one last persisted snapshot at contest completion.
+          persistAppState();
+          void upsertContestUserFromLocalProfile(
+            state.contestInfo.uuid,
+            state.weapon,
+            buildContestUserDataSnapshot(),
+            state.contestInfo?.ruleset || state.activeRuleset,
+          );
+        }
+
         refreshScoringView({ scrollHistory: true, scrollCard: true });
         return;
       }
@@ -1642,6 +1829,134 @@ function startScoring() {
   closeHelpModal();
 
   refreshScoringView();
+}
+
+function buildContestUserDataSnapshot() {
+  const completedTargets = state.shoots.length;
+  return {
+    updatedAt: new Date().toISOString(),
+    ruleset: state.activeRuleset,
+    scoringMode: state.scoringMode,
+    targetCount: state.targetCount,
+    completedTargets,
+    arrowsPerVolley: state.arrowsPerVolley,
+    total: globalTotal(),
+    successZone: state.successZone,
+    completed: state.targetCount > 0 && completedTargets === state.targetCount,
+    shoots: state.shoots.map((volley) => [...volley]),
+    shootGroups: [...state.shootGroups],
+  };
+}
+
+function getContestScoringFromLocalStorage(contestUuid, contestRuleset = "") {
+  const uuid = typeof contestUuid === "string" ? contestUuid.trim() : "";
+  const ruleset = typeof contestRuleset === "string" ? contestRuleset.trim() : "";
+  if (!uuid || !ruleset) return null;
+
+  try {
+    const raw = window.localStorage.getItem(CONTEST_PROGRESS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const key = `${uuid}:${ruleset}`;
+    const entry = parsed?.[key];
+    const scoring = entry?.scoring;
+    if (!scoring || typeof scoring !== "object" || Array.isArray(scoring)) {
+      return null;
+    }
+
+    const updatedAt = typeof entry?.updatedAt === "string" ? entry.updatedAt : "";
+    if (updatedAt && !scoring.updatedAt) {
+      return { ...scoring, updatedAt };
+    }
+    return scoring;
+  } catch {
+    return null;
+  }
+}
+
+async function upsertContestUserFromLocalProfile(contestUuid, weapon, data = null, contestRuleset = "") {
+  const uuid = typeof contestUuid === "string" ? contestUuid.trim() : "";
+  if (!uuid) return;
+
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) return;
+
+  const firstName = (window.localStorage.getItem(AUTH_USER_FIRST_NAME_KEY) || "").trim() || "Archer";
+  const lastName = (window.localStorage.getItem(AUTH_USER_LAST_NAME_KEY) || "").trim() || "Inconnu";
+  const safeWeapon = typeof weapon === "string" && weapon.trim() ? weapon.trim() : "-";
+  const localStorageScoring = getContestScoringFromLocalStorage(uuid, contestRuleset || state.activeRuleset);
+  const memoryData = data && typeof data === "object" && !Array.isArray(data) ? data : null;
+  const localUpdatedAt = Date.parse(localStorageScoring?.updatedAt || "");
+  const memoryUpdatedAt = Date.parse(memoryData?.updatedAt || "");
+  const payloadData = Number.isFinite(memoryUpdatedAt) && (!Number.isFinite(localUpdatedAt) || memoryUpdatedAt >= localUpdatedAt)
+    ? (memoryData || localStorageScoring || undefined)
+    : (localStorageScoring || memoryData || undefined);
+
+  try {
+    await fetch("/api/contest/users", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        contest_uuid: uuid,
+        first_name: firstName,
+        last_name: lastName,
+        weapon: safeWeapon,
+        data: payloadData,
+      }),
+    });
+  } catch {
+    // Keep contest flow resilient if contest-user sync fails.
+  }
+}
+
+function startContestScoring(contest) {
+  if (!contest || !contest.ruleset || !presets[contest.ruleset]) {
+    showFlashInfo("Configuration concours invalide.");
+    return;
+  }
+
+  if (els.rulesetSelect) {
+    els.rulesetSelect.value = contest.ruleset;
+    els.rulesetSelect.dispatchEvent(new Event("change"));
+  }
+
+  const forcedMode = normalizeScoringMode("individual", contest.ruleset);
+  els.scoringModeInputs.forEach((input) => {
+    input.checked = input.value === forcedMode;
+  });
+  syncScoringModeFieldset();
+  updateWeaponSelectVisibility();
+  updateSuccessZoneSlider();
+
+  const contestInfo = {
+    id: contest.id,
+    uuid: contest.uuid,
+    name: contest.name || "Concours",
+    ruleset: contest.ruleset,
+    startDate: contest.start_date || "",
+    endDate: contest.end_date || "",
+  };
+  const storedContestScoring = getStoredContestProgressScoring(contestInfo);
+
+  state.contestMode = true;
+  state.contestInfo = contestInfo;
+
+  startScoring();
+
+  if (restoreContestProgressState(state.contestInfo, storedContestScoring)) {
+    refreshScoringView();
+    showFlashInfo("Scores concours restaurés.");
+  }
+
+  void upsertContestUserFromLocalProfile(
+    state.contestInfo?.uuid || "",
+    state.weapon,
+    buildContestUserDataSnapshot(),
+    state.contestInfo?.ruleset || state.activeRuleset,
+  );
 }
 
 function buildResultsPayload() {
@@ -2217,14 +2532,16 @@ function closeHelpModal() {
   els.helpModal.classList.add("hidden");
 }
 
-function setLoginFeedback(message) {
+function setLoginFeedback(message, tone = "error") {
   if (!els.loginFeedback) return;
+  els.loginFeedback.classList.remove("is-success", "is-error");
   if (!message) {
     els.loginFeedback.textContent = "";
     els.loginFeedback.classList.add("hidden");
     return;
   }
   els.loginFeedback.textContent = message;
+  els.loginFeedback.classList.add(tone === "success" ? "is-success" : "is-error");
   els.loginFeedback.classList.remove("hidden");
 }
 
@@ -2242,6 +2559,8 @@ function clearStoredAuth() {
     window.localStorage.removeItem(AUTH_TOKEN_KEY);
     window.localStorage.removeItem(AUTH_USER_ID_KEY);
     window.localStorage.removeItem(AUTH_USER_EMAIL_KEY);
+    window.localStorage.removeItem(AUTH_USER_FIRST_NAME_KEY);
+    window.localStorage.removeItem(AUTH_USER_LAST_NAME_KEY);
   } catch {
     // Ignore storage errors.
   }
@@ -2255,6 +2574,17 @@ function updateHomeLoginTile() {
   els.homeLoginBtn.setAttribute("aria-label", isLoggedIn ? "Déconnexion" : "Connexion");
   if (labelText) {
     labelText.textContent = isLoggedIn ? "Déconnexion" : "Connexion";
+  }
+  updateMultiContestModeAvailability();
+}
+
+function updateMultiContestModeAvailability() {
+  if (!els.multiModeOptionContest) return;
+  const isLoggedIn = hasStoredAuthToken();
+  els.multiModeOptionContest.hidden = !isLoggedIn;
+  els.multiModeOptionContest.disabled = !isLoggedIn;
+  if (!isLoggedIn && els.multiModeSelect?.value === "contest") {
+    els.multiModeSelect.value = "duel";
   }
 }
 
@@ -2464,12 +2794,18 @@ async function handleLoginSubmit(event) {
       if (typeof payload?.email === "string") {
         window.localStorage.setItem(AUTH_USER_EMAIL_KEY, payload.email);
       }
+      if (typeof payload?.first_name === "string") {
+        window.localStorage.setItem(AUTH_USER_FIRST_NAME_KEY, payload.first_name);
+      }
+      if (typeof payload?.last_name === "string") {
+        window.localStorage.setItem(AUTH_USER_LAST_NAME_KEY, payload.last_name);
+      }
     } catch {
       setLoginFeedback("Impossible de stocker le token localement.");
       return;
     }
 
-    setLoginFeedback("Connexion réussie.");
+    setLoginFeedback("Connexion réussie.", "success");
     const connectedAs = typeof payload?.email === "string" && payload.email ? payload.email : email;
     window.setTimeout(() => {
       closeLoginModal();
@@ -3105,7 +3441,8 @@ function closeHistoryModal() {
   els.historyModal.classList.add("hidden");
 }
 
-function openMultiModal() {
+async function openMultiModal() {
+  updateMultiContestModeAvailability();
   closeStatsModal();
   closeGeneralStatsModal();
   closeHelpModal();
@@ -3135,8 +3472,13 @@ function openMultiModal() {
       }
     }
   }
-  if (els.multiModeSelect && !els.multiModeSelect.value) {
-    els.multiModeSelect.value = "duel";
+  if (els.multiModeSelect) {
+    const firstAvailableModeOption = Array.from(els.multiModeSelect.options).find(
+      (option) => option.value && !option.disabled && !option.hidden,
+    );
+    if (firstAvailableModeOption) {
+      els.multiModeSelect.value = firstAvailableModeOption.value;
+    }
   }
   // Initialiser l'affichage des éléments selon le mode
   const mode = els.multiModeSelect?.value || "duel";
@@ -3144,16 +3486,66 @@ function openMultiModal() {
     els.duelNamesContainer?.classList.remove("hidden");
     els.pelotonNamesContainer?.classList.add("hidden");
     els.targetCountFieldset?.classList.remove("hidden");
+    els.contestCodeContainer?.classList.add("hidden");
   } else if (mode === "peloton") {
     els.duelNamesContainer?.classList.add("hidden");
     els.pelotonNamesContainer?.classList.remove("hidden");
     els.targetCountFieldset?.classList.add("hidden");
+    els.contestCodeContainer?.classList.add("hidden");
+  } else if (mode === "contest") {
+    els.duelNamesContainer?.classList.add("hidden");
+    els.pelotonNamesContainer?.classList.add("hidden");
+    els.targetCountFieldset?.classList.add("hidden");
+    const hasStoredUuid = Boolean(getStoredContestUuid());
+    if (hasStoredUuid) {
+      els.contestCodeContainer?.classList.add("hidden");
+    } else {
+      els.contestCodeContainer?.classList.remove("hidden");
+    }
   }
   els.multiModal?.classList.remove("hidden");
 }
 
 function closeMultiModal() {
   els.multiModal?.classList.add("hidden");
+}
+
+async function startContestFromStoredUuidIfAvailable() {
+  const storedContestUuid = getStoredContestUuid();
+  if (!storedContestUuid) {
+    return false;
+  }
+
+  const ruleset = (els.multiRulesetSelect?.value || "").trim();
+  if (!ruleset) {
+    showFlashInfo("Sélectionnez un type de parcours.");
+    return false;
+  }
+
+  if (els.multiStartBtn) {
+    els.multiStartBtn.disabled = true;
+  }
+
+  const contest = await connectToContest(storedContestUuid, ruleset);
+
+  if (els.multiStartBtn) {
+    els.multiStartBtn.disabled = false;
+  }
+
+  if (!contest) {
+    els.contestCodeContainer?.classList.remove("hidden");
+    els.contestCodeInput?.focus();
+    return false;
+  }
+
+  closeMultiModal();
+  closeStatsModal();
+  closeGeneralStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  closeConfigModal();
+  startContestScoring(contest);
+  return true;
 }
 
 function getSelectedMultiTargetCount() {
@@ -3168,7 +3560,7 @@ function resetDuelStateFromMultiConfig() {
   const targetCount = mode === "peloton"
     ? getTargetCountForRuleset(ruleset)
     : getSelectedMultiTargetCount();
-  const arrowsPerTarget = getArrowsPerVolley(ruleset, "team");
+  const arrowsPerTarget = getArrowsPerVolley(ruleset, "individual");
   const allowedPoints = [...new Set(presets[ruleset] || [0])].sort((a, b) => b - a);
 
   state.duel = {
@@ -4207,6 +4599,8 @@ function restart() {
   state.editingVolleyIndex = null;
   state.lastEditedVolleyIndex = null;
   state.inputLocked = false;
+  state.contestMode = false;
+  state.contestInfo = null;
   resetRoundBuffer();
   closeStatsModal();
   closeGeneralStatsModal();
@@ -4322,6 +4716,61 @@ function showSetupFromHome() {
   els.setupCard.classList.remove("hidden");
 }
 
+async function connectToContest(uuid, ruleset) {
+  try {
+    const response = await fetch("/api/contest/connect", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ uuid, ruleset }),
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      showFlashInfo(payload?.error || "Impossible de se connecter au concours.");
+      return false;
+    }
+
+    if (!payload?.exists) {
+      showFlashInfo("Concours introuvable pour ce code et ce parcours.");
+      return null;
+    }
+
+    try {
+      window.localStorage.setItem(CONTEST_UUID_KEY, uuid);
+    } catch {
+      // Ignore storage errors.
+    }
+
+    if (!payload?.contest || typeof payload.contest !== "object") {
+      showFlashInfo("Réponse concours invalide.");
+      return null;
+    }
+
+    showFlashInfo("Connexion au concours réussie.");
+    return payload.contest;
+  } catch {
+    showFlashInfo("Erreur réseau lors de la connexion au concours.");
+    return null;
+  }
+}
+
+function getStoredContestUuid() {
+  try {
+    const uuid = window.localStorage.getItem(CONTEST_UUID_KEY) || "";
+    return uuid.trim();
+  } catch {
+    return "";
+  }
+}
+
 els.homeTrainingBtn.addEventListener("click", showSetupFromHome);
 els.homePelotonBtn.addEventListener("click", () => { openMultiModal(); });
 els.homeHistoryBtn.addEventListener("click", () => { openHistoryModal(); });
@@ -4344,17 +4793,45 @@ if (els.homeLoginBtn) {
 }
 els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
 if (els.multiStartBtn) {
-  els.multiStartBtn.addEventListener("click", () => {
+  els.multiStartBtn.addEventListener("click", async () => {
     const mode = els.multiModeSelect?.value || "duel";
     if (mode === "duel") {
       openDuelModal();
     } else if (mode === "peloton") {
       openPelotonModal();
+    } else if (mode === "contest") {
+      const ruleset = (els.multiRulesetSelect?.value || "").trim();
+      if (!ruleset) {
+        showFlashInfo("Sélectionnez un type de parcours.");
+        return;
+      }
+
+      const code = (els.contestCodeInput?.value || "").trim();
+      if (!code) {
+        const startedFromStoredUuid = await startContestFromStoredUuidIfAvailable();
+        if (startedFromStoredUuid) {
+          return;
+        }
+      }
+
+      if (!code) {
+        showFlashInfo("Saisissez un code concours.");
+        els.contestCodeInput?.focus();
+        return;
+      }
+
+      els.multiStartBtn.disabled = true;
+      const contest = await connectToContest(code, ruleset);
+      els.multiStartBtn.disabled = false;
+      if (contest) {
+        closeMultiModal();
+        startContestScoring(contest);
+      }
     }
   });
 }
 if (els.multiModeSelect) {
-  els.multiModeSelect.addEventListener("change", (e) => {
+  els.multiModeSelect.addEventListener("change", async (e) => {
     const mode = e.target.value;
     // Masquer le message d'erreur quand on change de mode
     if (els.pelotonNamesError) {
@@ -4367,10 +4844,24 @@ if (els.multiModeSelect) {
       els.duelNamesContainer?.classList.remove("hidden");
       els.pelotonNamesContainer?.classList.add("hidden");
       els.targetCountFieldset?.classList.remove("hidden");
+      els.contestCodeContainer?.classList.add("hidden");
     } else if (mode === "peloton") {
       els.duelNamesContainer?.classList.add("hidden");
       els.pelotonNamesContainer?.classList.remove("hidden");
       els.targetCountFieldset?.classList.add("hidden");
+      els.contestCodeContainer?.classList.add("hidden");
+    } else if (mode === "contest") {
+      els.duelNamesContainer?.classList.add("hidden");
+      els.pelotonNamesContainer?.classList.add("hidden");
+      els.targetCountFieldset?.classList.add("hidden");
+      const hasStoredUuid = Boolean(getStoredContestUuid());
+      if (hasStoredUuid) {
+        els.contestCodeContainer?.classList.add("hidden");
+        await startContestFromStoredUuidIfAvailable();
+      } else {
+        els.contestCodeContainer?.classList.remove("hidden");
+        els.contestCodeInput?.focus();
+      }
     }
   });
 }
