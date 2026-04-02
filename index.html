@@ -44,8 +44,7 @@
           </span>
         </button>
 
-        <button class="home-tile" id="home-training-disabled-btn" aria-label="Entraînement indisponible" aria-disabled="true" disabled>
-          <span class="home-tile-badge">Bientot</span>
+        <button class="home-tile" id="home-training-tile-btn" aria-label="Entraînement">
           <span class="home-tile-label">
             <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M2 8h2v8H2V8Zm3-2h3v12H5V6Zm3 4h8v4H8v-4Zm8-4h3v12h-3V6Zm4 2h2v8h-2V8Z" fill="currentColor"/>
@@ -604,6 +603,123 @@
         </div>
       </section>
 
+      <section id="training-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="training-modal-title">
+        <div class="modal-overlay" id="training-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="training-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M2 8h2v8H2V8Zm3-2h3v12H5V6Zm3 4h8v4H8v-4Zm8-4h3v12h-3V6Zm4 2h2v8h-2V8Z" fill="currentColor" />
+              </svg>
+              <span>Entraînement</span>
+            </h3>
+            <button id="training-close-btn" class="btn btn-light btn-icon" aria-label="Fermer entraînement">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="general-stats-filter-row" id="training-options-container">
+            <label for="training-option-select">
+              <span class="label-inline">Option</span>
+              <select id="training-option-select">
+                <option value="hold-time" selected>Temps de tenue</option>
+              </select>
+            </label>
+
+            <div id="training-hold-time-form" class="hidden">
+              <label for="training-series-input">
+                <span class="label-inline">Nombre de séries</span>
+                <div class="slider-row">
+                  <input id="training-series-input" type="range" min="3" max="6" step="1" value="3" />
+                  <strong id="training-series-value">3</strong>
+                </div>
+              </label>
+
+              <label for="training-repetitions-input">
+                <span class="label-inline">Nombre de répétitions</span>
+                <div class="slider-row">
+                  <input id="training-repetitions-input" type="range" min="3" max="6" step="1" value="3" />
+                  <strong id="training-repetitions-value">3</strong>
+                </div>
+              </label>
+
+              <label for="training-hold-seconds-input">
+                <span class="label-inline">Temps de tenue en secondes</span>
+                <div class="slider-row">
+                  <input id="training-hold-seconds-input" type="range" min="2" max="12" step="1" value="4" />
+                  <strong id="training-hold-seconds-value">4s</strong>
+                </div>
+              </label>
+
+              <label for="training-rest-seconds-input">
+                <span class="label-inline">Temps de repos en secondes</span>
+                <div class="slider-row">
+                  <input id="training-rest-seconds-input" type="range" min="5" max="30" step="1" value="5" />
+                  <strong id="training-rest-seconds-value">5s</strong>
+                </div>
+              </label>
+
+              <div class="start-action">
+                <button id="training-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer entraînement temps de tenue">
+                  Démarrer
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="training-hold-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="training-hold-modal-title">
+        <div class="modal-overlay" id="training-hold-modal-overlay"></div>
+        <div class="modal-card training-hold-modal-card">
+          <div class="modal-head">
+            <h3 id="training-hold-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M2 8h2v8H2V8Zm3-2h3v12H5V6Zm3 4h8v4H8v-4Zm8-4h3v12h-3V6Zm4 2h2v8h-2V8Z" fill="currentColor" />
+              </svg>
+              <span>Temps de tenue</span>
+            </h3>
+            <button id="training-hold-close-btn" class="btn btn-light btn-icon" aria-label="Fermer temps de tenue">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="training-hold-meta-row">
+            <strong id="training-hold-series-text" class="training-hold-series-stack">
+              <span class="training-meta-label">Série</span>
+              <span id="training-hold-series-value" class="training-meta-value">3</span>
+            </strong>
+            <strong id="training-hold-repetitions-text" class="training-hold-series-stack">
+              <span class="training-meta-label">Répétition</span>
+              <span id="training-hold-repetitions-value" class="training-meta-value">3</span>
+            </strong>
+          </div>
+
+          <div class="training-hold-ring-wrap">
+            <div id="training-cycle-ring" class="training-hold-ring is-rest" role="img" aria-label="Temps de repos sélectionné">
+              <strong id="training-cycle-ring-value">4s</strong>
+              <span id="training-cycle-ring-label">Repos</span>
+            </div>
+          </div>
+
+          <div class="start-action">
+            <button id="training-cycle-toggle-btn" class="btn btn-primary btn-icon start-btn" aria-label="Mettre en pause le timer">
+              <span id="training-cycle-toggle-text">Pause</span>
+              <svg id="training-cycle-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M7 5h3v14H7V5Zm7 0h3v14h-3V5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <section id="duel-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="duel-modal-title">
         <div class="modal-overlay" id="duel-modal-overlay"></div>
         <div class="modal-card duel-modal-card">
@@ -742,7 +858,7 @@
                 <li>Mode Multi : duel ou peloton avec choix du parcours.</li>
                 <li>En Mode Multi, la liste des parcours suit les parcours actifs définis dans Configuration.</li>
                 <li>Définition de la zone de réussite.</li>
-                <li>La tuile Entraînement est affichée en grisé : fonctionnalité bientôt disponible.</li>
+                <li>La tuile Entraînement ouvre une popin avec des options de séance.</li>
               </ul>
             </section>
 
