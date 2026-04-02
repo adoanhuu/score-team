@@ -16,6 +16,7 @@ const CONTEST_UUID_KEY = "score-team-contest-uuid-v1";
 const CONTEST_PROGRESS_KEY = "score-team-contest-progress-v1";
 const CONTEST_WEAPON_KEY = "score-team-contest-weapon-v1";
 const WELCOME_MODAL_MS = 2000;
+const TRAINING_SERIES_BREAK_SECONDS = 10;
 
 const state = {
   targetCount: 21,
@@ -205,6 +206,7 @@ const els = {
   statsCommentsSaveFeedback: document.getElementById("stats-comments-save-feedback"),
   homeScreen: document.getElementById("home-screen"),
   homeTrainingBtn: document.getElementById("home-training-btn"),
+  homeTrainingTileBtn: document.getElementById("home-training-tile-btn"),
   homePelotonBtn: document.getElementById("home-peloton-btn"),
   homeHistoryBtn: document.getElementById("home-history-btn"),
   homeStatsBtn: document.getElementById("home-stats-btn"),
@@ -232,6 +234,33 @@ const els = {
   multiContestWeaponSelect: document.getElementById("multi-contest-weapon-select"),
   multiStartBtn: document.getElementById("multi-start-btn"),
   multiTargetCountInputs: document.querySelectorAll('input[name="multi-target-count"]'),
+  trainingModal: document.getElementById("training-modal"),
+  trainingModalOverlay: document.getElementById("training-modal-overlay"),
+  trainingCloseBtn: document.getElementById("training-close-btn"),
+  trainingOptionSelect: document.getElementById("training-option-select"),
+  trainingHoldTimeForm: document.getElementById("training-hold-time-form"),
+  trainingStartBtn: document.getElementById("training-start-btn"),
+  trainingSeriesInput: document.getElementById("training-series-input"),
+  trainingSeriesValue: document.getElementById("training-series-value"),
+  trainingRepetitionsInput: document.getElementById("training-repetitions-input"),
+  trainingRepetitionsValue: document.getElementById("training-repetitions-value"),
+  trainingHoldSecondsInput: document.getElementById("training-hold-seconds-input"),
+  trainingHoldSecondsValue: document.getElementById("training-hold-seconds-value"),
+  trainingRestSecondsInput: document.getElementById("training-rest-seconds-input"),
+  trainingRestSecondsValue: document.getElementById("training-rest-seconds-value"),
+  trainingHoldModal: document.getElementById("training-hold-modal"),
+  trainingHoldModalOverlay: document.getElementById("training-hold-modal-overlay"),
+  trainingHoldCloseBtn: document.getElementById("training-hold-close-btn"),
+  trainingHoldSeriesText: document.getElementById("training-hold-series-text"),
+  trainingHoldSeriesValue: document.getElementById("training-hold-series-value"),
+  trainingHoldRepetitionsText: document.getElementById("training-hold-repetitions-text"),
+  trainingHoldRepetitionsValue: document.getElementById("training-hold-repetitions-value"),
+  trainingCycleRing: document.getElementById("training-cycle-ring"),
+  trainingCycleRingValue: document.getElementById("training-cycle-ring-value"),
+  trainingCycleRingLabel: document.getElementById("training-cycle-ring-label"),
+  trainingCycleToggleBtn: document.getElementById("training-cycle-toggle-btn"),
+  trainingCycleToggleText: document.getElementById("training-cycle-toggle-text"),
+  trainingCycleToggleIcon: document.getElementById("training-cycle-toggle-icon"),
   targetCountFieldset: document.getElementById("target-count-fieldset"),
   duelNamesContainer: document.getElementById("duel-names-container"),
     duelNamesError: document.getElementById("duel-names-error"),
@@ -299,6 +328,99 @@ const presets = {
 
 let statsCommentsSaveFeedbackTimeout = null;
 let welcomeModalTimer = null;
+let trainingCycleIntervalId = null;
+let trainingCycleState = null;
+let trainingAudioContext = null;
+
+function getTrainingAudioContext() {
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextCtor) return null;
+  if (!trainingAudioContext) {
+    trainingAudioContext = new AudioContextCtor();
+  }
+  if (trainingAudioContext.state === "suspended") {
+    trainingAudioContext.resume().catch(() => {
+      // Ignore audio resume failures.
+    });
+  }
+  return trainingAudioContext;
+}
+
+function playTrainingBeepSequence(beeps = []) {
+  const audioContext = getTrainingAudioContext();
+  if (!audioContext || !Array.isArray(beeps) || beeps.length === 0) return;
+
+  const startAt = audioContext.currentTime + 0.02;
+  beeps.forEach((beep, index) => {
+    const duration = Number.isFinite(beep.duration) ? Math.max(0.04, beep.duration) : 0.12;
+    const frequency = Number.isFinite(beep.frequency) ? beep.frequency : 880;
+    const delay = Number.isFinite(beep.delay) ? Math.max(0, beep.delay) : index * 0.18;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    const beepStart = startAt + delay;
+    const beepEnd = beepStart + duration;
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, beepStart);
+    gainNode.gain.setValueAtTime(0.0001, beepStart);
+    gainNode.gain.exponentialRampToValueAtTime(0.22, beepStart + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, beepEnd);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start(beepStart);
+    oscillator.stop(beepEnd + 0.02);
+  });
+}
+
+function playTrainingHoldStartBeep() {
+  playTrainingBeepSequence([
+    { frequency: 1046, duration: 0.11, delay: 0 },
+    { frequency: 1046, duration: 0.11, delay: 0.18 },
+  ]);
+}
+
+function playTrainingRestStartBeep() {
+  playTrainingBeepSequence([{ frequency: 784, duration: 0.14, delay: 0 }]);
+}
+
+function speakTrainingSeriesBreak(seriesNumber) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    return;
+  }
+  const safeSeriesNumber = Number.isInteger(seriesNumber) && seriesNumber > 0 ? seriesNumber : null;
+  const message = safeSeriesNumber ? `Fin de série ${safeSeriesNumber}` : "Fin de série";
+  const utterance = new SpeechSynthesisUtterance(message);
+  utterance.lang = "fr-FR";
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
+
+function speakTrainingExerciseEnd() {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    return;
+  }
+  const utterance = new SpeechSynthesisUtterance("fin exercice");
+  utterance.lang = "fr-FR";
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
+
+function speakTrainingExerciseStart() {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    return;
+  }
+  const utterance = new SpeechSynthesisUtterance("Début exercice");
+  utterance.lang = "fr-FR";
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
 
 function scoreToValue(s) {
   return s === FIELD_X ? 5 : (s ?? 0);
@@ -382,6 +504,8 @@ function openConfigModal() {
   closeStatsModal();
   closeGeneralStatsModal();
   closeHelpModal();
+  closeTrainingModal();
+  closeTrainingHoldModal();
   closeLoginModal();
   closeHistoryModal();
   closeMultiModal();
@@ -2588,6 +2712,8 @@ function renderHelpPagination() {
 function openHelpModal() {
   closeStatsModal();
   closeGeneralStatsModal();
+  closeTrainingModal();
+  closeTrainingHoldModal();
   closeHistoryModal();
   closeMultiModal();
   closeDuelModal();
@@ -3246,6 +3372,8 @@ function renderGeneralStatsModal() {
 function openGeneralStatsModal() {
   closeStatsModal();
   closeHelpModal();
+  closeTrainingModal();
+  closeTrainingHoldModal();
   closeHistoryModal();
   closeConfigModal();
   closeMultiModal();
@@ -3542,6 +3670,8 @@ function openHistoryModal() {
   closeStatsModal();
   closeGeneralStatsModal();
   closeHelpModal();
+  closeTrainingModal();
+  closeTrainingHoldModal();
   closeMultiModal();
   closeDuelModal();
   historyCurrentPage = 1;
@@ -3558,6 +3688,8 @@ async function openMultiModal() {
   closeStatsModal();
   closeGeneralStatsModal();
   closeHelpModal();
+  closeTrainingModal();
+  closeTrainingHoldModal();
   closeHistoryModal();
   closeConfigModal();
   closeDuelModal();
@@ -3625,6 +3757,277 @@ async function openMultiModal() {
 
 function closeMultiModal() {
   els.multiModal?.classList.add("hidden");
+}
+
+function updateTrainingHoldSecondsDisplay() {
+  if (!els.trainingHoldSecondsInput || !els.trainingHoldSecondsValue) return;
+  const seconds = Number.parseInt(els.trainingHoldSecondsInput.value, 10);
+  const safeSeconds = Number.isInteger(seconds) ? Math.min(12, Math.max(2, seconds)) : 2;
+  els.trainingHoldSecondsInput.value = String(safeSeconds);
+  els.trainingHoldSecondsValue.textContent = `${safeSeconds}s`;
+  if (!trainingCycleState && els.trainingCycleRingValue && els.trainingCycleRingLabel) {
+    els.trainingCycleRingValue.textContent = `${safeSeconds}s`;
+    els.trainingCycleRingLabel.textContent = "Tenue";
+    els.trainingCycleRing?.classList.remove("is-rest");
+    els.trainingCycleRing?.classList.add("is-hold");
+  }
+  setRangeProgress(els.trainingHoldSecondsInput);
+}
+
+function updateTrainingRestSecondsDisplay() {
+  if (!els.trainingRestSecondsInput || !els.trainingRestSecondsValue) return;
+  const seconds = Number.parseInt(els.trainingRestSecondsInput.value, 10);
+  const safeSeconds = Number.isInteger(seconds) ? Math.min(30, Math.max(5, seconds)) : 5;
+  els.trainingRestSecondsInput.value = String(safeSeconds);
+  els.trainingRestSecondsValue.textContent = `${safeSeconds}s`;
+  if (!trainingCycleState && els.trainingCycleRingValue && els.trainingCycleRingLabel) {
+    els.trainingCycleRingValue.textContent = `${safeSeconds}s`;
+    els.trainingCycleRingLabel.textContent = "Repos";
+    els.trainingCycleRing?.classList.remove("is-hold");
+    els.trainingCycleRing?.classList.add("is-rest");
+  }
+  setRangeProgress(els.trainingRestSecondsInput);
+}
+
+function stopTrainingCycle() {
+  if (trainingCycleIntervalId) {
+    window.clearInterval(trainingCycleIntervalId);
+    trainingCycleIntervalId = null;
+  }
+  trainingCycleState = null;
+  updateTrainingCycleToggleButton(true);
+}
+
+function updateTrainingCycleToggleButton(showStart) {
+  if (!els.trainingCycleToggleBtn || !els.trainingCycleToggleText || !els.trainingCycleToggleIcon) return;
+  els.trainingCycleToggleText.textContent = showStart ? "Démarrer" : "Pause";
+  els.trainingCycleToggleBtn.setAttribute(
+    "aria-label",
+    showStart ? "Démarrer le timer" : "Mettre en pause le timer",
+  );
+  els.trainingCycleToggleIcon.innerHTML = showStart
+    ? '<path d="M8 5v14l11-7L8 5Z" fill="currentColor" />'
+    : '<path d="M7 5h3v14H7V5Zm7 0h3v14h-3V5Z" fill="currentColor" />';
+}
+
+function pauseTrainingCycle() {
+  if (trainingCycleIntervalId) {
+    window.clearInterval(trainingCycleIntervalId);
+    trainingCycleIntervalId = null;
+  }
+  if (trainingCycleState) {
+    trainingCycleState.isPaused = true;
+  }
+  updateTrainingCycleToggleButton(true);
+}
+
+function resumeTrainingCycle() {
+  if (!trainingCycleState || trainingCycleIntervalId) return;
+  trainingCycleState.isPaused = false;
+  trainingCycleIntervalId = window.setInterval(tickTrainingCycle, 1000);
+  updateTrainingCycleToggleButton(false);
+}
+
+function renderTrainingCycle() {
+  if (!trainingCycleState) return;
+  if (els.trainingHoldSeriesValue) {
+    els.trainingHoldSeriesValue.textContent = String(trainingCycleState.seriesRemaining);
+  }
+  if (els.trainingHoldRepetitionsValue) {
+    els.trainingHoldRepetitionsValue.textContent = String(trainingCycleState.repetitionsRemaining);
+  }
+  if (els.trainingCycleRingValue) {
+    els.trainingCycleRingValue.textContent = `${trainingCycleState.secondsRemaining}s`;
+  }
+  if (els.trainingCycleRingLabel) {
+    if (trainingCycleState.phase === "rest") {
+      els.trainingCycleRingLabel.textContent = "Repos";
+    } else if (trainingCycleState.phase === "series-break") {
+      els.trainingCycleRingLabel.textContent = "Fin de série";
+    } else {
+      els.trainingCycleRingLabel.textContent = "Tenue";
+    }
+  }
+  if (els.trainingCycleRing) {
+    const cycleTotal = trainingCycleState.phase === "series-break"
+      ? Math.max(1, trainingCycleState.seriesBreakSeconds)
+      : Math.max(1, trainingCycleState.restSeconds + trainingCycleState.holdSeconds);
+    const remainingInCycle = trainingCycleState.phase === "series-break"
+      ? trainingCycleState.secondsRemaining
+      : trainingCycleState.secondsRemaining + (trainingCycleState.phase === "rest" ? trainingCycleState.holdSeconds : 0);
+    const progressPct = Math.min(100, Math.max(0, (remainingInCycle / cycleTotal) * 100));
+    els.trainingCycleRing.style.setProperty("--ring-progress", `${progressPct}`);
+    els.trainingCycleRing.classList.toggle("is-rest", trainingCycleState.phase === "rest");
+    els.trainingCycleRing.classList.toggle("is-series-break", trainingCycleState.phase === "series-break");
+    els.trainingCycleRing.classList.toggle("is-hold", trainingCycleState.phase === "hold");
+    els.trainingCycleRing.setAttribute(
+      "aria-label",
+      trainingCycleState.phase === "rest"
+        ? "Décompte du temps de repos"
+        : trainingCycleState.phase === "series-break"
+          ? "Décompte de la pause entre les séries"
+          : "Décompte du temps de tenue",
+    );
+  }
+}
+
+function tickTrainingCycle() {
+  if (!trainingCycleState || trainingCycleState.isPaused) return;
+
+  if (trainingCycleState.secondsRemaining > 0) {
+    trainingCycleState.secondsRemaining -= 1;
+    renderTrainingCycle();
+    return;
+  }
+
+  if (trainingCycleState.phase === "rest") {
+    trainingCycleState.phase = "hold";
+    trainingCycleState.secondsRemaining = trainingCycleState.holdSeconds;
+    playTrainingHoldStartBeep();
+    renderTrainingCycle();
+    return;
+  }
+
+  if (trainingCycleState.phase === "series-break") {
+    trainingCycleState.phase = "rest";
+    trainingCycleState.secondsRemaining = trainingCycleState.restSeconds;
+    playTrainingRestStartBeep();
+    renderTrainingCycle();
+    return;
+  }
+
+  trainingCycleState.repetitionsRemaining -= 1;
+  if (trainingCycleState.repetitionsRemaining > 0) {
+    trainingCycleState.phase = "rest";
+    trainingCycleState.secondsRemaining = trainingCycleState.restSeconds;
+    playTrainingRestStartBeep();
+    renderTrainingCycle();
+    return;
+  }
+
+  trainingCycleState.seriesRemaining -= 1;
+  if (trainingCycleState.seriesRemaining > 0) {
+    const currentSeriesNumber = trainingCycleState.initialSeriesCount - trainingCycleState.seriesRemaining;
+    trainingCycleState.repetitionsRemaining = trainingCycleState.repetitionsPerSeries;
+    trainingCycleState.phase = "series-break";
+    trainingCycleState.secondsRemaining = trainingCycleState.seriesBreakSeconds;
+    speakTrainingSeriesBreak(currentSeriesNumber);
+    renderTrainingCycle();
+    return;
+  }
+
+  if (els.trainingCycleRingValue) {
+    els.trainingCycleRingValue.textContent = "0s";
+  }
+  if (els.trainingCycleRingLabel) {
+    els.trainingCycleRingLabel.textContent = "Terminé";
+  }
+  if (els.trainingCycleRing) {
+    els.trainingCycleRing.style.setProperty("--ring-progress", "0");
+  }
+  speakTrainingExerciseEnd();
+  stopTrainingCycle();
+  showFlashInfo("Séance Temps de tenue terminée.");
+}
+
+function startTrainingCycle() {
+  const series = Number.parseInt(els.trainingSeriesInput?.value || "3", 10);
+  const repetitions = Number.parseInt(els.trainingRepetitionsInput?.value || "3", 10);
+  const holdSeconds = Number.parseInt(els.trainingHoldSecondsInput?.value || "4", 10);
+  const restSeconds = Number.parseInt(els.trainingRestSecondsInput?.value || "5", 10);
+
+  const safeSeries = Number.isInteger(series) ? Math.min(6, Math.max(3, series)) : 3;
+  const safeRepetitions = Number.isInteger(repetitions) ? Math.min(6, Math.max(3, repetitions)) : 3;
+  const safeHold = Number.isInteger(holdSeconds) ? Math.min(12, Math.max(2, holdSeconds)) : 4;
+  const safeRest = Number.isInteger(restSeconds) ? Math.min(30, Math.max(5, restSeconds)) : 5;
+
+  stopTrainingCycle();
+  trainingCycleState = {
+    initialSeriesCount: safeSeries,
+    seriesRemaining: safeSeries,
+    repetitionsPerSeries: safeRepetitions,
+    repetitionsRemaining: safeRepetitions,
+    holdSeconds: safeHold,
+    restSeconds: safeRest,
+    seriesBreakSeconds: TRAINING_SERIES_BREAK_SECONDS,
+    phase: "rest",
+    secondsRemaining: safeRest,
+    isPaused: false,
+  };
+
+  speakTrainingExerciseStart();
+  renderTrainingCycle();
+  trainingCycleIntervalId = window.setInterval(tickTrainingCycle, 1000);
+  updateTrainingCycleToggleButton(false);
+}
+
+function updateTrainingSeriesDisplay() {
+  if (!els.trainingSeriesInput || !els.trainingSeriesValue) return;
+  const series = Number.parseInt(els.trainingSeriesInput.value, 10);
+  const safeSeries = Number.isInteger(series) ? Math.min(6, Math.max(3, series)) : 3;
+  els.trainingSeriesInput.value = String(safeSeries);
+  els.trainingSeriesValue.textContent = String(safeSeries);
+  if (els.trainingHoldSeriesValue) {
+    els.trainingHoldSeriesValue.textContent = String(safeSeries);
+  }
+  setRangeProgress(els.trainingSeriesInput);
+}
+
+function updateTrainingRepetitionsDisplay() {
+  if (!els.trainingRepetitionsInput || !els.trainingRepetitionsValue) return;
+  const repetitions = Number.parseInt(els.trainingRepetitionsInput.value, 10);
+  const safeRepetitions = Number.isInteger(repetitions) ? Math.min(6, Math.max(3, repetitions)) : 3;
+  els.trainingRepetitionsInput.value = String(safeRepetitions);
+  els.trainingRepetitionsValue.textContent = String(safeRepetitions);
+  if (els.trainingHoldRepetitionsValue) {
+    els.trainingHoldRepetitionsValue.textContent = String(safeRepetitions);
+  }
+  setRangeProgress(els.trainingRepetitionsInput);
+}
+
+function syncTrainingOptionForm() {
+  if (!els.trainingOptionSelect || !els.trainingHoldTimeForm) return;
+  const isHoldTime = els.trainingOptionSelect.value === "hold-time";
+  els.trainingHoldTimeForm.classList.toggle("hidden", !isHoldTime);
+}
+
+function openTrainingModal() {
+  closeStatsModal();
+  closeGeneralStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  closeConfigModal();
+  closeMultiModal();
+  closeDuelModal();
+  closePelotonModal();
+  closeTrainingHoldModal();
+  if (els.trainingOptionSelect) {
+    els.trainingOptionSelect.value = "hold-time";
+  }
+  syncTrainingOptionForm();
+  updateTrainingSeriesDisplay();
+  updateTrainingRepetitionsDisplay();
+  updateTrainingHoldSecondsDisplay();
+  updateTrainingRestSecondsDisplay();
+  els.trainingModal?.classList.remove("hidden");
+}
+
+function closeTrainingModal() {
+  els.trainingModal?.classList.add("hidden");
+}
+
+function openTrainingHoldModal() {
+  updateTrainingSeriesDisplay();
+  updateTrainingRepetitionsDisplay();
+  updateTrainingHoldSecondsDisplay();
+  updateTrainingRestSecondsDisplay();
+  els.trainingHoldModal?.classList.remove("hidden");
+  startTrainingCycle();
+}
+
+function closeTrainingHoldModal() {
+  stopTrainingCycle();
+  els.trainingHoldModal?.classList.add("hidden");
 }
 
 async function startContestFromStoredUuidIfAvailable() {
@@ -4889,6 +5292,9 @@ function getStoredContestUuid() {
 }
 
 els.homeTrainingBtn.addEventListener("click", showSetupFromHome);
+if (els.homeTrainingTileBtn) {
+  els.homeTrainingTileBtn.addEventListener("click", openTrainingModal);
+}
 els.homePelotonBtn.addEventListener("click", () => { openMultiModal(); });
 els.homeHistoryBtn.addEventListener("click", () => { openHistoryModal(); });
 els.homeStatsBtn.addEventListener("click", () => { openGeneralStatsModal(); });
@@ -5090,6 +5496,55 @@ if (els.multiModalOverlay) {
 }
 if (els.multiCloseBtn) {
   els.multiCloseBtn.addEventListener("click", closeMultiModal);
+}
+if (els.trainingModalOverlay) {
+  els.trainingModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.trainingCloseBtn) {
+  els.trainingCloseBtn.addEventListener("click", closeTrainingModal);
+}
+if (els.trainingOptionSelect) {
+  els.trainingOptionSelect.addEventListener("change", syncTrainingOptionForm);
+}
+if (els.trainingStartBtn) {
+  els.trainingStartBtn.addEventListener("click", () => {
+    if (els.trainingOptionSelect?.value !== "hold-time") {
+      showFlashInfo("Sélectionnez d'abord l'option Temps de tenue.");
+      return;
+    }
+    openTrainingHoldModal();
+  });
+}
+if (els.trainingSeriesInput) {
+  els.trainingSeriesInput.addEventListener("input", updateTrainingSeriesDisplay);
+}
+if (els.trainingRepetitionsInput) {
+  els.trainingRepetitionsInput.addEventListener("input", updateTrainingRepetitionsDisplay);
+}
+if (els.trainingHoldSecondsInput) {
+  els.trainingHoldSecondsInput.addEventListener("input", updateTrainingHoldSecondsDisplay);
+}
+if (els.trainingRestSecondsInput) {
+  els.trainingRestSecondsInput.addEventListener("input", updateTrainingRestSecondsDisplay);
+}
+if (els.trainingHoldModalOverlay) {
+  els.trainingHoldModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.trainingHoldCloseBtn) {
+  els.trainingHoldCloseBtn.addEventListener("click", closeTrainingHoldModal);
+}
+if (els.trainingCycleToggleBtn) {
+  els.trainingCycleToggleBtn.addEventListener("click", () => {
+    if (!trainingCycleState) {
+      startTrainingCycle();
+      return;
+    }
+    if (trainingCycleIntervalId) {
+      pauseTrainingCycle();
+      return;
+    }
+    resumeTrainingCycle();
+  });
 }
 if (els.duelModalOverlay) {
   els.duelModalOverlay.addEventListener("click", (e) => e.stopPropagation());
