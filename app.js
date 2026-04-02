@@ -446,8 +446,8 @@ function pickDuelBotScore(selectablePoints, level) {
   const scoringOnly = sorted.filter((point) => scoreToValue(point) > 0);
   if (scoringOnly.length === 0) return missValue ?? 0;
 
-  const missChance = Math.max(0.03, 0.30 - level * 0.009);
-  const topBandChance = Math.min(0.90, 0.15 + level * 0.028);
+  const missChance = Math.max(0.03, 0.40 - level * 0.015);
+  const topBandChance = Math.min(0.95, 0.10 + level * 0.035);
   const highBandCount = Math.max(1, Math.ceil(scoringOnly.length * 0.45));
   const highBand = scoringOnly.slice(0, highBandCount);
   const lowBand = scoringOnly.slice(highBandCount);
