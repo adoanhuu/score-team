@@ -191,27 +191,31 @@
               <input id="lieu-input" type="text" placeholder="Ex : Forêt de Rambouillet" autocomplete="off" maxlength="30" />
             </label>
             <div class="setup-options-row">
-              <fieldset class="use-target-groups-fieldset">
+              <fieldset class="use-target-groups-fieldset yes-no-fieldset">
                 <legend>Catégories de cibles</legend>
-                <label class="checkbox-label">
-                  <input type="radio" name="use-target-groups" value="yes" checked />
-                  <span>Oui</span>
-                </label>
-                <label class="checkbox-label">
-                  <input type="radio" name="use-target-groups" value="no" />
-                  <span>Non</span>
-                </label>
+                <div class="yes-no-switch" role="radiogroup" aria-label="Catégories de cibles">
+                  <label class="switch-option">
+                    <input type="radio" name="use-target-groups" value="yes" checked />
+                    <span>Oui</span>
+                  </label>
+                  <label class="switch-option">
+                    <input type="radio" name="use-target-groups" value="no" />
+                    <span>Non</span>
+                  </label>
+                </div>
               </fieldset>
-              <fieldset class="show-scores-fieldset">
+              <fieldset class="show-scores-fieldset yes-no-fieldset">
                 <legend>Afficher des scores</legend>
-                <label class="checkbox-label">
-                  <input type="radio" name="show-scores" value="yes" checked />
-                  <span>Oui</span>
-                </label>
-                <label class="checkbox-label">
-                  <input type="radio" name="show-scores" value="no" />
-                  <span>Non</span>
-                </label>
+                <div class="yes-no-switch" role="radiogroup" aria-label="Afficher des scores">
+                  <label class="switch-option">
+                    <input type="radio" name="show-scores" value="yes" checked />
+                    <span>Oui</span>
+                  </label>
+                  <label class="switch-option">
+                    <input type="radio" name="show-scores" value="no" />
+                    <span>Non</span>
+                  </label>
+                </div>
               </fieldset>
             </div>
           </div>

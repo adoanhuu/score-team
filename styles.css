@@ -310,6 +310,66 @@ label {
   padding: 0;
 }
 
+.yes-no-fieldset {
+  display: grid;
+  gap: 6px;
+}
+
+.yes-no-switch {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ece6dd;
+  min-width: 128px;
+}
+
+.switch-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.switch-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.switch-option span {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #4b5563;
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.switch-option input[type="radio"][value="yes"]:checked + span {
+  background: #2d6a4f;
+  color: #fff;
+}
+
+.switch-option input[type="radio"][value="no"]:checked + span {
+  background: #c62828;
+  color: #fff;
+}
+
+.switch-option input[type="radio"]:focus-visible + span {
+  outline: 2px solid var(--dark-blue);
+  outline-offset: 1px;
+}
+
 .use-target-groups-fieldset legend {
   display: block;
   margin-bottom: 12px;
