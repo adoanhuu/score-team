@@ -342,6 +342,7 @@ let statsCommentsSaveFeedbackTimeout = null;
 let welcomeModalTimer = null;
 let trainingCycleIntervalId = null;
 let duelBotMode = false;
+let duelBotShotTimeoutId = null;
 let trainingCycleState = null;
 let trainingAudioContext = null;
 const TRAINING_VOICE_VOLUME = 0.55;
@@ -423,6 +424,75 @@ function updateDuelBotLevelUI() {
   }
 
   els.duelBotHeadline.textContent = `Mode Bot activé : ${levelLabel}`;
+}
+
+function getCurrentDuelBotLevel() {
+  if (!els.duelBotLevelSlider) return 3;
+  const value = Number.parseInt(els.duelBotLevelSlider.value, 10);
+  return Number.isInteger(value) ? Math.min(20, Math.max(1, value)) : 3;
+}
+
+function clearDuelBotShotTimer() {
+  if (!duelBotShotTimeoutId) return;
+  window.clearTimeout(duelBotShotTimeoutId);
+  duelBotShotTimeoutId = null;
+}
+
+function pickDuelBotScore(selectablePoints, level) {
+  if (!Array.isArray(selectablePoints) || selectablePoints.length === 0) return 0;
+
+  const sorted = [...selectablePoints].sort((a, b) => scoreToValue(b) - scoreToValue(a));
+  const missValue = sorted.find((point) => scoreToValue(point) === 0);
+  const scoringOnly = sorted.filter((point) => scoreToValue(point) > 0);
+  if (scoringOnly.length === 0) return missValue ?? 0;
+
+  const missChance = Math.max(0.03, 0.30 - level * 0.009);
+  const topBandChance = Math.min(0.90, 0.15 + level * 0.028);
+  const highBandCount = Math.max(1, Math.ceil(scoringOnly.length * 0.45));
+  const highBand = scoringOnly.slice(0, highBandCount);
+  const lowBand = scoringOnly.slice(highBandCount);
+
+  const roll = Math.random();
+  if (missValue !== undefined && roll < missChance) {
+    return missValue;
+  }
+
+  const roll2 = Math.random();
+  const pool = roll2 < topBandChance || lowBand.length === 0 ? highBand : lowBand;
+
+  // Higher levels skew draws toward the best scores while keeping occasional variance.
+  const spread = Math.max(0, pool.length - 1);
+  const exponent = 1 + level * 0.12;
+  const index = Math.min(spread, Math.floor(Math.pow(Math.random(), exponent) * (spread + 1)));
+  return pool[index] ?? pool[0];
+}
+
+function runDuelBotTurnIfNeeded() {
+  if (!duelBotMode || duelBotShotTimeoutId) return;
+  if (!state.duel || state.duel.completed || state.duel.previewLocked || state.duel.activePlayer !== 2) return;
+
+  const shoot = () => {
+    duelBotShotTimeoutId = null;
+    if (!duelBotMode || !state.duel || state.duel.completed || state.duel.previewLocked || state.duel.activePlayer !== 2) {
+      return;
+    }
+
+    const selectablePoints = getSelectablePointsForArrow(
+      state.duel.ruleset,
+      "individual",
+      state.duel.currentArrowIndex,
+      state.duel.allowedPoints,
+    );
+    const botLevel = getCurrentDuelBotLevel();
+    const botScore = pickDuelBotScore(selectablePoints, botLevel);
+    registerDuelScore(botScore);
+
+    if (duelBotMode && state.duel && !state.duel.completed && !state.duel.previewLocked && state.duel.activePlayer === 2) {
+      duelBotShotTimeoutId = window.setTimeout(shoot, 180 + Math.floor(Math.random() * 260));
+    }
+  };
+
+  duelBotShotTimeoutId = window.setTimeout(shoot, 260);
 }
 
 function playTrainingBeepSequence(beeps = []) {
@@ -3822,6 +3892,10 @@ async function openMultiModal() {
       els.duelNamesError.classList.add("hidden");
     }
   
+  // Réinitialiser le slider du bot au démarrage
+  duelBotMode = false;
+  els.duelBotRow?.classList.remove("visible");
+  
   if (els.multiRulesetSelect) {
     const currentValue = els.multiRulesetSelect.value;
     const hasCurrentEnabled = currentValue && appConfig.enabledRulesets.includes(currentValue);
@@ -4276,7 +4350,7 @@ function getDuelTotal(scores) {
 function renderDuelPad() {
   if (!els.duelPointsPad) return;
   els.duelPointsPad.innerHTML = "";
-  const isLocked = Boolean(state.duel.previewLocked) || state.duel.completed;
+  const isLocked = Boolean(state.duel.previewLocked) || state.duel.completed || (duelBotMode && state.duel.activePlayer === 2);
   const selectablePoints = getSelectablePointsForArrow(
     state.duel.ruleset,
     "individual",
@@ -4588,7 +4662,7 @@ function renderDuelView() {
     els.duelTotalP2.innerHTML = `${p2Total}<span class="stats-unit">pts</span>`;
   }
   if (els.duelRestartBtn) {
-    els.duelRestartBtn.classList.add("hidden");
+    els.duelRestartBtn.classList.toggle("hidden", !completed);
   }
 
   const duelMaxVolleyTotal = getSessionVolleyMaxTotal(
@@ -4607,6 +4681,7 @@ function renderDuelView() {
   });
 
   renderDuelPad();
+  runDuelBotTurnIfNeeded();
 }
 
 function registerDuelScore(score) {
@@ -4626,6 +4701,7 @@ function registerDuelScore(score) {
 
   // Afficher la dernière flèche brièvement avant d'avancer.
   if (currentArrowIndex >= arrowsPerTarget - 1) {
+    clearDuelBotShotTimer();
     state.duel.previewLocked = true;
     renderDuelView();
 
@@ -5120,6 +5196,9 @@ function updatePelotonArcher(selectedArcherIndex = state.pelotonActiveArcherInde
 }
 
 function closeDuelModal() {
+  clearDuelBotShotTimer();
+  duelBotMode = false;
+  els.duelBotRow?.classList.remove("visible");
   els.duelModal?.classList.add("hidden");
 }
 
@@ -5541,16 +5620,27 @@ if (els.multiModeSelect) {
       els.targetCountFieldset?.classList.remove("hidden");
       els.contestCodeContainer?.classList.add("hidden");
       els.contestWeaponContainer?.classList.add("hidden");
+      // Vérifier si Paquito est déjà entré et afficher le slider si nécessaire
+      const duelP2Value = els.duelNameP2?.value.trim().toLowerCase() || "";
+      if (duelP2Value === "paquito") {
+        duelBotMode = true;
+        els.duelBotRow?.classList.add("visible");
+      } else {
+        duelBotMode = false;
+        els.duelBotRow?.classList.remove("visible");
+      }
     } else if (mode === "peloton") {
       els.duelNamesContainer?.classList.add("hidden");
       els.pelotonNamesContainer?.classList.remove("hidden");
       els.targetCountFieldset?.classList.add("hidden");
       els.contestCodeContainer?.classList.add("hidden");
       els.contestWeaponContainer?.classList.add("hidden");
+      els.duelBotRow?.classList.remove("visible");
     } else if (mode === "contest") {
       els.duelNamesContainer?.classList.add("hidden");
       els.pelotonNamesContainer?.classList.add("hidden");
       els.targetCountFieldset?.classList.add("hidden");
+      els.duelBotRow?.classList.remove("visible");
       const hasStoredUuid = Boolean(getStoredContestUuid());
       if (hasStoredUuid) {
         els.contestCodeContainer?.classList.add("hidden");
@@ -5721,6 +5811,7 @@ if (els.duelNameP2) {
       }
     } else if (!isPaquito) {
       duelBotMode = false;
+      clearDuelBotShotTimer();
       els.duelBotRow?.classList.remove("visible");
     }
   });
