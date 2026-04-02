@@ -365,6 +365,24 @@ label {
   color: #fff;
 }
 
+input[type="radio"][value="yes"]:checked {
+  accent-color: #2d6a4f;
+}
+
+input[type="radio"][value="no"]:checked {
+  accent-color: #c62828;
+}
+
+.checkbox-label input[type="radio"][value="yes"]:checked + span {
+  color: #2d6a4f;
+  font-weight: 700;
+}
+
+.checkbox-label input[type="radio"][value="no"]:checked + span {
+  color: #c62828;
+  font-weight: 700;
+}
+
 .switch-option input[type="radio"]:focus-visible + span {
   outline: 2px solid var(--dark-blue);
   outline-offset: 1px;
