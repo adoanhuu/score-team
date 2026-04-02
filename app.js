@@ -308,6 +308,12 @@ const els = {
   duelRestartBtn: document.getElementById("duel-restart-btn"),
   duelNameP1: document.getElementById("duel-name-p1"),
   duelNameP2: document.getElementById("duel-name-p2"),
+  duelBotRow: document.getElementById("duel-bot-row"),
+  duelBotSliderWrap: document.getElementById("duel-bot-slider-wrap"),
+  duelBotBadge: document.getElementById("duel-bot-badge"),
+  duelBotLevelSlider: document.getElementById("duel-bot-level-slider"),
+  duelBotHeadline: document.getElementById("duel-bot-headline"),
+  multiModalCard: document.getElementById("multi-modal-card"),
   duelP1Label: document.getElementById("duel-p1-label"),
   duelP2Label: document.getElementById("duel-p2-label"),
   duelP1CurrentLabel: document.getElementById("duel-p1-current-label"),
@@ -335,6 +341,7 @@ const presets = {
 let statsCommentsSaveFeedbackTimeout = null;
 let welcomeModalTimer = null;
 let trainingCycleIntervalId = null;
+let duelBotMode = false;
 let trainingCycleState = null;
 let trainingAudioContext = null;
 const TRAINING_VOICE_VOLUME = 0.55;
@@ -351,6 +358,71 @@ function getTrainingAudioContext() {
     });
   }
   return trainingAudioContext;
+}
+
+function mixHexColor(startHex, endHex, ratio) {
+  const safeRatio = Math.max(0, Math.min(1, ratio));
+  const startR = Number.parseInt(startHex.slice(1, 3), 16);
+  const startG = Number.parseInt(startHex.slice(3, 5), 16);
+  const startB = Number.parseInt(startHex.slice(5, 7), 16);
+  const endR = Number.parseInt(endHex.slice(1, 3), 16);
+  const endG = Number.parseInt(endHex.slice(3, 5), 16);
+  const endB = Number.parseInt(endHex.slice(5, 7), 16);
+
+  const r = Math.round(startR + (endR - startR) * safeRatio);
+  const g = Math.round(startG + (endG - startG) * safeRatio);
+  const b = Math.round(startB + (endB - startB) * safeRatio);
+
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
+function getDuelBotSliderColor(level) {
+  const normalized = Math.max(0, Math.min(1, level / 20));
+  const colorStops = [
+    { at: 0, color: "#1f6feb" },
+    { at: 0.25, color: "#2d6a4f" },
+    { at: 0.5, color: "#facc15" },
+    { at: 0.75, color: "#f59e0b" },
+    { at: 1, color: "#c62828" },
+  ];
+
+  for (let i = 0; i < colorStops.length - 1; i += 1) {
+    const left = colorStops[i];
+    const right = colorStops[i + 1];
+    if (normalized <= right.at) {
+      const localRatio = (normalized - left.at) / (right.at - left.at);
+      return mixHexColor(left.color, right.color, localRatio);
+    }
+  }
+
+  return colorStops[colorStops.length - 1].color;
+}
+
+function updateDuelBotLevelUI() {
+  if (!els.duelBotLevelSlider || !els.duelBotHeadline) return;
+  const value = Number.parseInt(els.duelBotLevelSlider.value, 10);
+  const safeValue = Number.isInteger(value) ? Math.min(20, Math.max(1, value)) : 3;
+  els.duelBotLevelSlider.value = String(safeValue);
+
+  const progressPct = ((safeValue - 1) / 19) * 100;
+  const trackColor = getDuelBotSliderColor(safeValue);
+  els.duelBotLevelSlider.style.setProperty("--duel-bot-progress", `${progressPct}%`);
+  els.duelBotLevelSlider.style.setProperty("--duel-bot-color", trackColor);
+
+  let levelLabel = "Débutant";
+  if (safeValue === 20) {
+    levelLabel = "Élite";
+  } else if (safeValue >= 18) {
+    levelLabel = "Expert";
+  } else if (safeValue >= 14) {
+    levelLabel = "Pro";
+  } else if (safeValue >= 10) {
+    levelLabel = "Avancé";
+  } else if (safeValue >= 8) {
+    levelLabel = "Intermédiare";
+  }
+
+  els.duelBotHeadline.textContent = `Mode Bot activé : ${levelLabel}`;
 }
 
 function playTrainingBeepSequence(beeps = []) {
@@ -4915,10 +4987,11 @@ function openDuelModal() {
     els.duelNamesError?.classList.add("hidden");
 
     if (els.duelModalTitleText) {
-      els.duelModalTitleText.textContent = `Mode duel - ${formatRulesetLabel(state.duel.ruleset)}`;
+      const botSuffix = duelBotMode ? ` <img src="icons/icon.png" alt="Bot" class="duel-bot-icon" style="width:18px;height:18px;vertical-align:middle;border-radius:3px;">` : "";
+      els.duelModalTitleText.innerHTML = `Mode duel${botSuffix} - ${formatRulesetLabel(state.duel.ruleset)}`;
     }
     state.duel.nameP1 = duelNameP1.slice(0, 10);
-    state.duel.nameP2 = duelNameP2.slice(0, 10);
+    state.duel.nameP2 = duelBotMode ? "Paquito" : duelNameP2.slice(0, 10);
 
     closeMultiModal();
     closeStatsModal();
@@ -5632,6 +5705,32 @@ if (els.trainingCycleToggleBtn) {
     resumeTrainingCycle();
   });
 }
+if (els.duelNameP2) {
+  els.duelNameP2.addEventListener("input", () => {
+    const isPaquito = els.duelNameP2.value.trim().toLowerCase() === "paquito";
+    if (isPaquito && !duelBotMode) {
+      duelBotMode = true;
+      els.duelBotRow?.classList.add("visible");
+      updateDuelBotLevelUI();
+      const card = els.multiModalCard;
+      if (card) {
+        card.classList.remove("paquito-shake");
+        void card.offsetWidth; // reflow pour relancer l'animation
+        card.classList.add("paquito-shake");
+        setTimeout(() => card.classList.remove("paquito-shake"), 1000);
+      }
+    } else if (!isPaquito) {
+      duelBotMode = false;
+      els.duelBotRow?.classList.remove("visible");
+    }
+  });
+}
+
+if (els.duelBotLevelSlider) {
+  els.duelBotLevelSlider.addEventListener("input", updateDuelBotLevelUI);
+  updateDuelBotLevelUI();
+}
+
 if (els.duelModalOverlay) {
   els.duelModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 }

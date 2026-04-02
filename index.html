@@ -520,7 +520,7 @@
 
       <section id="multi-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="multi-modal-title">
         <div class="modal-overlay" id="multi-modal-overlay"></div>
-        <div class="modal-card">
+        <div class="modal-card" id="multi-modal-card">
           <div class="modal-head">
             <h3 id="multi-modal-title" class="modal-title-with-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -562,6 +562,21 @@
           <div id="duel-names-container" class="duel-names-row">
             <input id="duel-name-p1" type="text" placeholder="Nom archer 1" maxlength="10" autocomplete="off" required />
             <input id="duel-name-p2" type="text" placeholder="Nom archer 2" maxlength="10" autocomplete="off" required />
+          </div>
+          <div id="duel-bot-row" aria-live="polite">
+            <div id="duel-bot-slider-wrap">
+              <div id="duel-bot-main">
+                <div id="duel-bot-left">
+                  <div id="duel-bot-badge">
+                    <img src="icons/icon.png" alt="Bot" class="duel-bot-icon" />
+                  </div>
+                </div>
+                <div id="duel-bot-right">
+                  <input id="duel-bot-level-slider" type="range" min="1" max="20" step="1" value="3" aria-label="Niveau de tir de Paquito" />
+                  <div id="duel-bot-headline">Mode Bot activé : Avancé</div>
+                </div>
+              </div>
+            </div>
           </div>
            <div id="duel-names-error" class="duel-names-error hidden" role="alert">
              Veuillez renseigner les 2 noms d'archers

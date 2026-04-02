@@ -3395,3 +3395,114 @@ input[type="range"]:focus-visible {
   padding: 8px 12px;
   border-radius: 8px;
 }
+
+@keyframes paquito-shake {
+  0%   { transform: translateX(0); }
+  10%  { transform: translateX(-8px) rotate(-1deg); }
+  20%  { transform: translateX(8px) rotate(1deg); }
+  30%  { transform: translateX(-8px) rotate(-1deg); }
+  40%  { transform: translateX(8px) rotate(1deg); }
+  50%  { transform: translateX(-6px); }
+  60%  { transform: translateX(6px); }
+  70%  { transform: translateX(-4px); }
+  80%  { transform: translateX(4px); }
+  90%  { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+.paquito-shake {
+  animation: paquito-shake 1s ease;
+}
+
+.duel-bot-icon {
+  width: 44px;
+  height: 44px;
+  vertical-align: middle;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+#duel-bot-row {
+  display: none;
+  width: 100%;
+  padding: 12px;
+  border-radius: 40px;
+  background: var(--line);
+}
+
+#duel-bot-row.visible {
+  display: block;
+}
+
+#duel-bot-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 30px;
+  background: #f4efe6;
+  color: var(--ink);
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.16);
+}
+
+#duel-bot-slider-wrap {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+#duel-bot-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+#duel-bot-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 auto;
+}
+
+#duel-bot-right {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+#duel-bot-headline {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #4b5563;
+  text-align: left;
+  margin-top: -11px;
+}
+
+#duel-bot-level-slider {
+  --duel-bot-progress: 0%;
+  --duel-bot-color: #1f6feb;
+  width: 90%;
+  margin: 11px 0 0 0;
+  accent-color: var(--dark-blue);
+}
+
+#duel-bot-level-slider::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    var(--duel-bot-color) 0 var(--duel-bot-progress),
+    #ffffff var(--duel-bot-progress) 100%
+  );
+  border: 1px solid #b7bcc3;
+}
+
+#duel-bot-level-slider::-moz-range-track {
+  background: #ffffff;
+  border: 1px solid #b7bcc3;
+}
+
+#duel-bot-level-slider::-moz-range-progress {
+  background: var(--duel-bot-color);
+}
