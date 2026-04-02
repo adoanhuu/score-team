@@ -1674,6 +1674,7 @@ input[type="range"]:focus-visible {
   padding: 10px 14px;
   border-radius: 12px;
   background: var(--line);
+  color: #fff;
   margin-top: 12px;
 }
 
@@ -1728,12 +1729,23 @@ input[type="range"]:focus-visible {
 }
 
 .training-hold-ring strong {
-  font-size: 3.6rem;
+  font-size: clamp(4.8rem, 16vw, 6.4rem);
   line-height: 1;
   text-align: center;
 }
 
-.training-hold-ring span {
+.training-time-value {
+  font-weight: 700;
+}
+
+.training-time-unit {
+  font-size: 0.4em;
+  font-weight: 400;
+  margin-left: 0.12em;
+  vertical-align: baseline;
+}
+
+#training-cycle-ring-label {
   margin-top: 8px;
   font-size: 1rem;
   font-weight: 700;
@@ -1743,30 +1755,30 @@ input[type="range"]:focus-visible {
 }
 
 .training-hold-ring.is-rest {
-  --ring-color: #d97706;
+  --ring-color: #2d6a4f;
 }
 
 .training-hold-ring.is-rest strong,
 .training-hold-ring.is-rest span {
-  color: #d97706;
+  color: #2d6a4f;
 }
 
 .training-hold-ring.is-series-break {
-  --ring-color: #c62828;
+  --ring-color: #1558c0;
 }
 
 .training-hold-ring.is-series-break strong,
 .training-hold-ring.is-series-break span {
-  color: #c62828;
+  color: #1558c0;
 }
 
 .training-hold-ring.is-hold {
-  --ring-color: #2d6a4f;
+  --ring-color: #c62828;
 }
 
 .training-hold-ring.is-hold strong,
 .training-hold-ring.is-hold span {
-  color: #2d6a4f;
+  color: #c62828;
 }
 
 .peloton-names-row {

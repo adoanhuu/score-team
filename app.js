@@ -16,7 +16,7 @@ const CONTEST_UUID_KEY = "score-team-contest-uuid-v1";
 const CONTEST_PROGRESS_KEY = "score-team-contest-progress-v1";
 const CONTEST_WEAPON_KEY = "score-team-contest-weapon-v1";
 const WELCOME_MODAL_MS = 2000;
-const TRAINING_SERIES_BREAK_SECONDS = 10;
+const TRAINING_SERIES_BREAK_SECONDS = 5;
 const TRAINING_SETTINGS_DEFAULTS = {
   series: 3,
   repetitions: 3,
@@ -337,6 +337,7 @@ let welcomeModalTimer = null;
 let trainingCycleIntervalId = null;
 let trainingCycleState = null;
 let trainingAudioContext = null;
+const TRAINING_VOICE_VOLUME = 0.55;
 
 function getTrainingAudioContext() {
   const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
@@ -379,15 +380,30 @@ function playTrainingBeepSequence(beeps = []) {
   });
 }
 
-function playTrainingHoldStartBeep() {
-  playTrainingBeepSequence([
-    { frequency: 1046, duration: 0.11, delay: 0 },
-    { frequency: 1046, duration: 0.11, delay: 0.18 },
-  ]);
+function speakTrainingRestPrompt() {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    return;
+  }
+  const utterance = new SpeechSynthesisUtterance("Exercice");
+  utterance.lang = "fr-FR";
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  utterance.volume = TRAINING_VOICE_VOLUME;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
 }
 
-function playTrainingRestStartBeep() {
-  playTrainingBeepSequence([{ frequency: 784, duration: 0.14, delay: 0 }]);
+function speakTrainingExercisePrompt() {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    return;
+  }
+  const utterance = new SpeechSynthesisUtterance("Repos");
+  utterance.lang = "fr-FR";
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  utterance.volume = TRAINING_VOICE_VOLUME;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
 }
 
 function speakTrainingSeriesBreak(seriesNumber) {
@@ -400,6 +416,7 @@ function speakTrainingSeriesBreak(seriesNumber) {
   utterance.lang = "fr-FR";
   utterance.rate = 1;
   utterance.pitch = 1;
+  utterance.volume = TRAINING_VOICE_VOLUME;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
 }
@@ -412,6 +429,7 @@ function speakTrainingExerciseEnd() {
   utterance.lang = "fr-FR";
   utterance.rate = 1;
   utterance.pitch = 1;
+  utterance.volume = TRAINING_VOICE_VOLUME;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
 }
@@ -424,6 +442,7 @@ function speakTrainingExerciseStart() {
   utterance.lang = "fr-FR";
   utterance.rate = 1;
   utterance.pitch = 1;
+  utterance.volume = TRAINING_VOICE_VOLUME;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
 }
@@ -3786,6 +3805,27 @@ function closeMultiModal() {
   els.multiModal?.classList.add("hidden");
 }
 
+function getTrainingRingColorByPhase(phase) {
+  if (phase === "rest") return "#2d6a4f";
+  if (phase === "series-break") return "#1558c0";
+  return "#c62828";
+}
+
+function syncTrainingMetaBlocksColor(phase) {
+  const bgColor = getTrainingRingColorByPhase(phase);
+  [els.trainingHoldSeriesText, els.trainingHoldRepetitionsText].forEach((el) => {
+    if (!el) return;
+    el.style.backgroundColor = bgColor;
+    el.style.color = "#fff";
+  });
+}
+
+function setTrainingCycleRingSeconds(seconds) {
+  if (!els.trainingCycleRingValue) return;
+  const safeSeconds = Number.isFinite(seconds) ? Math.max(0, Math.trunc(seconds)) : 0;
+  els.trainingCycleRingValue.innerHTML = `<span class="training-time-value">${safeSeconds}</span><span class="training-time-unit">s</span>`;
+}
+
 function updateTrainingHoldSecondsDisplay() {
   if (!els.trainingHoldSecondsInput || !els.trainingHoldSecondsValue) return;
   const seconds = Number.parseInt(els.trainingHoldSecondsInput.value, 10);
@@ -3795,10 +3835,12 @@ function updateTrainingHoldSecondsDisplay() {
   appConfig.trainingHold.holdSeconds = safeSeconds;
   saveConfig();
   if (!trainingCycleState && els.trainingCycleRingValue && els.trainingCycleRingLabel) {
-    els.trainingCycleRingValue.textContent = `${safeSeconds}s`;
+    setTrainingCycleRingSeconds(safeSeconds);
     els.trainingCycleRingLabel.textContent = "Tenue";
     els.trainingCycleRing?.classList.remove("is-rest");
+    els.trainingCycleRing?.classList.remove("is-series-break");
     els.trainingCycleRing?.classList.add("is-hold");
+    syncTrainingMetaBlocksColor("hold");
   }
   setRangeProgress(els.trainingHoldSecondsInput);
 }
@@ -3812,10 +3854,12 @@ function updateTrainingRestSecondsDisplay() {
   appConfig.trainingHold.restSeconds = safeSeconds;
   saveConfig();
   if (!trainingCycleState && els.trainingCycleRingValue && els.trainingCycleRingLabel) {
-    els.trainingCycleRingValue.textContent = `${safeSeconds}s`;
+    setTrainingCycleRingSeconds(safeSeconds);
     els.trainingCycleRingLabel.textContent = "Repos";
     els.trainingCycleRing?.classList.remove("is-hold");
+    els.trainingCycleRing?.classList.remove("is-series-break");
     els.trainingCycleRing?.classList.add("is-rest");
+    syncTrainingMetaBlocksColor("rest");
   }
   setRangeProgress(els.trainingRestSecondsInput);
 }
@@ -3868,7 +3912,7 @@ function renderTrainingCycle() {
     els.trainingHoldRepetitionsValue.textContent = String(trainingCycleState.repetitionsRemaining);
   }
   if (els.trainingCycleRingValue) {
-    els.trainingCycleRingValue.textContent = `${trainingCycleState.secondsRemaining}s`;
+    setTrainingCycleRingSeconds(trainingCycleState.secondsRemaining);
   }
   if (els.trainingCycleRingLabel) {
     if (trainingCycleState.phase === "rest") {
@@ -3891,6 +3935,7 @@ function renderTrainingCycle() {
     els.trainingCycleRing.classList.toggle("is-rest", trainingCycleState.phase === "rest");
     els.trainingCycleRing.classList.toggle("is-series-break", trainingCycleState.phase === "series-break");
     els.trainingCycleRing.classList.toggle("is-hold", trainingCycleState.phase === "hold");
+    syncTrainingMetaBlocksColor(trainingCycleState.phase);
     els.trainingCycleRing.setAttribute(
       "aria-label",
       trainingCycleState.phase === "rest"
@@ -3914,7 +3959,7 @@ function tickTrainingCycle() {
   if (trainingCycleState.phase === "rest") {
     trainingCycleState.phase = "hold";
     trainingCycleState.secondsRemaining = trainingCycleState.holdSeconds;
-    playTrainingHoldStartBeep();
+    speakTrainingRestPrompt();
     renderTrainingCycle();
     return;
   }
@@ -3922,7 +3967,7 @@ function tickTrainingCycle() {
   if (trainingCycleState.phase === "series-break") {
     trainingCycleState.phase = "rest";
     trainingCycleState.secondsRemaining = trainingCycleState.restSeconds;
-    playTrainingRestStartBeep();
+    speakTrainingExercisePrompt();
     renderTrainingCycle();
     return;
   }
@@ -3931,7 +3976,7 @@ function tickTrainingCycle() {
   if (trainingCycleState.repetitionsRemaining > 0) {
     trainingCycleState.phase = "rest";
     trainingCycleState.secondsRemaining = trainingCycleState.restSeconds;
-    playTrainingRestStartBeep();
+    speakTrainingExercisePrompt();
     renderTrainingCycle();
     return;
   }
@@ -3948,10 +3993,16 @@ function tickTrainingCycle() {
   }
 
   if (els.trainingCycleRingValue) {
-    els.trainingCycleRingValue.textContent = "0s";
+    setTrainingCycleRingSeconds(0);
   }
   if (els.trainingCycleRingLabel) {
     els.trainingCycleRingLabel.textContent = "Terminé";
+  }
+  if (els.trainingHoldSeriesValue) {
+    els.trainingHoldSeriesValue.textContent = "0";
+  }
+  if (els.trainingHoldRepetitionsValue) {
+    els.trainingHoldRepetitionsValue.textContent = "0";
   }
   if (els.trainingCycleRing) {
     els.trainingCycleRing.style.setProperty("--ring-progress", "0");
