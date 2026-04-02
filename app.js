@@ -17,6 +17,12 @@ const CONTEST_PROGRESS_KEY = "score-team-contest-progress-v1";
 const CONTEST_WEAPON_KEY = "score-team-contest-weapon-v1";
 const WELCOME_MODAL_MS = 2000;
 const TRAINING_SERIES_BREAK_SECONDS = 10;
+const TRAINING_SETTINGS_DEFAULTS = {
+  series: 3,
+  repetitions: 3,
+  holdSeconds: 4,
+  restSeconds: 5,
+};
 
 const state = {
   targetCount: 21,
@@ -449,6 +455,9 @@ const appConfig = {
   missLimit_team: 5,
   missLimit_individual: 3,
   successZoneByRuleset: {},
+  trainingHold: {
+    ...TRAINING_SETTINGS_DEFAULTS,
+  },
   enabledRulesets: ["nature", "campagne", "3d", "3d2", "3dh", "ar", "field"],
 };
 
@@ -472,6 +481,24 @@ function loadConfig() {
       if (Number.isFinite(saved.missLimit_individual)) appConfig.missLimit_individual = saved.missLimit_individual;
       if (saved.successZoneByRuleset && typeof saved.successZoneByRuleset === "object") {
         Object.assign(appConfig.successZoneByRuleset, saved.successZoneByRuleset);
+      }
+      if (saved.trainingHold && typeof saved.trainingHold === "object") {
+        const parsedSeries = Number.parseInt(saved.trainingHold.series, 10);
+        const parsedRepetitions = Number.parseInt(saved.trainingHold.repetitions, 10);
+        const parsedHoldSeconds = Number.parseInt(saved.trainingHold.holdSeconds, 10);
+        const parsedRestSeconds = Number.parseInt(saved.trainingHold.restSeconds, 10);
+        appConfig.trainingHold.series = Number.isInteger(parsedSeries)
+          ? Math.min(6, Math.max(3, parsedSeries))
+          : TRAINING_SETTINGS_DEFAULTS.series;
+        appConfig.trainingHold.repetitions = Number.isInteger(parsedRepetitions)
+          ? Math.min(6, Math.max(3, parsedRepetitions))
+          : TRAINING_SETTINGS_DEFAULTS.repetitions;
+        appConfig.trainingHold.holdSeconds = Number.isInteger(parsedHoldSeconds)
+          ? Math.min(12, Math.max(2, parsedHoldSeconds))
+          : TRAINING_SETTINGS_DEFAULTS.holdSeconds;
+        appConfig.trainingHold.restSeconds = Number.isInteger(parsedRestSeconds)
+          ? Math.min(30, Math.max(5, parsedRestSeconds))
+          : TRAINING_SETTINGS_DEFAULTS.restSeconds;
       }
       if (Array.isArray(saved.enabledRulesets)) {
         appConfig.enabledRulesets = saved.enabledRulesets;
@@ -3765,6 +3792,8 @@ function updateTrainingHoldSecondsDisplay() {
   const safeSeconds = Number.isInteger(seconds) ? Math.min(12, Math.max(2, seconds)) : 2;
   els.trainingHoldSecondsInput.value = String(safeSeconds);
   els.trainingHoldSecondsValue.textContent = `${safeSeconds}s`;
+  appConfig.trainingHold.holdSeconds = safeSeconds;
+  saveConfig();
   if (!trainingCycleState && els.trainingCycleRingValue && els.trainingCycleRingLabel) {
     els.trainingCycleRingValue.textContent = `${safeSeconds}s`;
     els.trainingCycleRingLabel.textContent = "Tenue";
@@ -3780,6 +3809,8 @@ function updateTrainingRestSecondsDisplay() {
   const safeSeconds = Number.isInteger(seconds) ? Math.min(30, Math.max(5, seconds)) : 5;
   els.trainingRestSecondsInput.value = String(safeSeconds);
   els.trainingRestSecondsValue.textContent = `${safeSeconds}s`;
+  appConfig.trainingHold.restSeconds = safeSeconds;
+  saveConfig();
   if (!trainingCycleState && els.trainingCycleRingValue && els.trainingCycleRingLabel) {
     els.trainingCycleRingValue.textContent = `${safeSeconds}s`;
     els.trainingCycleRingLabel.textContent = "Repos";
@@ -3967,6 +3998,8 @@ function updateTrainingSeriesDisplay() {
   const safeSeries = Number.isInteger(series) ? Math.min(6, Math.max(3, series)) : 3;
   els.trainingSeriesInput.value = String(safeSeries);
   els.trainingSeriesValue.textContent = String(safeSeries);
+  appConfig.trainingHold.series = safeSeries;
+  saveConfig();
   if (els.trainingHoldSeriesValue) {
     els.trainingHoldSeriesValue.textContent = String(safeSeries);
   }
@@ -3979,6 +4012,8 @@ function updateTrainingRepetitionsDisplay() {
   const safeRepetitions = Number.isInteger(repetitions) ? Math.min(6, Math.max(3, repetitions)) : 3;
   els.trainingRepetitionsInput.value = String(safeRepetitions);
   els.trainingRepetitionsValue.textContent = String(safeRepetitions);
+  appConfig.trainingHold.repetitions = safeRepetitions;
+  saveConfig();
   if (els.trainingHoldRepetitionsValue) {
     els.trainingHoldRepetitionsValue.textContent = String(safeRepetitions);
   }
@@ -5735,6 +5770,22 @@ setRangeProgress(els.configFullTargetTeam);
 setRangeProgress(els.configFullTargetIndiv);
 setRangeProgress(els.configMissLimitTeam);
 setRangeProgress(els.configMissLimitIndiv);
+if (els.trainingSeriesInput) {
+  els.trainingSeriesInput.value = String(appConfig.trainingHold.series);
+}
+if (els.trainingRepetitionsInput) {
+  els.trainingRepetitionsInput.value = String(appConfig.trainingHold.repetitions);
+}
+if (els.trainingHoldSecondsInput) {
+  els.trainingHoldSecondsInput.value = String(appConfig.trainingHold.holdSeconds);
+}
+if (els.trainingRestSecondsInput) {
+  els.trainingRestSecondsInput.value = String(appConfig.trainingHold.restSeconds);
+}
+updateTrainingSeriesDisplay();
+updateTrainingRepetitionsDisplay();
+updateTrainingHoldSecondsDisplay();
+updateTrainingRestSecondsDisplay();
 syncSoloScoringCardHeight();
 
 window.addEventListener("resize", syncSoloScoringCardHeight);
