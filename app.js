@@ -74,6 +74,7 @@ const state = {
 const els = {
   homeTitle: document.getElementById("home-title"),
   homeSubtitle: document.getElementById("home-subtitle"),
+  homeUserPasswordBtn: document.getElementById("home-user-password-btn"),
   setupCard: document.getElementById("setup-card"),
   scoringCard: document.getElementById("scoring-card"),
   targetsCountText: document.getElementById("targets-count-text"),
@@ -227,6 +228,15 @@ const els = {
   loginPasswordInput: document.getElementById("login-password-input"),
   loginFeedback: document.getElementById("login-feedback"),
   loginSubmitBtn: document.getElementById("login-submit-btn"),
+  passwordModal: document.getElementById("password-modal"),
+  passwordModalOverlay: document.getElementById("password-modal-overlay"),
+  passwordCloseBtn: document.getElementById("password-close-btn"),
+  passwordForm: document.getElementById("password-form"),
+  passwordCurrentInput: document.getElementById("password-current-input"),
+  passwordNewInput: document.getElementById("password-new-input"),
+  passwordConfirmInput: document.getElementById("password-confirm-input"),
+  passwordFeedback: document.getElementById("password-feedback"),
+  passwordSubmitBtn: document.getElementById("password-submit-btn"),
   multiModal: document.getElementById("multi-modal"),
   multiModalOverlay: document.getElementById("multi-modal-overlay"),
   multiCloseBtn: document.getElementById("multi-close-btn"),
@@ -2951,6 +2961,48 @@ function setLoginFeedback(message, tone = "error") {
   els.loginFeedback.classList.remove("hidden");
 }
 
+function translateErrorToFrench(message) {
+  const msg = typeof message === "string" ? message.trim() : "";
+  if (!msg) return "Une erreur est survenue.";
+  const normalized = msg.toLowerCase();
+
+  const map = {
+    "Invalid JSON payload": "Corps JSON invalide.",
+    "email and password are required": "L'identifiant et le mot de passe sont requis.",
+    "Invalid credentials": "Identifiants invalides.",
+    "Login failed": "Connexion impossible.",
+    "Missing bearer token": "Jeton d'authentification manquant.",
+    "current_password and new_password are required": "Le mot de passe actuel et le nouveau mot de passe sont requis.",
+    "new_password must be at least 8 chars and include upper, lower, number and symbol": "Le nouveau mot de passe doit contenir au moins 8 caractères avec majuscule, minuscule, chiffre et symbole.",
+    "new_password must be at least 12 chars and include upper, lower, number and symbol": "Le nouveau mot de passe doit contenir au moins 12 caractères avec majuscule, minuscule, chiffre et symbole.",
+    "Invalid token": "Jeton invalide.",
+    "Password update failed": "La mise à jour du mot de passe a échoué.",
+    "uuid and ruleset are required": "Le code concours et le type de parcours sont requis.",
+    "Failed to verify contest": "Impossible de vérifier le concours.",
+  };
+
+  if (map[msg]) return map[msg];
+
+  if (
+    normalized.includes("new_password")
+    && (normalized.includes("at least 8") || normalized.includes("at least 12"))
+    && normalized.includes("upper")
+    && normalized.includes("lower")
+    && normalized.includes("number")
+    && normalized.includes("symbol")
+  ) {
+    if (normalized.includes("at least 8")) {
+      return "Le nouveau mot de passe doit contenir au moins 8 caractères avec majuscule, minuscule, chiffre et symbole.";
+    }
+    return "Le nouveau mot de passe doit contenir au moins 12 caractères avec majuscule, minuscule, chiffre et symbole.";
+  }
+
+  if (msg.startsWith("Method ") && msg.endsWith(" not allowed")) {
+    return "Méthode non autorisée.";
+  }
+  return msg;
+}
+
 function hasStoredAuthToken() {
   try {
     const token = window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
@@ -3002,6 +3054,131 @@ function updateHomeHeader() {
 
   const fullName = [firstName, lastName.toUpperCase()].filter(Boolean).join(" ");
   els.homeSubtitle.textContent = fullName;
+
+  if (els.homeUserPasswordBtn) {
+    const isLoggedIn = hasStoredAuthToken();
+    els.homeUserPasswordBtn.classList.toggle("hidden", !isLoggedIn);
+    els.homeUserPasswordBtn.disabled = !isLoggedIn;
+  }
+}
+
+function setPasswordFeedback(message, tone = "error") {
+  if (!els.passwordFeedback) return;
+  els.passwordFeedback.classList.remove("is-success", "is-error");
+  if (!message) {
+    els.passwordFeedback.textContent = "";
+    els.passwordFeedback.classList.add("hidden");
+    return;
+  }
+  els.passwordFeedback.textContent = message;
+  els.passwordFeedback.classList.add(tone === "success" ? "is-success" : "is-error");
+  els.passwordFeedback.classList.remove("hidden");
+}
+
+function openPasswordModal() {
+  if (!hasStoredAuthToken()) {
+    showFlashInfo("Connectez-vous pour modifier votre mot de passe.");
+    openLoginModal();
+    return;
+  }
+  closeStatsModal();
+  closeGeneralStatsModal();
+  closeHelpModal();
+  closeHistoryModal();
+  closeConfigModal();
+  closeMultiModal();
+  closeDuelModal();
+  closeLoginModal();
+  setPasswordFeedback("");
+  if (els.passwordForm) {
+    els.passwordForm.reset();
+  }
+  if (els.passwordSubmitBtn) {
+    els.passwordSubmitBtn.disabled = false;
+  }
+  els.passwordModal?.classList.remove("hidden");
+  els.passwordCurrentInput?.focus();
+}
+
+function closePasswordModal() {
+  els.passwordModal?.classList.add("hidden");
+  setPasswordFeedback("");
+  if (els.passwordCurrentInput) els.passwordCurrentInput.value = "";
+  if (els.passwordNewInput) els.passwordNewInput.value = "";
+  if (els.passwordConfirmInput) els.passwordConfirmInput.value = "";
+  if (els.passwordSubmitBtn) {
+    els.passwordSubmitBtn.disabled = false;
+  }
+}
+
+async function handlePasswordSubmit(event) {
+  event.preventDefault();
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
+  if (!token.trim()) {
+    setPasswordFeedback("Session expirée. Reconnectez-vous.");
+    return;
+  }
+
+  const currentPassword = els.passwordCurrentInput?.value || "";
+  const newPassword = els.passwordNewInput?.value || "";
+  const confirmPassword = els.passwordConfirmInput?.value || "";
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    setPasswordFeedback("Tous les champs sont requis.");
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    setPasswordFeedback("La confirmation ne correspond pas.");
+    return;
+  }
+  if (newPassword === currentPassword) {
+    setPasswordFeedback("Le nouveau mot de passe doit être différent de l'ancien.");
+    return;
+  }
+
+  if (els.passwordSubmitBtn) {
+    els.passwordSubmitBtn.disabled = true;
+  }
+  setPasswordFeedback("");
+
+  try {
+    const response = await fetch("/api/users/password", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      const message = payload?.error ? translateErrorToFrench(payload.error) : "Impossible de modifier le mot de passe.";
+      setPasswordFeedback(message);
+      return;
+    }
+
+    setPasswordFeedback("Mot de passe modifié.", "success");
+    window.setTimeout(() => {
+      closePasswordModal();
+      showFlashInfo("Mot de passe mis à jour.");
+    }, 700);
+  } catch {
+    setPasswordFeedback("Erreur réseau lors de la mise à jour.");
+  } finally {
+    if (els.passwordSubmitBtn) {
+      els.passwordSubmitBtn.disabled = false;
+    }
+  }
 }
 
 function updateMultiContestModeAvailability() {
@@ -3044,7 +3221,8 @@ async function saveConfigToServer() {
       showFlashInfo(`Configuration et ${entries.length} parcours sauvegardé(s).`);
     } else if (configRes.ok) {
       const errData = await sessionsRes.json().catch(() => ({}));
-      showFlashInfo(`Échec de la sauvegarde des parcours : ${errData.error || sessionsRes.status}.`);
+      const errorMessage = errData?.error ? translateErrorToFrench(errData.error) : sessionsRes.status;
+      showFlashInfo(`Échec de la sauvegarde des parcours : ${errorMessage}.`);
     } else if (sessionsRes.ok) {
       showFlashInfo("Échec de la sauvegarde de la configuration.");
     } else {
@@ -3222,7 +3400,7 @@ async function handleLoginSubmit(event) {
     }
 
     if (!response.ok) {
-      const message = payload?.error || "Connexion impossible";
+      const message = payload?.error ? translateErrorToFrench(payload.error) : "Connexion impossible";
       setLoginFeedback(message);
       return;
     }
@@ -5516,7 +5694,7 @@ async function connectToContest(uuid, ruleset) {
     }
 
     if (!response.ok) {
-      showFlashInfo(payload?.error || "Impossible de se connecter au concours.");
+      showFlashInfo(payload?.error ? translateErrorToFrench(payload.error) : "Impossible de se connecter au concours.");
       return false;
     }
 
@@ -5567,6 +5745,7 @@ if (els.homeLoginBtn) {
       const confirmed = await confirmAction("Confirmer la déconnexion ?", "Déconnexion");
       if (!confirmed) return;
       const firstName = (window.localStorage.getItem(AUTH_USER_FIRST_NAME_KEY) || "").trim() || "Archer";
+      closePasswordModal();
       clearStoredAuth();
       updateHomeLoginTile();
       updateHomeHeader();
@@ -5577,6 +5756,11 @@ if (els.homeLoginBtn) {
       return;
     }
     openLoginModal();
+  });
+}
+if (els.homeUserPasswordBtn) {
+  els.homeUserPasswordBtn.addEventListener("click", () => {
+    openPasswordModal();
   });
 }
 els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
@@ -5593,7 +5777,6 @@ if (els.multiStartBtn) {
         showFlashInfo("Sélectionnez un type de parcours.");
         return;
       }
-
       const code = (els.contestCodeInput?.value || "").trim();
       if (!code) {
         const startedFromStoredUuid = await startContestFromStoredUuidIfAvailable();
@@ -5755,6 +5938,15 @@ if (els.loginModalOverlay) {
 }
 if (els.loginCloseBtn) {
   els.loginCloseBtn.addEventListener("click", closeLoginModal);
+}
+if (els.passwordModalOverlay) {
+  els.passwordModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.passwordCloseBtn) {
+  els.passwordCloseBtn.addEventListener("click", closePasswordModal);
+}
+if (els.passwordForm) {
+  els.passwordForm.addEventListener("submit", handlePasswordSubmit);
 }
 if (els.welcomeModalOverlay) {
   els.welcomeModalOverlay.addEventListener("click", (e) => e.stopPropagation());

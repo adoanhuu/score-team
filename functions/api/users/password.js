@@ -29,7 +29,7 @@ export async function onRequestPost({ request, env }) {
 
   if (!validatePasswordStrength(newPassword)) {
     return jsonResponse(400, {
-      error: "new_password must be at least 12 chars and include upper, lower, number and symbol",
+      error: "Le nouveau mot de passe doit faire au moins 8 caractères et inclure des majuscules, des minuscules, des chiffres et des symboles",
     });
   }
 

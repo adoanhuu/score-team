@@ -48,7 +48,7 @@ export async function onRequestPost({ request, env }) {
   const passwordPlain = usingProvidedPassword ? requestedPassword : generatePassword();
   if (usingProvidedPassword && !validatePasswordStrength(passwordPlain)) {
     return jsonResponse(400, {
-      error: "password must be at least 12 chars and include upper, lower, number and symbol",
+      error: "Le mot de passe doit faire au moins 8 caractères et inclure des majuscules, des minuscules, des chiffres et des symboles",
     });
   }
   const passwordHash = await hashPassword(passwordPlain);

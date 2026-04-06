@@ -3199,6 +3199,12 @@ input[type="range"]:focus-visible {
   gap: 2px;
 }
 
+.home-subtitle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .home-title {
   margin: 0;
   font-size: 1.35rem;
@@ -3214,6 +3220,26 @@ input[type="range"]:focus-visible {
   font-weight: 600;
   color: rgba(255,255,255,.75);
   text-align: center;
+}
+
+.home-user-password-btn {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 50%;
+  border-color: rgb(255, 255, 255);
+  background: rgba(255, 255, 255, 0.8);
+  color: #fff;
+  padding: 0;
+}
+
+.home-user-password-btn:hover,
+.home-user-password-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.password-modal-card {
+  width: min(460px, 100%);
 }
 
 .home-nav {
