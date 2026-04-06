@@ -1197,6 +1197,35 @@ input[type="range"]:focus-visible {
   cursor: not-allowed;
 }
 
+.point-btn.selected {
+  outline: 3px solid #2d6a4f;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px #2d6a4f inset;
+}
+
+  .peloton-event-flash {
+    margin: 8px 12px 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #9b2226;
+    color: #fff;
+    text-align: center;
+  }
+
+  .peloton-event-label {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+
+  .peloton-event-detail {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 400;
+    margin-top: 3px;
+    opacity: 0.9;
+  }
+
 .table-wrap {
   margin-top: 8px;
   overflow-x: auto;
@@ -1698,9 +1727,34 @@ input[type="range"]:focus-visible {
   margin: 14px 0 18px;
 }
 
+#multi-modal #multi-ludic-mode-container {
+  grid-column: 1;
+  width: 50%;
+}
+
+#multi-modal #multi-ludic-mode-container .switch-field-title {
+  display: block;
+  margin-bottom: 12px;
+  padding: 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
 #multi-modal .duel-names-row {
   margin-bottom: 16px;
   gap: 14px;
+}
+
+#multi-modal .duel-names-row,
+#multi-modal .peloton-names-row {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+#multi-modal #duel-names-container,
+#multi-modal #peloton-names-container {
+  grid-column: 1 / -1;
+  width: 100%;
 }
 
 #multi-modal #contest-code-container {
@@ -3175,7 +3229,7 @@ input[type="range"]:focus-visible {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  gap: 14px;
+  gap: 4px;
   max-width: 500px;
   margin: 0 auto;
   padding: 12px;
@@ -3240,6 +3294,10 @@ input[type="range"]:focus-visible {
 
 .password-modal-card {
   width: min(460px, 100%);
+}
+
+.peloton-extra-arrow-modal-card {
+  width: min(400px, 100%);
 }
 
 .home-nav {

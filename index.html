@@ -566,6 +566,19 @@
                 </optgroup>
               </select>
             </label>
+            <div id="multi-ludic-mode-container" class="show-scores-fieldset yes-no-fieldset" role="group" aria-label="Mode ludique">
+              <span class="switch-field-title">Mode ludique</span>
+              <div class="yes-no-switch" role="radiogroup" aria-label="Mode ludique">
+                <label class="switch-option">
+                  <input type="radio" name="multi-ludic-mode" value="yes" />
+                  <span>Oui</span>
+                </label>
+                <label class="switch-option">
+                  <input type="radio" name="multi-ludic-mode" value="no" checked />
+                  <span>Non</span>
+                </label>
+              </div>
+            </div>
           <div id="duel-names-container" class="duel-names-row">
             <input id="duel-name-p1" type="text" placeholder="Nom archer 1" maxlength="10" autocomplete="off" required />
             <input id="duel-name-p2" type="text" placeholder="Nom archer 2" maxlength="10" autocomplete="off" required />
@@ -830,6 +843,11 @@
             <div id="peloton-archers-grid" class="peloton-archers-grid" role="list"></div>
           </div>
 
+            <div id="peloton-event-flash" class="peloton-event-flash hidden" role="status" aria-live="polite">
+              <strong class="peloton-event-label"></strong>
+              <span class="peloton-event-detail"></span>
+            </div>
+
           <div class="quick-stats duel-current-row">
             <article id="peloton-current-card">
               <div id="peloton-history" class="duel-volley-history"></div>
@@ -854,6 +872,26 @@
                 </svg>
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="peloton-extra-arrow-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="peloton-extra-arrow-modal-title">
+        <div class="modal-overlay" id="peloton-extra-arrow-modal-overlay"></div>
+        <div class="modal-card peloton-extra-arrow-modal-card">
+          <div class="modal-head">
+            <h3 id="peloton-extra-arrow-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9Z" fill="currentColor" />
+              </svg>
+              <span>Flèche bonus</span>
+            </h3>
+          </div>
+          <div class="modal-content">
+            <p id="peloton-extra-arrow-message" style="margin: 1rem 0; text-align: center; font-size: 1.05rem;">
+              <span id="peloton-extra-arrow-archer-name" style="font-weight: bold; color: #2d6a4f;"></span> doit tirer une flèche bonus.
+            </p>
+            <div id="peloton-extra-arrow-points-pad" class="points-pad" style="margin: 1rem 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;"></div>
           </div>
         </div>
       </section>
@@ -926,6 +964,8 @@
               <ul>
                 <li>Saisie dans l'ordre décroissant des points.</li>
                 <li>Scores non valides grisés.</li>
+                <li>En mode peloton, si un archer fait le plein, une popin propose une flèche bonus.</li>
+                <li>La flèche bonus n'est pas stockée dans la volée (ex: Nature reste limité à 2 flèches).</li>
                 <li>Sauvegarde automatique de la session.</li>
               </ul>
             </section>
@@ -968,6 +1008,20 @@
                 <li>Affichage les statistiques de la session en cours.</li>
                 <li>Téléchargement des données au format JSON.</li>
                 <li>Configuration des parcours visibles (appliquée au Mode solo et au Mode Multi).</li>
+              </ul>
+            </section>
+
+            <section class="help-block">
+              <h4>Événements flèche bonus (peloton)</h4>
+              <ul>
+                <li>Si la flèche bonus est maximale (3D: 11, Nature: 20, etc.), un événement aléatoire pondéré est déclenché.</li>
+                <li>Rien ne se passe: 20%.</li>
+                <li>Paille: le pire tir d'un autre archer devient 0: 30%.</li>
+                <li>Paille collective: le pire tir de chaque autre archer devient 0: 15%.</li>
+                <li>Déjaugeage: le meilleur tir d'un autre archer baisse d'un cran (20->15, 15->10, 11->10, 5->0): 20%.</li>
+                <li>Malédiction collective: le meilleur tir de chaque autre archer baisse d'un cran: 7%.</li>
+                <li>Échange: un autre archer échange son meilleur et son pire tir: 5%.</li>
+                <li>Double peine: un autre archer subit une baisse du meilleur tir et une paille sur le pire tir: 3%.</li>
               </ul>
             </section>
           </div>

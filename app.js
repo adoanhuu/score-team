@@ -67,6 +67,7 @@ const state = {
   pelotonByArcher: {},
   pelotonActiveArcherIndex: null,
   peloton: null,
+  multiLudicMode: false,
   contestMode: false,
   contestInfo: null,
 };
@@ -243,6 +244,7 @@ const els = {
   multiRulesetSelect: document.getElementById("multi-ruleset-select"),
   rulesetLabel: document.getElementById("ruleset-label"),
   multiModeSelect: document.getElementById("multi-mode-select"),
+  multiLudicModeInputs: document.querySelectorAll('input[name="multi-ludic-mode"]'),
   multiModeOptionContest: document.getElementById("multi-mode-option-contest"),
   contestCodeContainer: document.getElementById("contest-code-container"),
   contestCodeInput: document.getElementById("contest-code-input"),
@@ -300,6 +302,10 @@ const els = {
   pelotonStepBackBtn: document.getElementById("peloton-step-back-btn"),
   pelotonRestartBtn: document.getElementById("peloton-restart-btn"),
   pelotonScoreEntryPanel: document.getElementById("peloton-score-entry-panel"),
+  pelotonExtraArrowModal: document.getElementById("peloton-extra-arrow-modal"),
+  pelotonExtraArrowModalOverlay: document.getElementById("peloton-extra-arrow-modal-overlay"),
+  pelotonExtraArrowArcherName: document.getElementById("peloton-extra-arrow-archer-name"),
+  pelotonExtraArrowPointsPad: document.getElementById("peloton-extra-arrow-points-pad"),
   duelModal: document.getElementById("duel-modal"),
   duelModalOverlay: document.getElementById("duel-modal-overlay"),
   duelModalTitleText: document.getElementById("duel-modal-title-text"),
@@ -4508,9 +4514,15 @@ function getSelectedMultiTargetCount() {
   return parsed === 6 ? 6 : 4;
 }
 
+function isMultiLudicModeEnabled() {
+  const checked = [...(els.multiLudicModeInputs || [])].find((input) => input.checked);
+  return checked ? checked.value === "yes" : false;
+}
+
 function resetDuelStateFromMultiConfig() {
   const ruleset = els.multiRulesetSelect?.value || "3d";
   const mode = els.multiModeSelect?.value || "duel";
+  state.multiLudicMode = isMultiLudicModeEnabled();
   const targetCount = mode === "peloton"
     ? getTargetCountForRuleset(ruleset)
     : getSelectedMultiTargetCount();
@@ -4669,8 +4681,8 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
     rows.push(`
       <tr>
         <td><span class="volley-pill ${pillClass}">${index + 1}</span></td>
-        <td>${arrowsText}</td>
-        <td class="history-total">${targetTotal}</td>
+          <td>${arrowsText}</td>
+          <td class="history-total">${targetTotal}</td>
       </tr>
     `);
   });
@@ -4714,11 +4726,11 @@ function renderPelotonHistorySwiper(container, options = {}) {
     const pairLabel = archerPair.map((archer) => archer.name).join(" / ");
     const pairContent = archerPair.map((archer) => {
       const archerState = state.pelotonByArcher?.[archer.index];
-      const total = archerState ? getDuelTotal(archerState.scores || []) : 0;
 
       return `
         <article class="peloton-history-archer-card">
           <header class="peloton-history-slide-head">
+      const total = archerState ? getDuelTotal(archerState.scores || []) : 0;
             <strong class="peloton-history-slide-name">${archer.name}</strong>
             <span class="peloton-history-slide-total">${total}<span class="stats-unit">pts</span></span>
           </header>
@@ -4750,7 +4762,7 @@ function renderPelotonHistorySwiper(container, options = {}) {
     historyBodies.forEach((historyBody) => {
       const archerIndex = Number(historyBody.dataset.archerIndex);
       const archerState = state.pelotonByArcher?.[archerIndex];
-      renderDuelVolleyHistory(historyBody, archerState?.scores || [], [], { maxVolleyTotal });
+        renderDuelVolleyHistory(historyBody, archerState?.scores || [], [], { maxVolleyTotal });
     });
   });
 
@@ -5003,6 +5015,208 @@ function stepBackDuelScore() {
   renderDuelView();
 }
 
+function getPelotonVolleyTotal(targetIndex) {
+  if (!state.peloton || !state.peloton.scores || !state.peloton.scores[targetIndex]) {
+    return 0;
+  }
+  const targetScores = state.peloton.scores[targetIndex];
+  return getDuelTotal([targetScores]);
+}
+
+function getPelotonVolleyMaxScore() {
+  if (!state.peloton) return 0;
+  const { ruleset, arrowsPerTarget, allowedPoints } = state.peloton;
+  
+  // Calculate max score as sum of max points for each arrow in the volley
+  // e.g., Nature (individual): arrow 0 max=20, arrow 1 max=15 => plein=35
+  // e.g., 3D (individual): arrow 0 max=11, arrow 1 max=11 => plein=22
+  let maxScore = 0;
+  for (let i = 0; i < arrowsPerTarget; i++) {
+    const selectablePoints = getSelectablePointsForArrow(ruleset, "individual", i, allowedPoints);
+    const maxForThisArrow = Math.max(...selectablePoints.filter(p => Number.isFinite(p)));
+    maxScore += maxForThisArrow;
+  }
+  return maxScore;
+}
+
+function checkPelotonVolleyReachedMax(targetIndex) {
+  const currentTotal = getPelotonVolleyTotal(targetIndex);
+  const maxScore = getPelotonVolleyMaxScore();
+  return currentTotal > 0 && currentTotal === maxScore;
+}
+
+// Événements aléatoires déclenchés quand la flèche bonus atteint le score max.
+// Pondérations sur 100 — ajustez weight pour changer la fréquence.
+const PELOTON_BONUS_EVENTS = [
+  { id: "nothing",            label: "Rien ne se passe",          description: () => "Le sort protège les archers... Cette fois.",                    weight: 20 },
+  { id: "one_worst_zero",     label: "Paille !",                  description: (n) => `Le pire tir de ${n} sur cette cible est annulé.`,             weight: 30 },
+  { id: "all_worst_zero",     label: "Paille collective !",       description: () => "Le pire tir de chaque archer sur cette cible est annulé.",     weight: 15 },
+  { id: "best_downgrade_one", label: "Déjaugeage !",              description: (n) => `Le meilleur tir de ${n} descend d'un cran.`,                  weight: 20 },
+  { id: "best_downgrade_all", label: "Malédiction collective !",  description: () => "Le meilleur tir de chaque archer descend d'un cran.",          weight: 7  },
+  { id: "swap_scores",        label: "L'arbalétrier maléfique !", description: (n) => `${n} échange son meilleur et son pire tir.`,                  weight: 5  },
+  { id: "double_curse",       label: "Double peine !",            description: (n) => `${n} : meilleur tir réduit + pire tir annulé.`,               weight: 3  },
+];
+
+function pickWeightedEvent(events) {
+  const total = events.reduce((sum, e) => sum + e.weight, 0);
+  let r = Math.random() * total;
+  for (const event of events) {
+    r -= event.weight;
+    if (r <= 0) return event;
+  }
+  return events[events.length - 1];
+}
+
+function getDowngradedScore(score, allowedPoints) {
+  const finite = allowedPoints.filter(p => Number.isFinite(p)).sort((a, b) => a - b);
+  const idx = finite.findIndex(p => p === score);
+  if (idx <= 0) return finite[0] ?? 0;
+  return finite[idx - 1];
+}
+
+function applyPelotonBonusEvent(eventId, shooterIndex, targetIndex) {
+  const others = (state.pelotonRoster || []).filter(a => a.index !== shooterIndex);
+  if (others.length === 0) return { label: "Rien ne se passe", description: "Pas d'autre archer." };
+  const ap = state.peloton.allowedPoints;
+  const getAr = (idx) => state.pelotonByArcher?.[idx]?.scores?.[targetIndex];
+  const minI = (ar) => ar.reduce((mi, v, i) => scoreToValue(v ?? 0) < scoreToValue(ar[mi] ?? 0) ? i : mi, 0);
+  const maxI = (ar) => ar.reduce((mi, v, i) => scoreToValue(v ?? 0) > scoreToValue(ar[mi] ?? 0) ? i : mi, 0);
+  const ev = (id) => PELOTON_BONUS_EVENTS.find(e => e.id === id);
+
+  switch (eventId) {
+    case "nothing":
+      return { label: ev("nothing").label, description: ev("nothing").description() };
+    case "one_worst_zero": {
+      const t = others[Math.floor(Math.random() * others.length)];
+      const ar = getAr(t.index);
+      if (ar) ar[minI(ar)] = 0;
+      return { label: ev("one_worst_zero").label, description: ev("one_worst_zero").description(t.name) };
+    }
+    case "all_worst_zero": {
+      others.forEach(a => { const ar = getAr(a.index); if (ar) ar[minI(ar)] = 0; });
+      return { label: ev("all_worst_zero").label, description: ev("all_worst_zero").description() };
+    }
+    case "best_downgrade_one": {
+      const t = others[Math.floor(Math.random() * others.length)];
+      const ar = getAr(t.index);
+      if (ar) { const mi = maxI(ar); ar[mi] = getDowngradedScore(scoreToValue(ar[mi] ?? 0), ap); }
+      return { label: ev("best_downgrade_one").label, description: ev("best_downgrade_one").description(t.name) };
+    }
+    case "best_downgrade_all": {
+      others.forEach(a => { const ar = getAr(a.index); if (ar) { const mi = maxI(ar); ar[mi] = getDowngradedScore(scoreToValue(ar[mi] ?? 0), ap); } });
+      return { label: ev("best_downgrade_all").label, description: ev("best_downgrade_all").description() };
+    }
+    case "swap_scores": {
+      const t = others[Math.floor(Math.random() * others.length)];
+      const ar = getAr(t.index);
+      if (ar) { const bi = maxI(ar); const wi = minI(ar); if (bi !== wi) [ar[bi], ar[wi]] = [ar[wi], ar[bi]]; }
+      return { label: ev("swap_scores").label, description: ev("swap_scores").description(t.name) };
+    }
+    case "double_curse": {
+      const t = others[Math.floor(Math.random() * others.length)];
+      const ar = getAr(t.index);
+      if (ar) {
+        const bi = maxI(ar); const wi = minI(ar);
+        ar[bi] = getDowngradedScore(scoreToValue(ar[bi] ?? 0), ap);
+        if (bi !== wi) ar[wi] = 0;
+      }
+      return { label: ev("double_curse").label, description: ev("double_curse").description(t.name) };
+    }
+    default:
+      return { label: "Rien ne se passe", description: "Le sort protège les archers..." };
+  }
+}
+
+let pelotonEventFlashTimerId = null;
+
+function showPelotonEventFlash(result) {
+  const el = document.getElementById("peloton-event-flash");
+  if (!el) return;
+  const labelEl = el.querySelector(".peloton-event-label");
+  const detailEl = el.querySelector(".peloton-event-detail");
+  if (labelEl) labelEl.textContent = result.label;
+  if (detailEl) detailEl.textContent = result.description;
+  el.classList.remove("hidden");
+  if (pelotonEventFlashTimerId) window.clearTimeout(pelotonEventFlashTimerId);
+  pelotonEventFlashTimerId = window.setTimeout(() => {
+    el.classList.add("hidden");
+    pelotonEventFlashTimerId = null;
+  }, 5000);
+}
+
+function openPelotonExtraArrowModal(archerName) {
+  if (!els.pelotonExtraArrowModal) return;
+
+  if (els.pelotonExtraArrowArcherName) {
+    els.pelotonExtraArrowArcherName.textContent = archerName || "Cet archer";
+  }
+
+  // Capture all context at modal-open time to avoid stale state issues
+  const capturedExtraArrowTargetIndex = state.peloton.extraArrowTargetIndex;
+  const capturedNextTargetIndex = state.peloton.extraArrowNextTargetIndex;
+  const capturedNextArrowIndex = state.peloton.extraArrowNextArrowIndex;
+  const capturedArcherIndex = Number(state.pelotonActiveArcherIndex);
+  const capturedTargetCount = state.peloton.targetCount;
+  const capturedPeloton = state.peloton;
+  const capturedRuleset = state.peloton.ruleset;
+  const capturedAllowedPoints = state.peloton.allowedPoints;
+
+  if (els.pelotonExtraArrowPointsPad) {
+    els.pelotonExtraArrowPointsPad.innerHTML = "";
+    const selectablePoints = getSelectablePointsForArrow(capturedRuleset, "individual", 0, capturedAllowedPoints);
+    const maxBonusScore = Math.max(...selectablePoints.filter(p => Number.isFinite(p)));
+
+    selectablePoints.forEach((score) => {
+      const button = document.createElement("button");
+      button.className = "point-btn";
+      if (score === 0) button.classList.add("zero");
+      if (score === FIELD_X) button.classList.add("x-score");
+      button.textContent = scoreLabel(score);
+      button.addEventListener("click", () => {
+        closePelotonExtraArrowModal();
+
+        // Bonus arrow is never stored. If max score → trigger a random event.
+        if (score === maxBonusScore) {
+          const event = pickWeightedEvent(PELOTON_BONUS_EVENTS);
+          const result = applyPelotonBonusEvent(event.id, capturedArcherIndex, capturedExtraArrowTargetIndex);
+          showPelotonEventFlash(result);
+        }
+
+        capturedPeloton.previewLocked = true;
+        renderPelotonView();
+        scrollPelotonHistoryToBottom();
+
+        window.setTimeout(() => {
+          capturedPeloton.previewLocked = false;
+          if (capturedNextTargetIndex >= capturedTargetCount) {
+            capturedPeloton.completed = true;
+          } else {
+            capturedPeloton.currentTargetIndex = capturedNextTargetIndex;
+            capturedPeloton.currentArrowIndex = capturedNextArrowIndex;
+          }
+          const nextArcherId = getNextPelotonArcherId(capturedArcherIndex, capturedExtraArrowTargetIndex);
+          if (nextArcherId) {
+            state.pelotonActiveArcherIndex = nextArcherId;
+            updatePelotonArcher(nextArcherId);
+            return;
+          }
+          showFlashInfo("Saisie peloton terminée.");
+          renderPelotonView();
+          scrollPelotonHistoryToBottom();
+        }, LAST_SCORE_PREVIEW_MS);
+      });
+      els.pelotonExtraArrowPointsPad.appendChild(button);
+    });
+  }
+
+  els.pelotonExtraArrowModal.classList.remove("hidden");
+}
+
+function closePelotonExtraArrowModal() {
+  if (!els.pelotonExtraArrowModal) return;
+  els.pelotonExtraArrowModal.classList.add("hidden");
+}
+
 function registerPelotonScore(score) {
   if (!state.peloton || state.peloton.completed || state.peloton.previewLocked) return;
 
@@ -5035,6 +5249,26 @@ function registerPelotonScore(score) {
     state.peloton.previewLocked = true;
     renderPelotonView();
     scrollPelotonHistoryToBottom();
+
+    // Check if volley reached max score
+    const volleyReachedMax = checkPelotonVolleyReachedMax(currentTargetIndex);
+    const shouldApplyLudicBonus = state.multiLudicMode === true && volleyReachedMax;
+    
+    if (shouldApplyLudicBonus) {
+      // Save the next indices for after extra arrow
+      state.peloton.extraArrowTargetIndex = currentTargetIndex;
+      state.peloton.extraArrowTargetArrowCount = arrowsPerTarget;
+      state.peloton.extraArrowNextTargetIndex = nextTargetIndex;
+      state.peloton.extraArrowNextArrowIndex = nextArrowIndex;
+      
+      // Show extra arrow modal after brief preview
+      window.setTimeout(() => {
+        const archerName = state.peloton.name || "Cet archer";
+        openPelotonExtraArrowModal(archerName);
+      }, LAST_SCORE_PREVIEW_MS);
+      
+      return;
+    }
 
     window.setTimeout(() => {
       state.peloton.previewLocked = false;
@@ -5116,10 +5350,10 @@ function renderPelotonArchersGrid() {
 
   (state.pelotonRoster || []).forEach((archer) => {
     const archerState = state.pelotonByArcher?.[archer.index];
-    const total = archerState ? getDuelTotal(archerState.scores || []) : 0;
 
     const card = document.createElement("div");
     card.className = "peloton-archer-card";
+    const total = archerState ? getDuelTotal(archerState.scores || []) : 0;
     if (archer.index === activeIndex) {
       card.classList.add("is-active");
     }
@@ -6080,6 +6314,11 @@ if (els.pelotonRestartBtn) {
     renderPelotonView();
     showFlashInfo("Nouvel enregistrement peloton démarré.");
   });
+}
+
+// Peloton Extra Arrow Modal listeners
+if (els.pelotonExtraArrowModalOverlay) {
+  els.pelotonExtraArrowModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 }
 els.historyModeFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
 els.historyRulesetFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
