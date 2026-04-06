@@ -3415,10 +3415,10 @@ input[type="range"]:focus-visible {
 }
 
 .duel-bot-icon {
-  width: 44px;
-  height: 44px;
+  width: 60px;
+  height: 60px;
   vertical-align: middle;
-  border-radius: 4px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
@@ -3438,8 +3438,10 @@ input[type="range"]:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
-  border-radius: 30px;
+  padding: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
   background: #f4efe6;
   color: var(--ink);
   box-shadow: 0 3px 10px rgba(15, 23, 42, 0.16);

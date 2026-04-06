@@ -311,6 +311,7 @@ const els = {
   duelBotRow: document.getElementById("duel-bot-row"),
   duelBotSliderWrap: document.getElementById("duel-bot-slider-wrap"),
   duelBotBadge: document.getElementById("duel-bot-badge"),
+  duelBotIcon: document.querySelector("#duel-bot-badge img"),
   duelBotLevelSlider: document.getElementById("duel-bot-level-slider"),
   duelBotHeadline: document.getElementById("duel-bot-headline"),
   multiModalCard: document.getElementById("multi-modal-card"),
@@ -411,16 +412,27 @@ function updateDuelBotLevelUI() {
   els.duelBotLevelSlider.style.setProperty("--duel-bot-color", trackColor);
 
   let levelLabel = "Débutant";
+  let avatarLevel = 1;
   if (safeValue === 20) {
     levelLabel = "Élite";
+    avatarLevel = 6;
   } else if (safeValue >= 18) {
     levelLabel = "Expert";
+    avatarLevel = 5;
   } else if (safeValue >= 14) {
     levelLabel = "Pro";
+    avatarLevel = 4;
   } else if (safeValue >= 10) {
     levelLabel = "Avancé";
+    avatarLevel = 3;
   } else if (safeValue >= 8) {
     levelLabel = "Intermédiare";
+    avatarLevel = 2;
+  }
+
+  if (els.duelBotIcon) {
+    els.duelBotIcon.src = `icons/icon-lvl-${avatarLevel}.png`;
+    els.duelBotIcon.alt = `Paquito ${levelLabel}`;
   }
 
   els.duelBotHeadline.textContent = `Mode Bot activé : ${levelLabel}`;
