@@ -18,7 +18,7 @@ async function getAuthenticatedUser(request, env) {
 }
 
 async function contestExists(env, contestUuid) {
-  const row = await env.DB.prepare("SELECT uuid FROM contests WHERE uuid = ? LIMIT 1")
+  const row = await env.DB.prepare("SELECT uuid FROM contests WHERE lower(uuid) = lower(?) LIMIT 1")
     .bind(contestUuid)
     .first();
   return Boolean(row?.uuid);
