@@ -2334,6 +2334,15 @@ input[type="range"]:focus-visible {
 .welcome-modal-card {
   width: min(420px, 100%);
   padding-top: 28px;
+  position: relative;
+  overflow: hidden;
+  background: url(icons/icon.png) no-repeat right 5px white;
+  background-size: 120px 120px;
+}
+
+.welcome-modal-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .welcome-modal-message {
@@ -2342,6 +2351,7 @@ input[type="range"]:focus-visible {
   font-weight: 700;
   font-size: 1.08rem;
   text-align: center;
+  width: calc(100% - 120px)
 }
 
 .login-modal-card {
