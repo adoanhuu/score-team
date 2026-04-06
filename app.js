@@ -438,6 +438,18 @@ function clearDuelBotShotTimer() {
   duelBotShotTimeoutId = null;
 }
 
+function getDuelBotMissChance(level) {
+  const safeLevel = Math.min(20, Math.max(1, Number(level) || 1));
+  const minMissChance = 0.03;
+  // More progressive curve: still ~40% at level 1 and ~5% at level 20,
+  // with higher miss chance in mid-levels compared to the previous tuning.
+  const hyperbolaBase = -0.005263157894736858;
+  const hyperbolaScale = 1.2157894736842105;
+  const hyperbolaOffset = 2;
+  const rawMissChance = hyperbolaBase + hyperbolaScale / (safeLevel + hyperbolaOffset);
+  return Math.max(minMissChance, rawMissChance);
+}
+
 function pickDuelBotScore(selectablePoints, level) {
   if (!Array.isArray(selectablePoints) || selectablePoints.length === 0) return 0;
 
@@ -446,7 +458,7 @@ function pickDuelBotScore(selectablePoints, level) {
   const scoringOnly = sorted.filter((point) => scoreToValue(point) > 0);
   if (scoringOnly.length === 0) return missValue ?? 0;
 
-  const missChance = Math.max(0.03, 0.40 - level * 0.015);
+  const missChance = getDuelBotMissChance(level);
   const topBandChance = Math.min(0.95, 0.10 + level * 0.035);
   const highBandCount = Math.max(1, Math.ceil(scoringOnly.length * 0.45));
   const highBand = scoringOnly.slice(0, highBandCount);
