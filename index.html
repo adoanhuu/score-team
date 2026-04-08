@@ -20,7 +20,14 @@
         <img src="icons/icon.png" alt="Capi Scoring" class="home-logo" />
         <div class="home-header-text">
           <h1 id="home-title" class="home-title">Capi Scoring</h1>
-          <p id="home-subtitle" class="home-subtitle"></p>
+          <div class="home-subtitle-row">
+            <p id="home-subtitle" class="home-subtitle"></p>
+            <button id="home-user-password-btn" class="btn btn-light btn-icon home-user-password-btn hidden" type="button" aria-label="Modifier le mot de passe" title="Modifier le mot de passe">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.31 0-6 1.8-6 4v2h12v-2c0-2.2-2.69-4-6-4Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
         </div>
         </div>
       </header>
@@ -151,11 +158,11 @@
             <fieldset class="mode-fieldset">
               <legend>Mode de saisie</legend>
               <label class="mode-option">
-                <input type="radio" name="scoring-mode" value="individual" />
+                <input type="radio" name="scoring-mode" value="individual" checked />
                 <span>Individuel</span>
               </label>
               <label class="mode-option">
-                <input type="radio" name="scoring-mode" value="team" checked />
+                <input type="radio" name="scoring-mode" value="team" />
                 <span>Équipe</span>
               </label>
               <label class="mode-option">
@@ -191,27 +198,44 @@
               <input id="lieu-input" type="text" placeholder="Ex : Forêt de Rambouillet" autocomplete="off" maxlength="30" />
             </label>
             <div class="setup-options-row">
-              <fieldset class="use-target-groups-fieldset">
+              <fieldset class="use-target-groups-fieldset yes-no-fieldset">
                 <legend>Catégories de cibles</legend>
-                <label class="checkbox-label">
-                  <input type="radio" name="use-target-groups" value="yes" checked />
-                  <span>Oui</span>
-                </label>
-                <label class="checkbox-label">
-                  <input type="radio" name="use-target-groups" value="no" />
-                  <span>Non</span>
-                </label>
+                <div class="yes-no-switch" role="radiogroup" aria-label="Catégories de cibles">
+                  <label class="switch-option">
+                    <input type="radio" name="use-target-groups" value="yes" checked />
+                    <span>Oui</span>
+                  </label>
+                  <label class="switch-option">
+                    <input type="radio" name="use-target-groups" value="no" />
+                    <span>Non</span>
+                  </label>
+                </div>
               </fieldset>
-              <fieldset class="show-scores-fieldset">
+              <fieldset class="show-scores-fieldset yes-no-fieldset">
                 <legend>Afficher des scores</legend>
-                <label class="checkbox-label">
-                  <input type="radio" name="show-scores" value="yes" checked />
-                  <span>Oui</span>
-                </label>
-                <label class="checkbox-label">
-                  <input type="radio" name="show-scores" value="no" />
-                  <span>Non</span>
-                </label>
+                <div class="yes-no-switch" role="radiogroup" aria-label="Afficher des scores">
+                  <label class="switch-option">
+                    <input type="radio" name="show-scores" value="yes" checked />
+                    <span>Oui</span>
+                  </label>
+                  <label class="switch-option">
+                    <input type="radio" name="show-scores" value="no" />
+                    <span>Non</span>
+                  </label>
+                </div>
+              </fieldset>
+              <fieldset class="use-timer-fieldset yes-no-fieldset">
+                <legend>Utiliser timer</legend>
+                <div class="yes-no-switch" role="radiogroup" aria-label="Utiliser timer">
+                  <label class="switch-option">
+                    <input type="radio" name="use-timer" value="yes" checked />
+                    <span>Oui</span>
+                  </label>
+                  <label class="switch-option">
+                    <input type="radio" name="use-timer" value="no" />
+                    <span>Non</span>
+                  </label>
+                </div>
               </fieldset>
             </div>
           </div>
@@ -516,7 +540,7 @@
 
       <section id="multi-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="multi-modal-title">
         <div class="modal-overlay" id="multi-modal-overlay"></div>
-        <div class="modal-card">
+        <div class="modal-card" id="multi-modal-card">
           <div class="modal-head">
             <h3 id="multi-modal-title" class="modal-title-with-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -555,9 +579,37 @@
                 </optgroup>
               </select>
             </label>
+            <div id="multi-ludic-mode-container" class="show-scores-fieldset yes-no-fieldset" role="group" aria-label="Mode ludique">
+              <span class="switch-field-title">Mode ludique</span>
+              <div class="yes-no-switch" role="radiogroup" aria-label="Mode ludique">
+                <label class="switch-option">
+                  <input type="radio" name="multi-ludic-mode" value="yes" />
+                  <span>Oui</span>
+                </label>
+                <label class="switch-option">
+                  <input type="radio" name="multi-ludic-mode" value="no" checked />
+                  <span>Non</span>
+                </label>
+              </div>
+            </div>
           <div id="duel-names-container" class="duel-names-row">
             <input id="duel-name-p1" type="text" placeholder="Nom archer 1" maxlength="10" autocomplete="off" required />
             <input id="duel-name-p2" type="text" placeholder="Nom archer 2" maxlength="10" autocomplete="off" required />
+          </div>
+          <div id="duel-bot-row" aria-live="polite">
+            <div id="duel-bot-slider-wrap">
+              <div id="duel-bot-main">
+                <div id="duel-bot-left">
+                  <div id="duel-bot-badge">
+                    <img src="icons/icon.png" alt="Bot" class="duel-bot-icon" />
+                  </div>
+                </div>
+                <div id="duel-bot-right">
+                  <input id="duel-bot-level-slider" type="range" min="1" max="20" step="1" value="3" aria-label="Niveau de tir de Paquito" />
+                  <div id="duel-bot-headline">Mode Bot activé : Avancé</div>
+                </div>
+              </div>
+            </div>
           </div>
            <div id="duel-names-error" class="duel-names-error hidden" role="alert">
              Veuillez renseigner les 2 noms d'archers
@@ -680,9 +732,9 @@
           <div class="modal-head">
             <h3 id="training-hold-modal-title" class="modal-title-with-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M2 8h2v8H2V8Zm3-2h3v12H5V6Zm3 4h8v4H8v-4Zm8-4h3v12h-3V6Zm4 2h2v8h-2V8Z" fill="currentColor" />
+                <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 14a6 6 0 1 1 6-6 6 6 0 0 1-6 6Zm1-10h-2v4.4l3.2 1.9 1-1.7-2.2-1.3V10Z" fill="currentColor" />
               </svg>
-              <span>Temps de tenue</span>
+              <span id="training-hold-modal-title-text">Temps de tenue</span>
             </h3>
             <button id="training-hold-close-btn" class="btn btn-light btn-icon" aria-label="Fermer temps de tenue">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -768,8 +820,8 @@
             </div>
             <div id="duel-points-rule-hint" class="points-rule-hint hidden" aria-live="polite"></div>
             <div class="duel-restart-action">
-              <button id="duel-restart-btn" class="btn btn-primary start-btn hidden" aria-label="Recommencer">
-                Recommencer
+              <button id="duel-restart-btn" class="btn btn-primary start-btn hidden" aria-label="Démarrer">
+                Démarrer
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
                 </svg>
@@ -804,6 +856,11 @@
             <div id="peloton-archers-grid" class="peloton-archers-grid" role="list"></div>
           </div>
 
+            <div id="peloton-event-flash" class="peloton-event-flash hidden" role="status" aria-live="polite">
+              <strong class="peloton-event-label"></strong>
+              <span class="peloton-event-detail"></span>
+            </div>
+
           <div class="quick-stats duel-current-row">
             <article id="peloton-current-card">
               <div id="peloton-history" class="duel-volley-history"></div>
@@ -828,6 +885,26 @@
                 </svg>
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="peloton-extra-arrow-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="peloton-extra-arrow-modal-title">
+        <div class="modal-overlay" id="peloton-extra-arrow-modal-overlay"></div>
+        <div class="modal-card peloton-extra-arrow-modal-card">
+          <div class="modal-head">
+            <h3 id="peloton-extra-arrow-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9Z" fill="currentColor" />
+              </svg>
+              <span>Flèche bonus</span>
+            </h3>
+          </div>
+          <div class="modal-content">
+            <p id="peloton-extra-arrow-message" style="margin: 1rem 0; text-align: center; font-size: 1.05rem;">
+              <span id="peloton-extra-arrow-archer-name" style="font-weight: bold; color: #2d6a4f;"></span> doit tirer une flèche bonus.
+            </p>
+            <div id="peloton-extra-arrow-points-pad" class="points-pad" style="margin: 1rem 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;"></div>
           </div>
         </div>
       </section>
@@ -900,6 +977,8 @@
               <ul>
                 <li>Saisie dans l'ordre décroissant des points.</li>
                 <li>Scores non valides grisés.</li>
+                <li>En mode peloton, si un archer fait le plein, une popin propose une flèche bonus.</li>
+                <li>La flèche bonus n'est pas stockée dans la volée (ex: Nature reste limité à 2 flèches).</li>
                 <li>Sauvegarde automatique de la session.</li>
               </ul>
             </section>
@@ -944,6 +1023,20 @@
                 <li>Configuration des parcours visibles (appliquée au Mode solo et au Mode Multi).</li>
               </ul>
             </section>
+
+            <section class="help-block">
+              <h4>Événements flèche bonus (peloton)</h4>
+              <ul>
+                <li>Si la flèche bonus est maximale (3D: 11, Nature: 20, etc.), un événement aléatoire pondéré est déclenché.</li>
+                <li>Rien ne se passe: 20%.</li>
+                <li>Paille: le pire tir d'un autre archer devient 0: 30%.</li>
+                <li>Paille collective: le pire tir de chaque autre archer devient 0: 15%.</li>
+                <li>Déjaugeage: le meilleur tir d'un autre archer baisse d'un cran (20->15, 15->10, 11->10, 5->0): 20%.</li>
+                <li>Malédiction collective: le meilleur tir de chaque autre archer baisse d'un cran: 7%.</li>
+                <li>Échange: un autre archer échange son meilleur et son pire tir: 5%.</li>
+                <li>Double peine: un autre archer subit une baisse du meilleur tir et une paille sur le pire tir: 3%.</li>
+              </ul>
+            </section>
           </div>
 
           <nav id="help-pagination" class="history-pagination" aria-label="Pagination aide"></nav>
@@ -968,11 +1061,11 @@
           </div>
           <form id="login-form" class="login-form" novalidate>
             <label>
-              Login
+              Identifiant
               <input id="login-email-input" type="email" inputmode="email" autocomplete="username" placeholder="email@exemple.com" required />
             </label>
             <label>
-              Password
+              Mot de passe
               <input id="login-password-input" type="password" autocomplete="current-password" placeholder="Votre mot de passe" required />
             </label>
             <div id="login-feedback" class="login-feedback hidden" role="alert"></div>
@@ -981,6 +1074,46 @@
                 <path d="M17 9h-1V6.5a4 4 0 1 0-8 0V9H7a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-8a2 2 0 0 0-2-2ZM10 9V6.5a2 2 0 1 1 4 0V9h-4Zm2 9a1.8 1.8 0 0 1-.9-3.35V14a.9.9 0 0 1 1.8 0v.65A1.8 1.8 0 0 1 12 18Z" fill="currentColor" />
               </svg>
               <span>Se connecter</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section id="password-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
+        <div class="modal-overlay" id="password-modal-overlay"></div>
+        <div class="modal-card password-modal-card">
+          <div class="modal-head">
+            <h3 id="password-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M17 9h-1V6.5a4 4 0 1 0-8 0V9H7a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-8a2 2 0 0 0-2-2ZM10 9V6.5a2 2 0 1 1 4 0V9h-4Zm2 9a1.8 1.8 0 0 1-.9-3.35V14a.9.9 0 0 1 1.8 0v.65A1.8 1.8 0 0 1 12 18Z" fill="currentColor" />
+              </svg>
+              <span>Modifier le mot de passe</span>
+            </h3>
+            <button id="password-close-btn" class="btn btn-light btn-icon" aria-label="Fermer changement mot de passe">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <form id="password-form" class="login-form" novalidate>
+            <label>
+              Mot de passe actuel
+              <input id="password-current-input" type="password" autocomplete="current-password" placeholder="Votre mot de passe actuel" required />
+            </label>
+            <label>
+              Nouveau mot de passe
+              <input id="password-new-input" type="password" autocomplete="new-password" placeholder="Nouveau mot de passe" required />
+            </label>
+            <label>
+              Confirmation
+              <input id="password-confirm-input" type="password" autocomplete="new-password" placeholder="Confirmez le nouveau mot de passe" required />
+            </label>
+            <div id="password-feedback" class="login-feedback hidden" role="alert"></div>
+            <button id="password-submit-btn" type="submit" class="btn btn-primary btn-icon login-submit-btn" aria-label="Valider le changement de mot de passe">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 16.2 4.8 12 3.4 13.4 9 19l12-12-1.4-1.4L9 16.2Z" fill="currentColor" />
+              </svg>
+              <span>Valider</span>
             </button>
           </form>
         </div>
