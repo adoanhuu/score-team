@@ -224,6 +224,19 @@
                   </label>
                 </div>
               </fieldset>
+              <fieldset class="use-timer-fieldset yes-no-fieldset">
+                <legend>Utiliser timer</legend>
+                <div class="yes-no-switch" role="radiogroup" aria-label="Utiliser timer">
+                  <label class="switch-option">
+                    <input type="radio" name="use-timer" value="yes" checked />
+                    <span>Oui</span>
+                  </label>
+                  <label class="switch-option">
+                    <input type="radio" name="use-timer" value="no" />
+                    <span>Non</span>
+                  </label>
+                </div>
+              </fieldset>
             </div>
           </div>
         </details>
@@ -719,9 +732,9 @@
           <div class="modal-head">
             <h3 id="training-hold-modal-title" class="modal-title-with-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M2 8h2v8H2V8Zm3-2h3v12H5V6Zm3 4h8v4H8v-4Zm8-4h3v12h-3V6Zm4 2h2v8h-2V8Z" fill="currentColor" />
+                <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 14a6 6 0 1 1 6-6 6 6 0 0 1-6 6Zm1-10h-2v4.4l3.2 1.9 1-1.7-2.2-1.3V10Z" fill="currentColor" />
               </svg>
-              <span>Temps de tenue</span>
+              <span id="training-hold-modal-title-text">Temps de tenue</span>
             </h3>
             <button id="training-hold-close-btn" class="btn btn-light btn-icon" aria-label="Fermer temps de tenue">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">

@@ -41,10 +41,12 @@ const state = {
   completionArchived: false,
   statsOpenedFromHistory: false,
   useTargetGroups: true,
+  useTimer: true,
   showScores: true,
   editingVolleyIndex: null,
   lastEditedVolleyIndex: null,
   progressionAxis: "",
+  soloTimerVolleyIndex: null,
   sessionDate: "",
   sessionTime: "",
   generalStatsGraphEnabled: false,
@@ -204,6 +206,8 @@ const els = {
   configMissLimitIndiv: document.getElementById("config-miss-limit-indiv"),
   configMissLimitIndivValue: document.getElementById("config-miss-limit-indiv-value"),
   useTargetGroupsInputs: document.querySelectorAll('input[name="use-target-groups"]'),
+  useTimerFieldset: document.querySelector(".use-timer-fieldset"),
+  useTimerInputs: document.querySelectorAll('input[name="use-timer"]'),
   showScoresInputs: document.querySelectorAll('input[name="show-scores"]'),
   groupColumnHeader: document.getElementById("group-column-header"),
   statsTabGroupsBtn: document.getElementById("stats-tab-groups-btn"),
@@ -269,6 +273,7 @@ const els = {
   trainingHoldModal: document.getElementById("training-hold-modal"),
   trainingHoldModalOverlay: document.getElementById("training-hold-modal-overlay"),
   trainingHoldCloseBtn: document.getElementById("training-hold-close-btn"),
+  trainingHoldModalTitleText: document.getElementById("training-hold-modal-title-text"),
   trainingHoldSeriesText: document.getElementById("training-hold-series-text"),
   trainingHoldSeriesValue: document.getElementById("training-hold-series-value"),
   trainingHoldRepetitionsText: document.getElementById("training-hold-repetitions-text"),
@@ -562,71 +567,69 @@ function playTrainingBeepSequence(beeps = []) {
   });
 }
 
-function speakTrainingRestPrompt() {
-  if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+function speakTrainingMessage(message, { cancelPrevious = true } = {}) {
+  if (
+    typeof window === "undefined"
+    || !("speechSynthesis" in window)
+    || typeof SpeechSynthesisUtterance === "undefined"
+    || !message
+  ) {
     return;
   }
-  const utterance = new SpeechSynthesisUtterance("Exercice");
-  utterance.lang = "fr-FR";
-  utterance.rate = 1;
-  utterance.pitch = 1;
-  utterance.volume = TRAINING_VOICE_VOLUME;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
-}
-
-function speakTrainingExercisePrompt() {
-  if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
-    return;
-  }
-  const utterance = new SpeechSynthesisUtterance("Repos");
-  utterance.lang = "fr-FR";
-  utterance.rate = 1;
-  utterance.pitch = 1;
-  utterance.volume = TRAINING_VOICE_VOLUME;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
-}
-
-function speakTrainingSeriesBreak(seriesNumber) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
-    return;
-  }
-  const safeSeriesNumber = Number.isInteger(seriesNumber) && seriesNumber > 0 ? seriesNumber : null;
-  const message = safeSeriesNumber ? `Fin de série ${safeSeriesNumber}` : "Fin de série";
   const utterance = new SpeechSynthesisUtterance(message);
   utterance.lang = "fr-FR";
   utterance.rate = 1;
   utterance.pitch = 1;
   utterance.volume = TRAINING_VOICE_VOLUME;
-  window.speechSynthesis.cancel();
+  if (cancelPrevious) {
+    window.speechSynthesis.cancel();
+  }
   window.speechSynthesis.speak(utterance);
+}
+
+function speakTrainingRestPrompt() {
+  speakTrainingMessage("Exercice");
+}
+
+function speakTrainingExercisePrompt() {
+  speakTrainingMessage("Repos");
+}
+
+function speakTrainingSeriesBreak(seriesNumber) {
+  const safeSeriesNumber = Number.isInteger(seriesNumber) && seriesNumber > 0 ? seriesNumber : null;
+  const message = safeSeriesNumber ? `Fin de série ${safeSeriesNumber}` : "Fin de série";
+  speakTrainingMessage(message);
 }
 
 function speakTrainingExerciseEnd() {
-  if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
-    return;
-  }
-  const utterance = new SpeechSynthesisUtterance("fin exercice");
-  utterance.lang = "fr-FR";
-  utterance.rate = 1;
-  utterance.pitch = 1;
-  utterance.volume = TRAINING_VOICE_VOLUME;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
+  speakTrainingMessage("fin exercice");
 }
 
 function speakTrainingExerciseStart() {
-  if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
-    return;
-  }
-  const utterance = new SpeechSynthesisUtterance("Début exercice");
-  utterance.lang = "fr-FR";
-  utterance.rate = 1;
-  utterance.pitch = 1;
-  utterance.volume = TRAINING_VOICE_VOLUME;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
+  speakTrainingMessage("Début exercice");
+}
+
+function getSoloVolleyCurrentArrowNumber() {
+  if (!isSoloVolleyCycle()) return null;
+  const totalArrows = Number.isInteger(trainingCycleState.totalArrows) ? trainingCycleState.totalArrows : 0;
+  const arrowsRemaining = Number.isInteger(trainingCycleState.arrowsRemaining) ? trainingCycleState.arrowsRemaining : 0;
+  const arrowNumber = totalArrows - arrowsRemaining + 1;
+  return Math.max(1, arrowNumber);
+}
+
+function speakSoloVolleyPreparation() {
+  const arrowNumber = getSoloVolleyCurrentArrowNumber();
+  if (!Number.isInteger(arrowNumber)) return;
+  const spokenArrowNumber = arrowNumber === 1 ? "une" : String(arrowNumber);
+  speakTrainingMessage(`Préparation flèche ${spokenArrowNumber}`, { cancelPrevious: false });
+}
+
+function speakSoloVolleyTraction() {
+  speakTrainingMessage("Traction", { cancelPrevious: false });
+}
+
+function speakSoloVolleyLiberation() {
+  speakTrainingMessage("Libération", { cancelPrevious: false });
 }
 
 function scoreToValue(s) {
@@ -880,6 +883,7 @@ function getSetupSnapshot() {
     sessionDate: els.sessionDateInput ? els.sessionDateInput.value : "",
     sessionTime: els.sessionTimeInput ? els.sessionTimeInput.value : "",
     useTargetGroups: getSelectedUseTargetGroups(),
+    useTimer: getSelectedUseTimer(),
     showScores: getSelectedShowScores(),
   };
 }
@@ -1062,6 +1066,7 @@ function persistAppState() {
             scoringMode: state.scoringMode,
             weapon: state.weapon || "",
             useTargetGroups: state.useTargetGroups,
+            useTimer: state.useTimer,
             showScores: state.showScores,
             arrowsPerVolley: state.arrowsPerVolley,
             currentArrowIndex: state.currentArrowIndex,
@@ -1107,6 +1112,7 @@ function persistContestProgressState() {
     scoringMode: state.scoringMode,
     weapon: state.weapon || "",
     useTargetGroups: state.useTargetGroups,
+    useTimer: state.useTimer,
     showScores: state.showScores,
     arrowsPerVolley: state.arrowsPerVolley,
     currentArrowIndex: state.currentArrowIndex,
@@ -1166,6 +1172,7 @@ function restoreContestProgressState(contestInfo, initialScoring = null) {
     ? scoring.weapon
     : getWeaponsForRuleset(scoring.activeRuleset)[0];
   state.useTargetGroups = typeof scoring.useTargetGroups === "boolean" ? scoring.useTargetGroups : state.useTargetGroups;
+  state.useTimer = typeof scoring.useTimer === "boolean" ? scoring.useTimer : state.useTimer;
   state.showScores = typeof scoring.showScores === "boolean" ? scoring.showScores : state.showScores;
   state.arrowsPerVolley = getArrowsPerVolley(scoring.activeRuleset, state.scoringMode);
   state.activeRuleset = scoring.activeRuleset;
@@ -1195,6 +1202,7 @@ function restoreContestProgressState(contestInfo, initialScoring = null) {
     : state.currentshoot.findIndex((value) => value === null);
   if (state.currentArrowIndex < 0) state.currentArrowIndex = state.arrowsPerVolley;
   state.progressionAxis = scoring.progressionAxis || "";
+  state.soloTimerVolleyIndex = null;
   state.completionArchived = typeof scoring.completionArchived === "boolean"
     ? scoring.completionArchived
     : state.shoots.length === state.targetCount;
@@ -1248,6 +1256,11 @@ function restorePersistedState() {
     const input = [...els.useTargetGroupsInputs].find((i) => i.value === targetValue);
     if (input) input.checked = true;
   }
+  if (typeof setup.useTimer === "boolean") {
+    const targetValue = setup.useTimer ? "yes" : "no";
+    const input = [...els.useTimerInputs].find((i) => i.value === targetValue);
+    if (input) input.checked = true;
+  }
   if (typeof setup.showScores === "boolean") {
     const targetValue = setup.showScores ? "yes" : "no";
     const input = [...els.showScoresInputs].find((i) => i.value === targetValue);
@@ -1282,6 +1295,9 @@ function restorePersistedState() {
     ? saved.weapon
     : getWeaponsForRuleset(saved.activeRuleset)[0];
   state.useTargetGroups = typeof saved.useTargetGroups === "boolean" ? saved.useTargetGroups : true;
+  state.useTimer = typeof saved.useTimer === "boolean"
+    ? saved.useTimer
+    : (typeof setup.useTimer === "boolean" ? setup.useTimer : true);
   state.showScores = typeof saved.showScores === "boolean"
     ? saved.showScores
     : (typeof setup.showScores === "boolean" ? setup.showScores : true);
@@ -1310,6 +1326,7 @@ function restorePersistedState() {
   state.completionArchived = state.shoots.length === state.targetCount;
   state.resultsPayload = state.shoots.length === state.targetCount ? buildResultsPayload() : null;
   state.progressionAxis = saved.progressionAxis || "";
+  state.soloTimerVolleyIndex = null;
   syncTargetGroupSelect(saved.currentGroup);
 
   els.setupCard.classList.add("hidden");
@@ -1514,6 +1531,7 @@ function refreshScoringView(options = {}) {
   if (scrollCard) {
     scrollScoringCardToBottom();
   }
+  maybeOpenSoloVolleyTimer();
 }
 
 function updateTargetGroupsVisibility() {
@@ -2026,8 +2044,25 @@ function updateWeaponSelectVisibility() {
   }
 }
 
+function canUseTimerForCurrentSetup() {
+  return getSelectedScoringMode() === "individual" && !state.contestMode;
+}
+
+function updateUseTimerVisibility() {
+  if (!els.useTimerFieldset) return;
+  els.useTimerFieldset.classList.toggle("hidden", !canUseTimerForCurrentSetup());
+}
+
 function getSelectedUseTargetGroups() {
   const checked = [...els.useTargetGroupsInputs].find((input) => input.checked);
+  return checked ? checked.value === "yes" : true;
+}
+
+function getSelectedUseTimer() {
+  if (!canUseTimerForCurrentSetup()) {
+    return false;
+  }
+  const checked = [...els.useTimerInputs].find((input) => input.checked);
   return checked ? checked.value === "yes" : true;
 }
 
@@ -2208,6 +2243,7 @@ function startScoring() {
   state.scoringMode = getSelectedScoringMode();
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
   state.useTargetGroups = getSelectedUseTargetGroups();
+  state.useTimer = getSelectedUseTimer();
   state.showScores = getSelectedShowScores();
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
   state.allowedPoints = [...new Set(points)].sort((a, b) => b - a);
@@ -2222,6 +2258,7 @@ function startScoring() {
   state.shootGroups = [];
   state.resultsPayload = null;
   state.progressionAxis = "";
+  state.soloTimerVolleyIndex = null;
   state.completionArchived = false;
   state.editingVolleyIndex = null;
   state.lastEditedVolleyIndex = null;
@@ -2415,6 +2452,7 @@ function buildResultsPayload() {
     sessionDate: state.sessionDate || "",
     sessionTime: state.sessionTime || "",
     useTargetGroups: state.useTargetGroups,
+    useTimer: state.useTimer,
     showScores: state.showScores,
     targetCount: state.targetCount,
     arrowsPerVolley: state.arrowsPerVolley,
@@ -4174,6 +4212,83 @@ function syncTrainingMetaBlocksColor(phase) {
   });
 }
 
+function setTrainingMetaLabel(container, labelText) {
+  if (!container) return;
+  const labelEl = container.querySelector(".training-meta-label");
+  if (labelEl) {
+    labelEl.textContent = labelText;
+  }
+}
+
+function isSoloVolleyCycle() {
+  return trainingCycleState?.mode === "solo-volley";
+}
+
+function shouldUseSoloVolleyTimer() {
+  if (!state.useTimer || state.contestMode) return false;
+  if (state.shoots.length >= state.targetCount) return false;
+  if (state.inputLocked) return false;
+  if (Number.isInteger(state.editingVolleyIndex) && state.editingVolleyIndex >= 0) return false;
+  if (state.currentArrowIndex !== 0) return false;
+  if (state.currentshoot.some((value) => value !== null)) return false;
+  if (state.soloTimerVolleyIndex === state.shoots.length) return false;
+  return true;
+}
+
+function openSoloVolleyTimerModal() {
+  const holdSeconds = Number.parseInt(els.trainingHoldSecondsInput?.value || String(appConfig.trainingHold.holdSeconds), 10);
+  const restSeconds = Number.parseInt(els.trainingRestSecondsInput?.value || String(appConfig.trainingHold.restSeconds), 10);
+  const safeHold = Number.isInteger(holdSeconds) ? Math.min(12, Math.max(2, holdSeconds)) : appConfig.trainingHold.holdSeconds;
+  const safeRest = Number.isInteger(restSeconds) ? Math.min(30, Math.max(5, restSeconds)) : appConfig.trainingHold.restSeconds;
+
+  stopTrainingCycle();
+  if (els.trainingHoldModalTitleText) {
+    els.trainingHoldModalTitleText.textContent = "Timer de volee";
+  }
+  setTrainingMetaLabel(els.trainingHoldSeriesText, "Fleches");
+  setTrainingMetaLabel(els.trainingHoldRepetitionsText, "Restantes");
+
+  state.inputLocked = true;
+  trainingCycleState = {
+    mode: "solo-volley",
+    totalArrows: state.arrowsPerVolley,
+    arrowsRemaining: state.arrowsPerVolley,
+    holdSeconds: safeHold,
+    restSeconds: safeRest,
+    phase: "rest",
+    secondsRemaining: safeRest,
+    isPaused: true,
+  };
+
+  renderTrainingCycle();
+  updateTrainingCycleToggleButton(true);
+  els.trainingHoldModal?.classList.remove("hidden");
+}
+
+function maybeOpenSoloVolleyTimer() {
+  if (!shouldUseSoloVolleyTimer()) return;
+  if (!els.trainingHoldModal?.classList.contains("hidden")) return;
+  openSoloVolleyTimerModal();
+}
+
+function completeSoloVolleyTimer() {
+  if (els.trainingCycleRingValue) {
+    setTrainingCycleRingSeconds(0);
+  }
+  if (els.trainingCycleRingLabel) {
+    els.trainingCycleRingLabel.textContent = "Termine";
+  }
+  if (els.trainingCycleRing) {
+    els.trainingCycleRing.style.setProperty("--ring-progress", "0");
+  }
+  stopTrainingCycle();
+  state.inputLocked = false;
+  state.soloTimerVolleyIndex = state.shoots.length;
+  els.trainingHoldModal?.classList.add("hidden");
+  showFlashInfo("Timer termine. Vous pouvez saisir la volee.");
+  refreshScoringView({ scrollHistory: false, scrollCard: true });
+}
+
 function setTrainingCycleRingSeconds(seconds) {
   if (!els.trainingCycleRingValue) return;
   const safeSeconds = Number.isFinite(seconds) ? Math.max(0, Math.trunc(seconds)) : 0;
@@ -4223,6 +4338,9 @@ function stopTrainingCycle() {
     window.clearInterval(trainingCycleIntervalId);
     trainingCycleIntervalId = null;
   }
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
   trainingCycleState = null;
   updateTrainingCycleToggleButton(true);
 }
@@ -4253,17 +4371,29 @@ function pauseTrainingCycle() {
 function resumeTrainingCycle() {
   if (!trainingCycleState || trainingCycleIntervalId) return;
   trainingCycleState.isPaused = false;
+  if (
+    isSoloVolleyCycle()
+    && trainingCycleState.phase === "rest"
+    && trainingCycleState.secondsRemaining === trainingCycleState.restSeconds
+  ) {
+    speakSoloVolleyPreparation();
+  }
   trainingCycleIntervalId = window.setInterval(tickTrainingCycle, 1000);
   updateTrainingCycleToggleButton(false);
 }
 
 function renderTrainingCycle() {
   if (!trainingCycleState) return;
+  const isSoloMode = trainingCycleState.mode === "solo-volley";
   if (els.trainingHoldSeriesValue) {
-    els.trainingHoldSeriesValue.textContent = String(trainingCycleState.seriesRemaining);
+    els.trainingHoldSeriesValue.textContent = isSoloMode
+      ? String(trainingCycleState.totalArrows)
+      : String(trainingCycleState.seriesRemaining);
   }
   if (els.trainingHoldRepetitionsValue) {
-    els.trainingHoldRepetitionsValue.textContent = String(trainingCycleState.repetitionsRemaining);
+    els.trainingHoldRepetitionsValue.textContent = isSoloMode
+      ? String(trainingCycleState.arrowsRemaining)
+      : String(trainingCycleState.repetitionsRemaining);
   }
   if (els.trainingCycleRingValue) {
     setTrainingCycleRingSeconds(trainingCycleState.secondsRemaining);
@@ -4278,12 +4408,16 @@ function renderTrainingCycle() {
     }
   }
   if (els.trainingCycleRing) {
-    const cycleTotal = trainingCycleState.phase === "series-break"
-      ? Math.max(1, trainingCycleState.seriesBreakSeconds)
-      : Math.max(1, trainingCycleState.restSeconds + trainingCycleState.holdSeconds);
-    const remainingInCycle = trainingCycleState.phase === "series-break"
-      ? trainingCycleState.secondsRemaining
-      : trainingCycleState.secondsRemaining + (trainingCycleState.phase === "rest" ? trainingCycleState.holdSeconds : 0);
+    const cycleTotal = isSoloMode
+      ? Math.max(1, trainingCycleState.restSeconds + trainingCycleState.holdSeconds)
+      : trainingCycleState.phase === "series-break"
+        ? Math.max(1, trainingCycleState.seriesBreakSeconds)
+        : Math.max(1, trainingCycleState.restSeconds + trainingCycleState.holdSeconds);
+    const remainingInCycle = isSoloMode
+      ? trainingCycleState.secondsRemaining + (trainingCycleState.phase === "rest" ? trainingCycleState.holdSeconds : 0)
+      : trainingCycleState.phase === "series-break"
+        ? trainingCycleState.secondsRemaining
+        : trainingCycleState.secondsRemaining + (trainingCycleState.phase === "rest" ? trainingCycleState.holdSeconds : 0);
     const progressPct = Math.min(100, Math.max(0, (remainingInCycle / cycleTotal) * 100));
     els.trainingCycleRing.style.setProperty("--ring-progress", `${progressPct}`);
     els.trainingCycleRing.classList.toggle("is-rest", trainingCycleState.phase === "rest");
@@ -4303,6 +4437,35 @@ function renderTrainingCycle() {
 
 function tickTrainingCycle() {
   if (!trainingCycleState || trainingCycleState.isPaused) return;
+
+  if (isSoloVolleyCycle()) {
+    if (trainingCycleState.secondsRemaining > 0) {
+      trainingCycleState.secondsRemaining -= 1;
+      renderTrainingCycle();
+      return;
+    }
+
+    if (trainingCycleState.phase === "rest") {
+      trainingCycleState.phase = "hold";
+      trainingCycleState.secondsRemaining = trainingCycleState.holdSeconds;
+      speakSoloVolleyTraction();
+      renderTrainingCycle();
+      return;
+    }
+
+    speakSoloVolleyLiberation();
+    trainingCycleState.arrowsRemaining -= 1;
+    if (trainingCycleState.arrowsRemaining > 0) {
+      trainingCycleState.phase = "rest";
+      trainingCycleState.secondsRemaining = trainingCycleState.restSeconds;
+      speakSoloVolleyPreparation();
+      renderTrainingCycle();
+      return;
+    }
+
+    completeSoloVolleyTimer();
+    return;
+  }
 
   if (trainingCycleState.secondsRemaining > 0) {
     trainingCycleState.secondsRemaining -= 1;
@@ -4378,7 +4541,13 @@ function startTrainingCycle() {
   const safeRest = Number.isInteger(restSeconds) ? Math.min(30, Math.max(5, restSeconds)) : 5;
 
   stopTrainingCycle();
+  if (els.trainingHoldModalTitleText) {
+    els.trainingHoldModalTitleText.textContent = "Temps de tenue";
+  }
+  setTrainingMetaLabel(els.trainingHoldSeriesText, "Serie");
+  setTrainingMetaLabel(els.trainingHoldRepetitionsText, "Repetition");
   trainingCycleState = {
+    mode: "training-hold",
     initialSeriesCount: safeSeries,
     seriesRemaining: safeSeries,
     repetitionsPerSeries: safeRepetitions,
@@ -4466,8 +4635,15 @@ function openTrainingHoldModal() {
 }
 
 function closeTrainingHoldModal() {
+  if (isSoloVolleyCycle()) {
+    state.inputLocked = false;
+    state.soloTimerVolleyIndex = state.shoots.length;
+  }
   stopTrainingCycle();
   els.trainingHoldModal?.classList.add("hidden");
+  if (!els.scoringCard?.classList.contains("hidden")) {
+    refreshScoringView({ scrollHistory: false });
+  }
 }
 
 async function startContestFromStoredUuidIfAvailable() {
@@ -5790,6 +5966,7 @@ function restart() {
   state.shootGroups = [];
   state.resultsPayload = null;
   state.progressionAxis = "";
+  state.soloTimerVolleyIndex = null;
   state.editingVolleyIndex = null;
   state.lastEditedVolleyIndex = null;
   state.inputLocked = false;
@@ -5822,6 +5999,7 @@ els.rulesetSelect.addEventListener("change", () => {
   syncScoringModeFieldset();
   syncWeaponSelectOptions();
   updateWeaponSelectVisibility();
+  updateUseTimerVisibility();
   syncTargetCountDisplay();
   // Update slider max BEFORE restoring value to prevent browser clamping
   const newMax = getMaxSuccessZoneForSetup();
@@ -5862,6 +6040,7 @@ els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => 
   }
   updateSuccessZoneSlider();
   updateWeaponSelectVisibility();
+  updateUseTimerVisibility();
   state._lastRuleset = ruleset;
   state._lastScoringMode = scoringMode;
   state._lastWeapon = weapon;
@@ -5896,6 +6075,7 @@ if (els.sessionTimeInput) {
   els.sessionTimeInput.addEventListener("change", persistAppState);
 }
 els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
+els.useTimerInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.showScoresInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.startBtn.addEventListener("click", startScoring);
 if (els.backSetupBtn) {
@@ -6434,6 +6614,7 @@ updateRulesetSelectOptions();
 syncScoringModeFieldset();
 syncWeaponSelectOptions();
 updateWeaponSelectVisibility();
+updateUseTimerVisibility();
 els.appVersion.textContent = APP_VERSION;
 if (els.helpVersion) {
   els.helpVersion.textContent = APP_VERSION;

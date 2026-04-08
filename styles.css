@@ -310,6 +310,11 @@ label {
   padding: 0;
 }
 
+.use-timer-fieldset {
+  border: none;
+  padding: 0;
+}
+
 .yes-no-fieldset {
   display: grid;
   gap: 6px;
@@ -410,6 +415,14 @@ input[type="radio"][value="no"]:checked {
   font-size: 14px;
 }
 
+.use-timer-fieldset legend {
+  display: block;
+  margin-bottom: 12px;
+  padding: 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
 .show-scores-fieldset .checkbox-label {
   display: inline-block;
   margin-right: 20px;
@@ -421,7 +434,8 @@ input[type="radio"][value="no"]:checked {
   }
 
   .use-target-groups-fieldset legend,
-  .show-scores-fieldset legend {
+  .show-scores-fieldset legend,
+  .use-timer-fieldset legend {
     font-size: 12px;
   }
 }
