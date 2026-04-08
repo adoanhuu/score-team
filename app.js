@@ -6,7 +6,7 @@ const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
 const CONFIG_KEY = "score-team-config-v1";
 const MAX_HISTORY_ITEMS = 50;
-const FLASH_INFO_MS = 2600;
+const FLASH_INFO_MS = 2600; 
 const AUTH_TOKEN_KEY = "score-team-auth-token-v1";
 const AUTH_USER_ID_KEY = "score-team-auth-user-id-v1";
 const AUTH_USER_EMAIL_KEY = "score-team-auth-user-email-v1";
@@ -6087,6 +6087,14 @@ if (els.historyBtn) {
 
 function showSetupFromHome() {
   document.body.classList.add("home-underlay-active");
+  // Pre-select individual mode so the timer option is visible by default.
+  const individualInput = [...els.scoringModeInputs].find((i) => i.value === "individual");
+  if (individualInput && !individualInput.checked && isScoringModeAllowedForRuleset("individual", els.rulesetSelect.value)) {
+    els.scoringModeInputs.forEach((i) => { i.checked = i.value === "individual"; });
+    updateWeaponSelectVisibility();
+    updateUseTimerVisibility();
+    updateSuccessZoneSlider();
+  }
   els.setupCard.classList.remove("hidden");
 }
 
