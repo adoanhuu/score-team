@@ -2035,6 +2035,27 @@ function getSelectedScoringMode() {
   return normalizeScoringMode(rawMode, els.rulesetSelect.value);
 }
 
+function getCurrentSessionDateTime() {
+  const now = new Date();
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  return { date, time };
+}
+
+function syncSessionDateTimeForSoloMode() {
+  if (state.contestMode || getSelectedScoringMode() !== "individual") {
+    return;
+  }
+  const { date, time } = getCurrentSessionDateTime();
+  if (els.sessionDateInput) {
+    els.sessionDateInput.value = date;
+  }
+  if (els.sessionTimeInput) {
+    els.sessionTimeInput.value = time;
+  }
+  persistAppState();
+}
+
 function updateWeaponSelectVisibility() {
   const scoringMode = getSelectedScoringMode();
   const weaponWrapper = document.getElementById("weapon-select-wrapper");
@@ -2233,6 +2254,11 @@ function startScoring() {
   }
 
   const points = presets[els.rulesetSelect.value];
+  const scoringMode = getSelectedScoringMode();
+
+  if (!state.contestMode && scoringMode === "individual") {
+    syncSessionDateTimeForSoloMode();
+  }
 
   state.targetCount = getTargetCountForRuleset(els.rulesetSelect.value);
   state.successZone = parsedSuccessZone;
@@ -2240,7 +2266,7 @@ function startScoring() {
   state.sessionDate = els.sessionDateInput ? els.sessionDateInput.value : "";
   state.sessionTime = els.sessionTimeInput ? els.sessionTimeInput.value : "";
   state.activeRuleset = els.rulesetSelect.value;
-  state.scoringMode = getSelectedScoringMode();
+  state.scoringMode = scoringMode;
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
   state.useTargetGroups = getSelectedUseTargetGroups();
   state.useTimer = getSelectedUseTimer();
@@ -6041,6 +6067,9 @@ els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => 
   updateSuccessZoneSlider();
   updateWeaponSelectVisibility();
   updateUseTimerVisibility();
+  if (scoringMode === "individual" && !state.contestMode) {
+    syncSessionDateTimeForSoloMode();
+  }
   state._lastRuleset = ruleset;
   state._lastScoringMode = scoringMode;
   state._lastWeapon = weapon;
@@ -6087,7 +6116,7 @@ if (els.historyBtn) {
 
 function showSetupFromHome() {
   document.body.classList.add("home-underlay-active");
-  // Pre-select individual mode so the timer option is visible by default.
+    // Pre-select individual mode so the timer option is visible by default.
   const individualInput = [...els.scoringModeInputs].find((i) => i.value === "individual");
   if (individualInput && !individualInput.checked && isScoringModeAllowedForRuleset("individual", els.rulesetSelect.value)) {
     els.scoringModeInputs.forEach((i) => { i.checked = i.value === "individual"; });
@@ -6095,6 +6124,7 @@ function showSetupFromHome() {
     updateUseTimerVisibility();
     updateSuccessZoneSlider();
   }
+  syncSessionDateTimeForSoloMode();
   els.setupCard.classList.remove("hidden");
 }
 
@@ -6635,21 +6665,7 @@ if (!restorePersistedState()) {
   updateSuccessZoneSlider();
   persistAppState();
 }
-// Initialiser la date de la session avec la date du jour par défaut (format yyyy-mm-dd)
-if (els.sessionDateInput && !els.sessionDateInput.value) {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const dd = String(today.getDate()).padStart(2, "0");
-  els.sessionDateInput.value = `${yyyy}-${mm}-${dd}`;
-}
-// Initialiser l'heure de la session avec l'heure courante (format HH:mm)
-if (els.sessionTimeInput && !els.sessionTimeInput.value) {
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2, "0");
-  const mm = String(now.getMinutes()).padStart(2, "0");
-  els.sessionTimeInput.value = `${hh}:${mm}`;
-}
+syncSessionDateTimeForSoloMode();
 setRangeProgress(els.successZoneInput, els.successZoneInput.style.getPropertyValue("--zone-color").trim());
 setRangeProgress(els.configFullTargetTeam);
 setRangeProgress(els.configFullTargetIndiv);
