@@ -248,6 +248,7 @@ const els = {
   multiRulesetSelect: document.getElementById("multi-ruleset-select"),
   rulesetLabel: document.getElementById("ruleset-label"),
   multiModeSelect: document.getElementById("multi-mode-select"),
+  multiLudicModeContainer: document.getElementById("multi-ludic-mode-container"),
   multiLudicModeInputs: document.querySelectorAll('input[name="multi-ludic-mode"]'),
   multiModeOptionContest: document.getElementById("multi-mode-option-contest"),
   contestCodeContainer: document.getElementById("contest-code-container"),
@@ -4192,18 +4193,21 @@ async function openMultiModal() {
   // Initialiser l'affichage des éléments selon le mode
   const mode = els.multiModeSelect?.value || "duel";
   if (mode === "duel") {
+    els.multiLudicModeContainer?.classList.add("hidden");
     els.duelNamesContainer?.classList.remove("hidden");
     els.pelotonNamesContainer?.classList.add("hidden");
     els.targetCountFieldset?.classList.remove("hidden");
     els.contestCodeContainer?.classList.add("hidden");
     els.contestWeaponContainer?.classList.add("hidden");
   } else if (mode === "peloton") {
+    els.multiLudicModeContainer?.classList.remove("hidden");
     els.duelNamesContainer?.classList.add("hidden");
     els.pelotonNamesContainer?.classList.remove("hidden");
     els.targetCountFieldset?.classList.add("hidden");
     els.contestCodeContainer?.classList.add("hidden");
     els.contestWeaponContainer?.classList.add("hidden");
   } else if (mode === "contest") {
+    els.multiLudicModeContainer?.classList.remove("hidden");
     els.duelNamesContainer?.classList.add("hidden");
     els.pelotonNamesContainer?.classList.add("hidden");
     els.targetCountFieldset?.classList.add("hidden");
@@ -4717,6 +4721,9 @@ function getSelectedMultiTargetCount() {
 }
 
 function isMultiLudicModeEnabled() {
+  if ((els.multiModeSelect?.value || "duel") === "duel") {
+    return false;
+  }
   const checked = [...(els.multiLudicModeInputs || [])].find((input) => input.checked);
   return checked ? checked.value === "yes" : false;
 }
@@ -6274,6 +6281,7 @@ if (els.multiModeSelect) {
         els.duelNamesError.classList.add("hidden");
       }
     if (mode === "duel") {
+      els.multiLudicModeContainer?.classList.add("hidden");
       els.duelNamesContainer?.classList.remove("hidden");
       els.pelotonNamesContainer?.classList.add("hidden");
       els.targetCountFieldset?.classList.remove("hidden");
@@ -6289,6 +6297,7 @@ if (els.multiModeSelect) {
         els.duelBotRow?.classList.remove("visible");
       }
     } else if (mode === "peloton") {
+      els.multiLudicModeContainer?.classList.remove("hidden");
       els.duelNamesContainer?.classList.add("hidden");
       els.pelotonNamesContainer?.classList.remove("hidden");
       els.targetCountFieldset?.classList.add("hidden");
@@ -6296,6 +6305,7 @@ if (els.multiModeSelect) {
       els.contestWeaponContainer?.classList.add("hidden");
       els.duelBotRow?.classList.remove("visible");
     } else if (mode === "contest") {
+      els.multiLudicModeContainer?.classList.remove("hidden");
       els.duelNamesContainer?.classList.add("hidden");
       els.pelotonNamesContainer?.classList.add("hidden");
       els.targetCountFieldset?.classList.add("hidden");
