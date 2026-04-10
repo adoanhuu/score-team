@@ -750,8 +750,11 @@
               </label>
 
               <div class="training-volume-total" aria-live="polite">
-                <span>Total de flèches à tirer</span>
-                <strong id="training-volume-total-value">54</strong>
+                <div class="training-volume-counter" aria-label="Compteur total de flèches à tirer">
+                  <span id="training-volume-total-hundreds" class="training-volume-digit">0</span>
+                  <span id="training-volume-total-tens" class="training-volume-digit">5</span>
+                  <span id="training-volume-total-units" class="training-volume-digit">4</span>
+                </div>
               </div>
 
               <div class="start-action">
@@ -809,6 +812,61 @@
                 <path d="M7 5h3v14H7V5Zm7 0h3v14h-3V5Z" fill="currentColor" />
               </svg>
             </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="training-volume-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="training-volume-modal-title">
+        <div class="modal-overlay" id="training-volume-modal-overlay"></div>
+        <div class="modal-card training-volume-modal-card">
+          <div class="modal-head">
+            <h3 id="training-volume-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 4h16v4H4V4Zm0 6h16v4H4v-4Zm0 6h16v4H4v-4Z" fill="currentColor" />
+              </svg>
+              <span>Volume de flèches</span>
+            </h3>
+            <button id="training-volume-close-btn" class="btn btn-light btn-icon" aria-label="Fermer volume de flèches">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="training-volume-meta-row">
+            <strong class="training-volume-meta-block">
+              <span class="training-meta-label">Série</span>
+              <span id="training-volume-current-series-value" class="training-meta-value">1</span>
+            </strong>
+            <strong class="training-volume-meta-block">
+              <span class="training-meta-label">Volée</span>
+              <span id="training-volume-current-volley-value" class="training-meta-value">1</span>
+            </strong>
+          </div>
+
+          <div class="training-volume-progress-wrap">
+            <div class="training-volume-progress-head">
+              <span>Progression des flèches</span>
+              <strong id="training-volume-progress-value">0%</strong>
+            </div>
+            <input id="training-volume-progress-input" type="range" min="0" max="100" step="1" value="0" disabled />
+          </div>
+
+          <div class="start-action">
+            <button id="training-volume-next-btn" class="btn btn-primary btn-icon start-btn" aria-label="Passer à la volée suivante">
+              Volée suivante
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="training-volume-counter-wrap" aria-live="polite">
+            <div class="training-volume-counter" aria-label="Compteur analogique de flèches">
+              <span id="training-volume-counter-hundreds" class="training-volume-digit">0</span>
+              <span id="training-volume-counter-tens" class="training-volume-digit">0</span>
+              <span id="training-volume-counter-units" class="training-volume-digit">0</span>
+            </div>
           </div>
         </div>
       </section>

@@ -284,7 +284,20 @@ const els = {
   trainingVolumeVolleysValue: document.getElementById("training-volume-volleys-value"),
   trainingVolumeArrowsInput: document.getElementById("training-volume-arrows-input"),
   trainingVolumeArrowsValue: document.getElementById("training-volume-arrows-value"),
-  trainingVolumeTotalValue: document.getElementById("training-volume-total-value"),
+  trainingVolumeTotalHundreds: document.getElementById("training-volume-total-hundreds"),
+  trainingVolumeTotalTens: document.getElementById("training-volume-total-tens"),
+  trainingVolumeTotalUnits: document.getElementById("training-volume-total-units"),
+  trainingVolumeModal: document.getElementById("training-volume-modal"),
+  trainingVolumeModalOverlay: document.getElementById("training-volume-modal-overlay"),
+  trainingVolumeCloseBtn: document.getElementById("training-volume-close-btn"),
+  trainingVolumeCurrentSeriesValue: document.getElementById("training-volume-current-series-value"),
+  trainingVolumeCurrentVolleyValue: document.getElementById("training-volume-current-volley-value"),
+  trainingVolumeProgressInput: document.getElementById("training-volume-progress-input"),
+  trainingVolumeProgressValue: document.getElementById("training-volume-progress-value"),
+  trainingVolumeNextBtn: document.getElementById("training-volume-next-btn"),
+  trainingVolumeCounterHundreds: document.getElementById("training-volume-counter-hundreds"),
+  trainingVolumeCounterTens: document.getElementById("training-volume-counter-tens"),
+  trainingVolumeCounterUnits: document.getElementById("training-volume-counter-units"),
   trainingHoldModal: document.getElementById("training-hold-modal"),
   trainingHoldModalOverlay: document.getElementById("training-hold-modal-overlay"),
   trainingHoldCloseBtn: document.getElementById("training-hold-close-btn"),
@@ -381,6 +394,7 @@ let trainingCycleIntervalId = null;
 let duelBotMode = false;
 let duelBotShotTimeoutId = null;
 let trainingCycleState = null;
+let trainingVolumeSessionState = null;
 let trainingAudioContext = null;
 const TRAINING_VOICE_VOLUME = 0.55;
 
@@ -4684,8 +4698,15 @@ function updateTrainingVolumeDisplay() {
   els.trainingVolumeSeriesValue.textContent = String(safeSeries);
   els.trainingVolumeVolleysValue.textContent = String(safeVolleys);
   els.trainingVolumeArrowsValue.textContent = String(safeArrows);
-  if (els.trainingVolumeTotalValue) {
-    els.trainingVolumeTotalValue.textContent = String(totalArrows);
+  const totalCounter = String(Math.max(0, Math.min(999, totalArrows))).padStart(3, "0");
+  if (els.trainingVolumeTotalHundreds) {
+    els.trainingVolumeTotalHundreds.textContent = totalCounter[0];
+  }
+  if (els.trainingVolumeTotalTens) {
+    els.trainingVolumeTotalTens.textContent = totalCounter[1];
+  }
+  if (els.trainingVolumeTotalUnits) {
+    els.trainingVolumeTotalUnits.textContent = totalCounter[2];
   }
 
   appConfig.trainingVolume.series = safeSeries;
@@ -4708,6 +4729,7 @@ function openTrainingModal() {
   closeDuelModal();
   closePelotonModal();
   closeTrainingHoldModal();
+  closeTrainingVolumeModal();
   if (els.trainingOptionSelect) {
     els.trainingOptionSelect.value = "hold-time";
   }
@@ -4722,6 +4744,116 @@ function openTrainingModal() {
 
 function closeTrainingModal() {
   els.trainingModal?.classList.add("hidden");
+}
+
+function renderTrainingVolumeSession() {
+  if (!trainingVolumeSessionState) return;
+  const {
+    seriesTotal,
+    volleysPerSeries,
+    totalVolleys,
+    totalArrows,
+    currentSeries,
+    currentVolley,
+    completedVolleys,
+    arrowsFired,
+  } = trainingVolumeSessionState;
+  const safePct = totalArrows > 0 ? Math.min(100, Math.round((arrowsFired / totalArrows) * 100)) : 0;
+
+  if (els.trainingVolumeCurrentSeriesValue) {
+    els.trainingVolumeCurrentSeriesValue.textContent = `${currentSeries}/${seriesTotal}`;
+  }
+  if (els.trainingVolumeCurrentVolleyValue) {
+    els.trainingVolumeCurrentVolleyValue.textContent = `${currentVolley}/${volleysPerSeries}`;
+  }
+  if (els.trainingVolumeProgressInput) {
+    els.trainingVolumeProgressInput.value = String(safePct);
+    setRangeProgress(els.trainingVolumeProgressInput, "#1f6feb");
+  }
+  if (els.trainingVolumeProgressValue) {
+    els.trainingVolumeProgressValue.textContent = `${safePct}%`;
+  }
+
+  const cappedCounter = String(Math.max(0, Math.min(999, arrowsFired))).padStart(3, "0");
+  if (els.trainingVolumeCounterHundreds) {
+    els.trainingVolumeCounterHundreds.textContent = cappedCounter[0];
+  }
+  if (els.trainingVolumeCounterTens) {
+    els.trainingVolumeCounterTens.textContent = cappedCounter[1];
+  }
+  if (els.trainingVolumeCounterUnits) {
+    els.trainingVolumeCounterUnits.textContent = cappedCounter[2];
+  }
+
+  if (els.trainingVolumeNextBtn) {
+    const completed = completedVolleys >= totalVolleys;
+    els.trainingVolumeNextBtn.disabled = completed;
+    els.trainingVolumeNextBtn.setAttribute("aria-label", completed ? "Séance terminée" : "Passer à la volée suivante");
+  }
+}
+
+function openTrainingVolumeModal() {
+  updateTrainingVolumeDisplay();
+
+  const series = Number.parseInt(els.trainingVolumeSeriesInput?.value || "1", 10);
+  const volleysPerSeries = Number.parseInt(els.trainingVolumeVolleysInput?.value || "1", 10);
+  const arrowsPerVolley = Number.parseInt(els.trainingVolumeArrowsInput?.value || "1", 10);
+  const safeSeries = Number.isInteger(series) ? Math.min(10, Math.max(1, series)) : 1;
+  const safeVolleysPerSeries = Number.isInteger(volleysPerSeries) ? Math.min(6, Math.max(1, volleysPerSeries)) : 1;
+  const safeArrowsPerVolley = Number.isInteger(arrowsPerVolley) ? Math.min(12, Math.max(1, arrowsPerVolley)) : 1;
+  const totalVolleys = safeSeries * safeVolleysPerSeries;
+  const totalArrows = totalVolleys * safeArrowsPerVolley;
+
+  closeTrainingModal();
+  closeTrainingHoldModal();
+
+  trainingVolumeSessionState = {
+    seriesTotal: safeSeries,
+    volleysPerSeries: safeVolleysPerSeries,
+    arrowsPerVolley: safeArrowsPerVolley,
+    totalVolleys,
+    totalArrows,
+    currentSeries: 1,
+    currentVolley: 1,
+    completedVolleys: 0,
+    arrowsFired: 0,
+  };
+  els.trainingVolumeModal?.classList.remove("hidden");
+  renderTrainingVolumeSession();
+}
+
+function closeTrainingVolumeModal() {
+  els.trainingVolumeModal?.classList.add("hidden");
+  trainingVolumeSessionState = null;
+}
+
+function registerNextTrainingVolumeVolley() {
+  if (!trainingVolumeSessionState) return;
+
+  if (trainingVolumeSessionState.completedVolleys >= trainingVolumeSessionState.totalVolleys) {
+    return;
+  }
+
+  trainingVolumeSessionState.completedVolleys += 1;
+  trainingVolumeSessionState.arrowsFired = Math.min(
+    trainingVolumeSessionState.totalArrows,
+    trainingVolumeSessionState.completedVolleys * trainingVolumeSessionState.arrowsPerVolley,
+  );
+
+  if (trainingVolumeSessionState.completedVolleys < trainingVolumeSessionState.totalVolleys) {
+    trainingVolumeSessionState.currentSeries = Math.floor(
+      trainingVolumeSessionState.completedVolleys / trainingVolumeSessionState.volleysPerSeries,
+    ) + 1;
+    trainingVolumeSessionState.currentVolley = (
+      trainingVolumeSessionState.completedVolleys % trainingVolumeSessionState.volleysPerSeries
+    ) + 1;
+  }
+
+  renderTrainingVolumeSession();
+
+  if (trainingVolumeSessionState.completedVolleys >= trainingVolumeSessionState.totalVolleys) {
+    showFlashInfo("Séance volume terminée.");
+  }
 }
 
 function openTrainingHoldModal() {
@@ -6517,9 +6649,7 @@ if (els.trainingVolumeStartBtn) {
       showFlashInfo("Sélectionnez d'abord l'exercice Volume de flèches.");
       return;
     }
-    updateTrainingVolumeDisplay();
-    const totalArrows = Number.parseInt(els.trainingVolumeTotalValue?.textContent || "0", 10) || 0;
-    showFlashInfo(`Objectif de séance: ${totalArrows} flèches à tirer.`);
+    openTrainingVolumeModal();
   });
 }
 if (els.trainingSeriesInput) {
@@ -6548,6 +6678,15 @@ if (els.trainingHoldModalOverlay) {
 }
 if (els.trainingHoldCloseBtn) {
   els.trainingHoldCloseBtn.addEventListener("click", closeTrainingHoldModal);
+}
+if (els.trainingVolumeModalOverlay) {
+  els.trainingVolumeModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.trainingVolumeCloseBtn) {
+  els.trainingVolumeCloseBtn.addEventListener("click", closeTrainingVolumeModal);
+}
+if (els.trainingVolumeNextBtn) {
+  els.trainingVolumeNextBtn.addEventListener("click", registerNextTrainingVolumeVolley);
 }
 if (els.trainingCycleToggleBtn) {
   els.trainingCycleToggleBtn.addEventListener("click", () => {

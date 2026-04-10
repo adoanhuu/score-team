@@ -693,6 +693,7 @@ input[type="range"]:focus-visible {
 #duel-restart-btn,
 #training-start-btn,
 #training-volume-start-btn,
+#training-volume-next-btn,
 #training-cycle-toggle-btn {
   display: inline-flex;
   align-items: center;
@@ -705,6 +706,7 @@ input[type="range"]:focus-visible {
 #duel-restart-btn svg,
 #training-start-btn svg,
 #training-volume-start-btn svg,
+#training-volume-next-btn svg,
 #training-cycle-toggle-btn svg {
   color: #fff;
 }
@@ -1792,20 +1794,22 @@ input[type="range"]:focus-visible {
   gap: 12px;
 }
 
-.training-volume-total {
+.training-volume-total,
+.training-volume-counter-wrap {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #f4efe6;
   color: var(--dark-blue);
   padding: 10px 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: grid;
+  justify-items: center;
   gap: 10px;
+  width: 260px;
+  margin: 0 auto;
 }
 
 .training-volume-total span {
-  font-size: 0.86rem;
+  font-size: 4rem;
   font-weight: 600;
 }
 
@@ -1815,11 +1819,98 @@ input[type="range"]:focus-visible {
 }
 
 #training-start-btn,
-#training-volume-start-btn {
+#training-volume-start-btn,
+#training-volume-next-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.training-volume-modal-card {
+  width: min(520px, 100%);
+}
+
+.training-volume-meta-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 8px 0 14px;
+}
+
+.training-volume-meta-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  border-radius: 12px;
+  background: var(--line);
+  color: #fff;
+  padding: 10px 12px;
+}
+
+.training-volume-meta-block .training-meta-value {
+  font-size: 2.1rem;
+}
+
+.training-volume-progress-wrap {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.training-volume-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--dark-blue);
+  font-weight: 700;
+}
+
+#training-volume-progress-input {
+  width: 100%;
+  accent-color: var(--light-blue);
+}
+
+#training-volume-progress-input:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.training-volume-counter-wrap {
+  margin-top: 10px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.training-volume-counter-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--dark-blue);
+}
+
+.training-volume-counter {
+  display: flex;
+  gap: 10px;
+}
+
+.training-volume-digit {
+  width: 72px;
+  height: 84px;
+  border-radius: 8px;
+  border: 1px solid #232323;
+  background: #111;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 4rem;
+  line-height: 1.4;
+  font-weight: 800;
+  font-family: "Courier New", monospace;
+  box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.08);
 }
 
 .training-hold-modal-card {
