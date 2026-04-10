@@ -295,6 +295,7 @@ const els = {
   trainingVolumeProgressInput: document.getElementById("training-volume-progress-input"),
   trainingVolumeProgressValue: document.getElementById("training-volume-progress-value"),
   trainingVolumeNextBtn: document.getElementById("training-volume-next-btn"),
+  trainingVolumeNextBtnLabel: document.getElementById("training-volume-next-btn-label"),
   trainingVolumeCounterHundreds: document.getElementById("training-volume-counter-hundreds"),
   trainingVolumeCounterTens: document.getElementById("training-volume-counter-tens"),
   trainingVolumeCounterUnits: document.getElementById("training-volume-counter-units"),
@@ -4787,8 +4788,17 @@ function renderTrainingVolumeSession() {
 
   if (els.trainingVolumeNextBtn) {
     const completed = completedVolleys >= totalVolleys;
+    const arrowsLabel = trainingVolumeSessionState.arrowsPerVolley;
+    if (els.trainingVolumeNextBtnLabel) {
+      els.trainingVolumeNextBtnLabel.textContent = `Tirer ${arrowsLabel} ${arrowsLabel > 1 ? "flèches" : "flèche"}`;
+    }
     els.trainingVolumeNextBtn.disabled = completed;
-    els.trainingVolumeNextBtn.setAttribute("aria-label", completed ? "Séance terminée" : "Passer à la volée suivante");
+    els.trainingVolumeNextBtn.setAttribute(
+      "aria-label",
+      completed
+        ? "Séance terminée"
+        : `Tirer ${arrowsLabel} ${arrowsLabel > 1 ? "flèches" : "flèche"}`,
+    );
   }
 }
 

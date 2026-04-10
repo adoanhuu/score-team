@@ -1845,7 +1845,7 @@ input[type="range"]:focus-visible {
   gap: 2px;
   text-align: center;
   border-radius: 12px;
-  background: var(--line);
+  background: #2d6a4f;
   color: #fff;
   padding: 10px 12px;
 }
