@@ -23,6 +23,11 @@ const TRAINING_SETTINGS_DEFAULTS = {
   holdSeconds: 4,
   restSeconds: 5,
 };
+const TRAINING_VOLUME_DEFAULTS = {
+  series: 3,
+  volleysPerSeries: 3,
+  arrowsPerVolley: 6,
+};
 
 const state = {
   targetCount: 21,
@@ -262,7 +267,9 @@ const els = {
   trainingCloseBtn: document.getElementById("training-close-btn"),
   trainingOptionSelect: document.getElementById("training-option-select"),
   trainingHoldTimeForm: document.getElementById("training-hold-time-form"),
+  trainingVolumeForm: document.getElementById("training-volume-form"),
   trainingStartBtn: document.getElementById("training-start-btn"),
+  trainingVolumeStartBtn: document.getElementById("training-volume-start-btn"),
   trainingSeriesInput: document.getElementById("training-series-input"),
   trainingSeriesValue: document.getElementById("training-series-value"),
   trainingRepetitionsInput: document.getElementById("training-repetitions-input"),
@@ -271,6 +278,13 @@ const els = {
   trainingHoldSecondsValue: document.getElementById("training-hold-seconds-value"),
   trainingRestSecondsInput: document.getElementById("training-rest-seconds-input"),
   trainingRestSecondsValue: document.getElementById("training-rest-seconds-value"),
+  trainingVolumeSeriesInput: document.getElementById("training-volume-series-input"),
+  trainingVolumeSeriesValue: document.getElementById("training-volume-series-value"),
+  trainingVolumeVolleysInput: document.getElementById("training-volume-volleys-input"),
+  trainingVolumeVolleysValue: document.getElementById("training-volume-volleys-value"),
+  trainingVolumeArrowsInput: document.getElementById("training-volume-arrows-input"),
+  trainingVolumeArrowsValue: document.getElementById("training-volume-arrows-value"),
+  trainingVolumeTotalValue: document.getElementById("training-volume-total-value"),
   trainingHoldModal: document.getElementById("training-hold-modal"),
   trainingHoldModalOverlay: document.getElementById("training-hold-modal-overlay"),
   trainingHoldCloseBtn: document.getElementById("training-hold-close-btn"),
@@ -663,6 +677,9 @@ const appConfig = {
   trainingHold: {
     ...TRAINING_SETTINGS_DEFAULTS,
   },
+  trainingVolume: {
+    ...TRAINING_VOLUME_DEFAULTS,
+  },
   enabledRulesets: ["nature", "campagne", "3d", "3d2", "3dh", "ar", "field"],
 };
 
@@ -704,6 +721,20 @@ function loadConfig() {
         appConfig.trainingHold.restSeconds = Number.isInteger(parsedRestSeconds)
           ? Math.min(30, Math.max(5, parsedRestSeconds))
           : TRAINING_SETTINGS_DEFAULTS.restSeconds;
+      }
+      if (saved.trainingVolume && typeof saved.trainingVolume === "object") {
+        const parsedSeries = Number.parseInt(saved.trainingVolume.series, 10);
+        const parsedVolleysPerSeries = Number.parseInt(saved.trainingVolume.volleysPerSeries, 10);
+        const parsedArrowsPerVolley = Number.parseInt(saved.trainingVolume.arrowsPerVolley, 10);
+        appConfig.trainingVolume.series = Number.isInteger(parsedSeries)
+          ? Math.min(10, Math.max(1, parsedSeries))
+          : TRAINING_VOLUME_DEFAULTS.series;
+        appConfig.trainingVolume.volleysPerSeries = Number.isInteger(parsedVolleysPerSeries)
+          ? Math.min(6, Math.max(1, parsedVolleysPerSeries))
+          : TRAINING_VOLUME_DEFAULTS.volleysPerSeries;
+        appConfig.trainingVolume.arrowsPerVolley = Number.isInteger(parsedArrowsPerVolley)
+          ? Math.min(12, Math.max(1, parsedArrowsPerVolley))
+          : TRAINING_VOLUME_DEFAULTS.arrowsPerVolley;
       }
       if (Array.isArray(saved.enabledRulesets)) {
         appConfig.enabledRulesets = saved.enabledRulesets;
@@ -4625,9 +4656,46 @@ function updateTrainingRepetitionsDisplay() {
 }
 
 function syncTrainingOptionForm() {
-  if (!els.trainingOptionSelect || !els.trainingHoldTimeForm) return;
+  if (!els.trainingOptionSelect || !els.trainingHoldTimeForm || !els.trainingVolumeForm) return;
   const isHoldTime = els.trainingOptionSelect.value === "hold-time";
+  const isVolumeArrows = els.trainingOptionSelect.value === "volume-arrows";
   els.trainingHoldTimeForm.classList.toggle("hidden", !isHoldTime);
+  els.trainingVolumeForm.classList.toggle("hidden", !isVolumeArrows);
+}
+
+function updateTrainingVolumeDisplay() {
+  if (!els.trainingVolumeSeriesInput || !els.trainingVolumeSeriesValue) return;
+  if (!els.trainingVolumeVolleysInput || !els.trainingVolumeVolleysValue) return;
+  if (!els.trainingVolumeArrowsInput || !els.trainingVolumeArrowsValue) return;
+
+  const parsedSeries = Number.parseInt(els.trainingVolumeSeriesInput.value, 10);
+  const parsedVolleys = Number.parseInt(els.trainingVolumeVolleysInput.value, 10);
+  const parsedArrows = Number.parseInt(els.trainingVolumeArrowsInput.value, 10);
+
+  const safeSeries = Number.isInteger(parsedSeries) ? Math.min(10, Math.max(1, parsedSeries)) : 1;
+  const safeVolleys = Number.isInteger(parsedVolleys) ? Math.min(6, Math.max(1, parsedVolleys)) : 1;
+  const safeArrows = Number.isInteger(parsedArrows) ? Math.min(12, Math.max(1, parsedArrows)) : 1;
+  const totalArrows = safeSeries * safeVolleys * safeArrows;
+
+  els.trainingVolumeSeriesInput.value = String(safeSeries);
+  els.trainingVolumeVolleysInput.value = String(safeVolleys);
+  els.trainingVolumeArrowsInput.value = String(safeArrows);
+
+  els.trainingVolumeSeriesValue.textContent = String(safeSeries);
+  els.trainingVolumeVolleysValue.textContent = String(safeVolleys);
+  els.trainingVolumeArrowsValue.textContent = String(safeArrows);
+  if (els.trainingVolumeTotalValue) {
+    els.trainingVolumeTotalValue.textContent = String(totalArrows);
+  }
+
+  appConfig.trainingVolume.series = safeSeries;
+  appConfig.trainingVolume.volleysPerSeries = safeVolleys;
+  appConfig.trainingVolume.arrowsPerVolley = safeArrows;
+  saveConfig();
+
+  setRangeProgress(els.trainingVolumeSeriesInput);
+  setRangeProgress(els.trainingVolumeVolleysInput);
+  setRangeProgress(els.trainingVolumeArrowsInput);
 }
 
 function openTrainingModal() {
@@ -4648,6 +4716,7 @@ function openTrainingModal() {
   updateTrainingRepetitionsDisplay();
   updateTrainingHoldSecondsDisplay();
   updateTrainingRestSecondsDisplay();
+  updateTrainingVolumeDisplay();
   els.trainingModal?.classList.remove("hidden");
 }
 
@@ -6436,10 +6505,21 @@ if (els.trainingOptionSelect) {
 if (els.trainingStartBtn) {
   els.trainingStartBtn.addEventListener("click", () => {
     if (els.trainingOptionSelect?.value !== "hold-time") {
-      showFlashInfo("Sélectionnez d'abord l'option Temps de tenue.");
+      showFlashInfo("Sélectionnez d'abord l'exercice Temps de tenue.");
       return;
     }
     openTrainingHoldModal();
+  });
+}
+if (els.trainingVolumeStartBtn) {
+  els.trainingVolumeStartBtn.addEventListener("click", () => {
+    if (els.trainingOptionSelect?.value !== "volume-arrows") {
+      showFlashInfo("Sélectionnez d'abord l'exercice Volume de flèches.");
+      return;
+    }
+    updateTrainingVolumeDisplay();
+    const totalArrows = Number.parseInt(els.trainingVolumeTotalValue?.textContent || "0", 10) || 0;
+    showFlashInfo(`Objectif de séance: ${totalArrows} flèches à tirer.`);
   });
 }
 if (els.trainingSeriesInput) {
@@ -6453,6 +6533,15 @@ if (els.trainingHoldSecondsInput) {
 }
 if (els.trainingRestSecondsInput) {
   els.trainingRestSecondsInput.addEventListener("input", updateTrainingRestSecondsDisplay);
+}
+if (els.trainingVolumeSeriesInput) {
+  els.trainingVolumeSeriesInput.addEventListener("input", updateTrainingVolumeDisplay);
+}
+if (els.trainingVolumeVolleysInput) {
+  els.trainingVolumeVolleysInput.addEventListener("input", updateTrainingVolumeDisplay);
+}
+if (els.trainingVolumeArrowsInput) {
+  els.trainingVolumeArrowsInput.addEventListener("input", updateTrainingVolumeDisplay);
 }
 if (els.trainingHoldModalOverlay) {
   els.trainingHoldModalOverlay.addEventListener("click", (e) => e.stopPropagation());
@@ -6693,10 +6782,20 @@ if (els.trainingHoldSecondsInput) {
 if (els.trainingRestSecondsInput) {
   els.trainingRestSecondsInput.value = String(appConfig.trainingHold.restSeconds);
 }
+if (els.trainingVolumeSeriesInput) {
+  els.trainingVolumeSeriesInput.value = String(appConfig.trainingVolume.series);
+}
+if (els.trainingVolumeVolleysInput) {
+  els.trainingVolumeVolleysInput.value = String(appConfig.trainingVolume.volleysPerSeries);
+}
+if (els.trainingVolumeArrowsInput) {
+  els.trainingVolumeArrowsInput.value = String(appConfig.trainingVolume.arrowsPerVolley);
+}
 updateTrainingSeriesDisplay();
 updateTrainingRepetitionsDisplay();
 updateTrainingHoldSecondsDisplay();
 updateTrainingRestSecondsDisplay();
+updateTrainingVolumeDisplay();
 syncSoloScoringCardHeight();
 
 window.addEventListener("resize", syncSoloScoringCardHeight);

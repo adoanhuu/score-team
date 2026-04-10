@@ -674,9 +674,10 @@
 
           <div class="general-stats-filter-row" id="training-options-container">
             <label for="training-option-select">
-              <span class="label-inline">Option</span>
+              <span class="label-inline">Exercice</span>
               <select id="training-option-select">
                 <option value="hold-time" selected>Temps de tenue</option>
+                <option value="volume-arrows">Volume de flèches</option>
               </select>
             </label>
 
@@ -715,6 +716,46 @@
 
               <div class="start-action">
                 <button id="training-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer entraînement temps de tenue">
+                  Démarrer
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="training-volume-form" class="hidden">
+              <label for="training-volume-series-input">
+                <span class="label-inline">Nombre de séries</span>
+                <div class="slider-row">
+                  <input id="training-volume-series-input" type="range" min="1" max="10" step="1" value="3" />
+                  <strong id="training-volume-series-value">3</strong>
+                </div>
+              </label>
+
+              <label for="training-volume-volleys-input">
+                <span class="label-inline">Nombre de volées par série</span>
+                <div class="slider-row">
+                  <input id="training-volume-volleys-input" type="range" min="1" max="6" step="1" value="3" />
+                  <strong id="training-volume-volleys-value">3</strong>
+                </div>
+              </label>
+
+              <label for="training-volume-arrows-input">
+                <span class="label-inline">Nombre de flèches par volée</span>
+                <div class="slider-row">
+                  <input id="training-volume-arrows-input" type="range" min="1" max="12" step="1" value="6" />
+                  <strong id="training-volume-arrows-value">6</strong>
+                </div>
+              </label>
+
+              <div class="training-volume-total" aria-live="polite">
+                <span>Total de flèches à tirer</span>
+                <strong id="training-volume-total-value">54</strong>
+              </div>
+
+              <div class="start-action">
+                <button id="training-volume-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer entraînement volume de flèches">
                   Démarrer
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />

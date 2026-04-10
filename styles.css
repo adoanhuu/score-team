@@ -692,6 +692,7 @@ input[type="range"]:focus-visible {
 #multi-start-btn,
 #duel-restart-btn,
 #training-start-btn,
+#training-volume-start-btn,
 #training-cycle-toggle-btn {
   display: inline-flex;
   align-items: center;
@@ -703,6 +704,7 @@ input[type="range"]:focus-visible {
 #multi-start-btn svg,
 #duel-restart-btn svg,
 #training-start-btn svg,
+#training-volume-start-btn svg,
 #training-cycle-toggle-btn svg {
   color: #fff;
 }
@@ -1785,7 +1787,35 @@ input[type="range"]:focus-visible {
   gap: 12px;
 }
 
-#training-start-btn {
+#training-volume-form {
+  display: grid;
+  gap: 12px;
+}
+
+.training-volume-total {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f4efe6;
+  color: var(--dark-blue);
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.training-volume-total span {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.training-volume-total strong {
+  font-size: 2rem;
+  color: #2d6a4f;
+}
+
+#training-start-btn,
+#training-volume-start-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
