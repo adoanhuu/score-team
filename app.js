@@ -1,6 +1,6 @@
 const ARROWS_PER_VOLLEY = 6;
 const TEAM_ARCHERS_PER_VOLLEY = 3;
-const APP_VERSION = "v2.4.0";
+const APP_VERSION = "v2.4.1";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -22,6 +22,11 @@ const TRAINING_SETTINGS_DEFAULTS = {
   repetitions: 3,
   holdSeconds: 4,
   restSeconds: 5,
+};
+const TRAINING_VOLUME_DEFAULTS = {
+  series: 3,
+  volleysPerSeries: 3,
+  arrowsPerVolley: 6,
 };
 
 const state = {
@@ -248,6 +253,7 @@ const els = {
   multiRulesetSelect: document.getElementById("multi-ruleset-select"),
   rulesetLabel: document.getElementById("ruleset-label"),
   multiModeSelect: document.getElementById("multi-mode-select"),
+  multiLudicModeContainer: document.getElementById("multi-ludic-mode-container"),
   multiLudicModeInputs: document.querySelectorAll('input[name="multi-ludic-mode"]'),
   multiModeOptionContest: document.getElementById("multi-mode-option-contest"),
   contestCodeContainer: document.getElementById("contest-code-container"),
@@ -261,7 +267,9 @@ const els = {
   trainingCloseBtn: document.getElementById("training-close-btn"),
   trainingOptionSelect: document.getElementById("training-option-select"),
   trainingHoldTimeForm: document.getElementById("training-hold-time-form"),
+  trainingVolumeForm: document.getElementById("training-volume-form"),
   trainingStartBtn: document.getElementById("training-start-btn"),
+  trainingVolumeStartBtn: document.getElementById("training-volume-start-btn"),
   trainingSeriesInput: document.getElementById("training-series-input"),
   trainingSeriesValue: document.getElementById("training-series-value"),
   trainingRepetitionsInput: document.getElementById("training-repetitions-input"),
@@ -270,6 +278,27 @@ const els = {
   trainingHoldSecondsValue: document.getElementById("training-hold-seconds-value"),
   trainingRestSecondsInput: document.getElementById("training-rest-seconds-input"),
   trainingRestSecondsValue: document.getElementById("training-rest-seconds-value"),
+  trainingVolumeSeriesInput: document.getElementById("training-volume-series-input"),
+  trainingVolumeSeriesValue: document.getElementById("training-volume-series-value"),
+  trainingVolumeVolleysInput: document.getElementById("training-volume-volleys-input"),
+  trainingVolumeVolleysValue: document.getElementById("training-volume-volleys-value"),
+  trainingVolumeArrowsInput: document.getElementById("training-volume-arrows-input"),
+  trainingVolumeArrowsValue: document.getElementById("training-volume-arrows-value"),
+  trainingVolumeTotalHundreds: document.getElementById("training-volume-total-hundreds"),
+  trainingVolumeTotalTens: document.getElementById("training-volume-total-tens"),
+  trainingVolumeTotalUnits: document.getElementById("training-volume-total-units"),
+  trainingVolumeModal: document.getElementById("training-volume-modal"),
+  trainingVolumeModalOverlay: document.getElementById("training-volume-modal-overlay"),
+  trainingVolumeCloseBtn: document.getElementById("training-volume-close-btn"),
+  trainingVolumeCurrentSeriesValue: document.getElementById("training-volume-current-series-value"),
+  trainingVolumeCurrentVolleyValue: document.getElementById("training-volume-current-volley-value"),
+  trainingVolumeProgressInput: document.getElementById("training-volume-progress-input"),
+  trainingVolumeProgressValue: document.getElementById("training-volume-progress-value"),
+  trainingVolumeNextBtn: document.getElementById("training-volume-next-btn"),
+  trainingVolumeNextBtnLabel: document.getElementById("training-volume-next-btn-label"),
+  trainingVolumeCounterHundreds: document.getElementById("training-volume-counter-hundreds"),
+  trainingVolumeCounterTens: document.getElementById("training-volume-counter-tens"),
+  trainingVolumeCounterUnits: document.getElementById("training-volume-counter-units"),
   trainingHoldModal: document.getElementById("training-hold-modal"),
   trainingHoldModalOverlay: document.getElementById("training-hold-modal-overlay"),
   trainingHoldCloseBtn: document.getElementById("training-hold-close-btn"),
@@ -366,6 +395,7 @@ let trainingCycleIntervalId = null;
 let duelBotMode = false;
 let duelBotShotTimeoutId = null;
 let trainingCycleState = null;
+let trainingVolumeSessionState = null;
 let trainingAudioContext = null;
 const TRAINING_VOICE_VOLUME = 0.55;
 
@@ -662,6 +692,9 @@ const appConfig = {
   trainingHold: {
     ...TRAINING_SETTINGS_DEFAULTS,
   },
+  trainingVolume: {
+    ...TRAINING_VOLUME_DEFAULTS,
+  },
   enabledRulesets: ["nature", "campagne", "3d", "3d2", "3dh", "ar", "field"],
 };
 
@@ -703,6 +736,20 @@ function loadConfig() {
         appConfig.trainingHold.restSeconds = Number.isInteger(parsedRestSeconds)
           ? Math.min(30, Math.max(5, parsedRestSeconds))
           : TRAINING_SETTINGS_DEFAULTS.restSeconds;
+      }
+      if (saved.trainingVolume && typeof saved.trainingVolume === "object") {
+        const parsedSeries = Number.parseInt(saved.trainingVolume.series, 10);
+        const parsedVolleysPerSeries = Number.parseInt(saved.trainingVolume.volleysPerSeries, 10);
+        const parsedArrowsPerVolley = Number.parseInt(saved.trainingVolume.arrowsPerVolley, 10);
+        appConfig.trainingVolume.series = Number.isInteger(parsedSeries)
+          ? Math.min(10, Math.max(1, parsedSeries))
+          : TRAINING_VOLUME_DEFAULTS.series;
+        appConfig.trainingVolume.volleysPerSeries = Number.isInteger(parsedVolleysPerSeries)
+          ? Math.min(6, Math.max(1, parsedVolleysPerSeries))
+          : TRAINING_VOLUME_DEFAULTS.volleysPerSeries;
+        appConfig.trainingVolume.arrowsPerVolley = Number.isInteger(parsedArrowsPerVolley)
+          ? Math.min(12, Math.max(1, parsedArrowsPerVolley))
+          : TRAINING_VOLUME_DEFAULTS.arrowsPerVolley;
       }
       if (Array.isArray(saved.enabledRulesets)) {
         appConfig.enabledRulesets = saved.enabledRulesets;
@@ -2035,6 +2082,27 @@ function getSelectedScoringMode() {
   return normalizeScoringMode(rawMode, els.rulesetSelect.value);
 }
 
+function getCurrentSessionDateTime() {
+  const now = new Date();
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  return { date, time };
+}
+
+function syncSessionDateTimeForSoloMode() {
+  if (state.contestMode || getSelectedScoringMode() !== "individual") {
+    return;
+  }
+  const { date, time } = getCurrentSessionDateTime();
+  if (els.sessionDateInput) {
+    els.sessionDateInput.value = date;
+  }
+  if (els.sessionTimeInput) {
+    els.sessionTimeInput.value = time;
+  }
+  persistAppState();
+}
+
 function updateWeaponSelectVisibility() {
   const scoringMode = getSelectedScoringMode();
   const weaponWrapper = document.getElementById("weapon-select-wrapper");
@@ -2233,6 +2301,11 @@ function startScoring() {
   }
 
   const points = presets[els.rulesetSelect.value];
+  const scoringMode = getSelectedScoringMode();
+
+  if (!state.contestMode && scoringMode === "individual") {
+    syncSessionDateTimeForSoloMode();
+  }
 
   state.targetCount = getTargetCountForRuleset(els.rulesetSelect.value);
   state.successZone = parsedSuccessZone;
@@ -2240,7 +2313,7 @@ function startScoring() {
   state.sessionDate = els.sessionDateInput ? els.sessionDateInput.value : "";
   state.sessionTime = els.sessionTimeInput ? els.sessionTimeInput.value : "";
   state.activeRuleset = els.rulesetSelect.value;
-  state.scoringMode = getSelectedScoringMode();
+  state.scoringMode = scoringMode;
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
   state.useTargetGroups = getSelectedUseTargetGroups();
   state.useTimer = getSelectedUseTimer();
@@ -4166,18 +4239,21 @@ async function openMultiModal() {
   // Initialiser l'affichage des éléments selon le mode
   const mode = els.multiModeSelect?.value || "duel";
   if (mode === "duel") {
+    els.multiLudicModeContainer?.classList.add("hidden");
     els.duelNamesContainer?.classList.remove("hidden");
     els.pelotonNamesContainer?.classList.add("hidden");
     els.targetCountFieldset?.classList.remove("hidden");
     els.contestCodeContainer?.classList.add("hidden");
     els.contestWeaponContainer?.classList.add("hidden");
   } else if (mode === "peloton") {
+    els.multiLudicModeContainer?.classList.remove("hidden");
     els.duelNamesContainer?.classList.add("hidden");
     els.pelotonNamesContainer?.classList.remove("hidden");
     els.targetCountFieldset?.classList.add("hidden");
     els.contestCodeContainer?.classList.add("hidden");
     els.contestWeaponContainer?.classList.add("hidden");
   } else if (mode === "contest") {
+    els.multiLudicModeContainer?.classList.remove("hidden");
     els.duelNamesContainer?.classList.add("hidden");
     els.pelotonNamesContainer?.classList.add("hidden");
     els.targetCountFieldset?.classList.add("hidden");
@@ -4595,9 +4671,53 @@ function updateTrainingRepetitionsDisplay() {
 }
 
 function syncTrainingOptionForm() {
-  if (!els.trainingOptionSelect || !els.trainingHoldTimeForm) return;
+  if (!els.trainingOptionSelect || !els.trainingHoldTimeForm || !els.trainingVolumeForm) return;
   const isHoldTime = els.trainingOptionSelect.value === "hold-time";
+  const isVolumeArrows = els.trainingOptionSelect.value === "volume-arrows";
   els.trainingHoldTimeForm.classList.toggle("hidden", !isHoldTime);
+  els.trainingVolumeForm.classList.toggle("hidden", !isVolumeArrows);
+}
+
+function updateTrainingVolumeDisplay() {
+  if (!els.trainingVolumeSeriesInput || !els.trainingVolumeSeriesValue) return;
+  if (!els.trainingVolumeVolleysInput || !els.trainingVolumeVolleysValue) return;
+  if (!els.trainingVolumeArrowsInput || !els.trainingVolumeArrowsValue) return;
+
+  const parsedSeries = Number.parseInt(els.trainingVolumeSeriesInput.value, 10);
+  const parsedVolleys = Number.parseInt(els.trainingVolumeVolleysInput.value, 10);
+  const parsedArrows = Number.parseInt(els.trainingVolumeArrowsInput.value, 10);
+
+  const safeSeries = Number.isInteger(parsedSeries) ? Math.min(10, Math.max(1, parsedSeries)) : 1;
+  const safeVolleys = Number.isInteger(parsedVolleys) ? Math.min(6, Math.max(1, parsedVolleys)) : 1;
+  const safeArrows = Number.isInteger(parsedArrows) ? Math.min(12, Math.max(1, parsedArrows)) : 1;
+  const totalArrows = safeSeries * safeVolleys * safeArrows;
+
+  els.trainingVolumeSeriesInput.value = String(safeSeries);
+  els.trainingVolumeVolleysInput.value = String(safeVolleys);
+  els.trainingVolumeArrowsInput.value = String(safeArrows);
+
+  els.trainingVolumeSeriesValue.textContent = String(safeSeries);
+  els.trainingVolumeVolleysValue.textContent = String(safeVolleys);
+  els.trainingVolumeArrowsValue.textContent = String(safeArrows);
+  const totalCounter = String(Math.max(0, Math.min(999, totalArrows))).padStart(3, "0");
+  if (els.trainingVolumeTotalHundreds) {
+    els.trainingVolumeTotalHundreds.textContent = totalCounter[0];
+  }
+  if (els.trainingVolumeTotalTens) {
+    els.trainingVolumeTotalTens.textContent = totalCounter[1];
+  }
+  if (els.trainingVolumeTotalUnits) {
+    els.trainingVolumeTotalUnits.textContent = totalCounter[2];
+  }
+
+  appConfig.trainingVolume.series = safeSeries;
+  appConfig.trainingVolume.volleysPerSeries = safeVolleys;
+  appConfig.trainingVolume.arrowsPerVolley = safeArrows;
+  saveConfig();
+
+  setRangeProgress(els.trainingVolumeSeriesInput);
+  setRangeProgress(els.trainingVolumeVolleysInput);
+  setRangeProgress(els.trainingVolumeArrowsInput);
 }
 
 function openTrainingModal() {
@@ -4610,6 +4730,7 @@ function openTrainingModal() {
   closeDuelModal();
   closePelotonModal();
   closeTrainingHoldModal();
+  closeTrainingVolumeModal();
   if (els.trainingOptionSelect) {
     els.trainingOptionSelect.value = "hold-time";
   }
@@ -4618,11 +4739,131 @@ function openTrainingModal() {
   updateTrainingRepetitionsDisplay();
   updateTrainingHoldSecondsDisplay();
   updateTrainingRestSecondsDisplay();
+  updateTrainingVolumeDisplay();
   els.trainingModal?.classList.remove("hidden");
 }
 
 function closeTrainingModal() {
   els.trainingModal?.classList.add("hidden");
+}
+
+function renderTrainingVolumeSession() {
+  if (!trainingVolumeSessionState) return;
+  const {
+    seriesTotal,
+    volleysPerSeries,
+    totalVolleys,
+    totalArrows,
+    currentSeries,
+    currentVolley,
+    completedVolleys,
+    arrowsFired,
+  } = trainingVolumeSessionState;
+  const safePct = totalArrows > 0 ? Math.min(100, Math.round((arrowsFired / totalArrows) * 100)) : 0;
+
+  if (els.trainingVolumeCurrentSeriesValue) {
+    els.trainingVolumeCurrentSeriesValue.textContent = `${currentSeries}/${seriesTotal}`;
+  }
+  if (els.trainingVolumeCurrentVolleyValue) {
+    els.trainingVolumeCurrentVolleyValue.textContent = `${currentVolley}/${volleysPerSeries}`;
+  }
+  if (els.trainingVolumeProgressInput) {
+    els.trainingVolumeProgressInput.value = String(safePct);
+    setRangeProgress(els.trainingVolumeProgressInput, "#1f6feb");
+  }
+  if (els.trainingVolumeProgressValue) {
+    els.trainingVolumeProgressValue.textContent = `${safePct}%`;
+  }
+
+  const cappedCounter = String(Math.max(0, Math.min(999, arrowsFired))).padStart(3, "0");
+  if (els.trainingVolumeCounterHundreds) {
+    els.trainingVolumeCounterHundreds.textContent = cappedCounter[0];
+  }
+  if (els.trainingVolumeCounterTens) {
+    els.trainingVolumeCounterTens.textContent = cappedCounter[1];
+  }
+  if (els.trainingVolumeCounterUnits) {
+    els.trainingVolumeCounterUnits.textContent = cappedCounter[2];
+  }
+
+  if (els.trainingVolumeNextBtn) {
+    const completed = completedVolleys >= totalVolleys;
+    const arrowsLabel = trainingVolumeSessionState.arrowsPerVolley;
+    if (els.trainingVolumeNextBtnLabel) {
+      els.trainingVolumeNextBtnLabel.textContent = `Tirer ${arrowsLabel} ${arrowsLabel > 1 ? "flèches" : "flèche"}`;
+    }
+    els.trainingVolumeNextBtn.disabled = completed;
+    els.trainingVolumeNextBtn.setAttribute(
+      "aria-label",
+      completed
+        ? "Séance terminée"
+        : `Tirer ${arrowsLabel} ${arrowsLabel > 1 ? "flèches" : "flèche"}`,
+    );
+  }
+}
+
+function openTrainingVolumeModal() {
+  updateTrainingVolumeDisplay();
+
+  const series = Number.parseInt(els.trainingVolumeSeriesInput?.value || "1", 10);
+  const volleysPerSeries = Number.parseInt(els.trainingVolumeVolleysInput?.value || "1", 10);
+  const arrowsPerVolley = Number.parseInt(els.trainingVolumeArrowsInput?.value || "1", 10);
+  const safeSeries = Number.isInteger(series) ? Math.min(10, Math.max(1, series)) : 1;
+  const safeVolleysPerSeries = Number.isInteger(volleysPerSeries) ? Math.min(6, Math.max(1, volleysPerSeries)) : 1;
+  const safeArrowsPerVolley = Number.isInteger(arrowsPerVolley) ? Math.min(12, Math.max(1, arrowsPerVolley)) : 1;
+  const totalVolleys = safeSeries * safeVolleysPerSeries;
+  const totalArrows = totalVolleys * safeArrowsPerVolley;
+
+  closeTrainingModal();
+  closeTrainingHoldModal();
+
+  trainingVolumeSessionState = {
+    seriesTotal: safeSeries,
+    volleysPerSeries: safeVolleysPerSeries,
+    arrowsPerVolley: safeArrowsPerVolley,
+    totalVolleys,
+    totalArrows,
+    currentSeries: 1,
+    currentVolley: 1,
+    completedVolleys: 0,
+    arrowsFired: 0,
+  };
+  els.trainingVolumeModal?.classList.remove("hidden");
+  renderTrainingVolumeSession();
+}
+
+function closeTrainingVolumeModal() {
+  els.trainingVolumeModal?.classList.add("hidden");
+  trainingVolumeSessionState = null;
+}
+
+function registerNextTrainingVolumeVolley() {
+  if (!trainingVolumeSessionState) return;
+
+  if (trainingVolumeSessionState.completedVolleys >= trainingVolumeSessionState.totalVolleys) {
+    return;
+  }
+
+  trainingVolumeSessionState.completedVolleys += 1;
+  trainingVolumeSessionState.arrowsFired = Math.min(
+    trainingVolumeSessionState.totalArrows,
+    trainingVolumeSessionState.completedVolleys * trainingVolumeSessionState.arrowsPerVolley,
+  );
+
+  if (trainingVolumeSessionState.completedVolleys < trainingVolumeSessionState.totalVolleys) {
+    trainingVolumeSessionState.currentSeries = Math.floor(
+      trainingVolumeSessionState.completedVolleys / trainingVolumeSessionState.volleysPerSeries,
+    ) + 1;
+    trainingVolumeSessionState.currentVolley = (
+      trainingVolumeSessionState.completedVolleys % trainingVolumeSessionState.volleysPerSeries
+    ) + 1;
+  }
+
+  renderTrainingVolumeSession();
+
+  if (trainingVolumeSessionState.completedVolleys >= trainingVolumeSessionState.totalVolleys) {
+    showFlashInfo("Séance volume terminée.");
+  }
 }
 
 function openTrainingHoldModal() {
@@ -4691,6 +4932,9 @@ function getSelectedMultiTargetCount() {
 }
 
 function isMultiLudicModeEnabled() {
+  if ((els.multiModeSelect?.value || "duel") === "duel") {
+    return false;
+  }
   const checked = [...(els.multiLudicModeInputs || [])].find((input) => input.checked);
   return checked ? checked.value === "yes" : false;
 }
@@ -6041,6 +6285,9 @@ els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => 
   updateSuccessZoneSlider();
   updateWeaponSelectVisibility();
   updateUseTimerVisibility();
+  if (scoringMode === "individual" && !state.contestMode) {
+    syncSessionDateTimeForSoloMode();
+  }
   state._lastRuleset = ruleset;
   state._lastScoringMode = scoringMode;
   state._lastWeapon = weapon;
@@ -6087,7 +6334,7 @@ if (els.historyBtn) {
 
 function showSetupFromHome() {
   document.body.classList.add("home-underlay-active");
-  // Pre-select individual mode so the timer option is visible by default.
+    // Pre-select individual mode so the timer option is visible by default.
   const individualInput = [...els.scoringModeInputs].find((i) => i.value === "individual");
   if (individualInput && !individualInput.checked && isScoringModeAllowedForRuleset("individual", els.rulesetSelect.value)) {
     els.scoringModeInputs.forEach((i) => { i.checked = i.value === "individual"; });
@@ -6095,6 +6342,7 @@ function showSetupFromHome() {
     updateUseTimerVisibility();
     updateSuccessZoneSlider();
   }
+  syncSessionDateTimeForSoloMode();
   els.setupCard.classList.remove("hidden");
 }
 
@@ -6244,6 +6492,7 @@ if (els.multiModeSelect) {
         els.duelNamesError.classList.add("hidden");
       }
     if (mode === "duel") {
+      els.multiLudicModeContainer?.classList.add("hidden");
       els.duelNamesContainer?.classList.remove("hidden");
       els.pelotonNamesContainer?.classList.add("hidden");
       els.targetCountFieldset?.classList.remove("hidden");
@@ -6259,6 +6508,7 @@ if (els.multiModeSelect) {
         els.duelBotRow?.classList.remove("visible");
       }
     } else if (mode === "peloton") {
+      els.multiLudicModeContainer?.classList.remove("hidden");
       els.duelNamesContainer?.classList.add("hidden");
       els.pelotonNamesContainer?.classList.remove("hidden");
       els.targetCountFieldset?.classList.add("hidden");
@@ -6266,6 +6516,7 @@ if (els.multiModeSelect) {
       els.contestWeaponContainer?.classList.add("hidden");
       els.duelBotRow?.classList.remove("visible");
     } else if (mode === "contest") {
+      els.multiLudicModeContainer?.classList.remove("hidden");
       els.duelNamesContainer?.classList.add("hidden");
       els.pelotonNamesContainer?.classList.add("hidden");
       els.targetCountFieldset?.classList.add("hidden");
@@ -6396,10 +6647,19 @@ if (els.trainingOptionSelect) {
 if (els.trainingStartBtn) {
   els.trainingStartBtn.addEventListener("click", () => {
     if (els.trainingOptionSelect?.value !== "hold-time") {
-      showFlashInfo("Sélectionnez d'abord l'option Temps de tenue.");
+      showFlashInfo("Sélectionnez d'abord l'exercice Temps de tenue.");
       return;
     }
     openTrainingHoldModal();
+  });
+}
+if (els.trainingVolumeStartBtn) {
+  els.trainingVolumeStartBtn.addEventListener("click", () => {
+    if (els.trainingOptionSelect?.value !== "volume-arrows") {
+      showFlashInfo("Sélectionnez d'abord l'exercice Volume de flèches.");
+      return;
+    }
+    openTrainingVolumeModal();
   });
 }
 if (els.trainingSeriesInput) {
@@ -6414,11 +6674,29 @@ if (els.trainingHoldSecondsInput) {
 if (els.trainingRestSecondsInput) {
   els.trainingRestSecondsInput.addEventListener("input", updateTrainingRestSecondsDisplay);
 }
+if (els.trainingVolumeSeriesInput) {
+  els.trainingVolumeSeriesInput.addEventListener("input", updateTrainingVolumeDisplay);
+}
+if (els.trainingVolumeVolleysInput) {
+  els.trainingVolumeVolleysInput.addEventListener("input", updateTrainingVolumeDisplay);
+}
+if (els.trainingVolumeArrowsInput) {
+  els.trainingVolumeArrowsInput.addEventListener("input", updateTrainingVolumeDisplay);
+}
 if (els.trainingHoldModalOverlay) {
   els.trainingHoldModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 }
 if (els.trainingHoldCloseBtn) {
   els.trainingHoldCloseBtn.addEventListener("click", closeTrainingHoldModal);
+}
+if (els.trainingVolumeModalOverlay) {
+  els.trainingVolumeModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.trainingVolumeCloseBtn) {
+  els.trainingVolumeCloseBtn.addEventListener("click", closeTrainingVolumeModal);
+}
+if (els.trainingVolumeNextBtn) {
+  els.trainingVolumeNextBtn.addEventListener("click", registerNextTrainingVolumeVolley);
 }
 if (els.trainingCycleToggleBtn) {
   els.trainingCycleToggleBtn.addEventListener("click", () => {
@@ -6635,21 +6913,7 @@ if (!restorePersistedState()) {
   updateSuccessZoneSlider();
   persistAppState();
 }
-// Initialiser la date de la session avec la date du jour par défaut (format yyyy-mm-dd)
-if (els.sessionDateInput && !els.sessionDateInput.value) {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const dd = String(today.getDate()).padStart(2, "0");
-  els.sessionDateInput.value = `${yyyy}-${mm}-${dd}`;
-}
-// Initialiser l'heure de la session avec l'heure courante (format HH:mm)
-if (els.sessionTimeInput && !els.sessionTimeInput.value) {
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2, "0");
-  const mm = String(now.getMinutes()).padStart(2, "0");
-  els.sessionTimeInput.value = `${hh}:${mm}`;
-}
+syncSessionDateTimeForSoloMode();
 setRangeProgress(els.successZoneInput, els.successZoneInput.style.getPropertyValue("--zone-color").trim());
 setRangeProgress(els.configFullTargetTeam);
 setRangeProgress(els.configFullTargetIndiv);
@@ -6667,10 +6931,20 @@ if (els.trainingHoldSecondsInput) {
 if (els.trainingRestSecondsInput) {
   els.trainingRestSecondsInput.value = String(appConfig.trainingHold.restSeconds);
 }
+if (els.trainingVolumeSeriesInput) {
+  els.trainingVolumeSeriesInput.value = String(appConfig.trainingVolume.series);
+}
+if (els.trainingVolumeVolleysInput) {
+  els.trainingVolumeVolleysInput.value = String(appConfig.trainingVolume.volleysPerSeries);
+}
+if (els.trainingVolumeArrowsInput) {
+  els.trainingVolumeArrowsInput.value = String(appConfig.trainingVolume.arrowsPerVolley);
+}
 updateTrainingSeriesDisplay();
 updateTrainingRepetitionsDisplay();
 updateTrainingHoldSecondsDisplay();
 updateTrainingRestSecondsDisplay();
+updateTrainingVolumeDisplay();
 syncSoloScoringCardHeight();
 
 window.addEventListener("resize", syncSoloScoringCardHeight);

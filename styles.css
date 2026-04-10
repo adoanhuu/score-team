@@ -692,6 +692,8 @@ input[type="range"]:focus-visible {
 #multi-start-btn,
 #duel-restart-btn,
 #training-start-btn,
+#training-volume-start-btn,
+#training-volume-next-btn,
 #training-cycle-toggle-btn {
   display: inline-flex;
   align-items: center;
@@ -703,6 +705,8 @@ input[type="range"]:focus-visible {
 #multi-start-btn svg,
 #duel-restart-btn svg,
 #training-start-btn svg,
+#training-volume-start-btn svg,
+#training-volume-next-btn svg,
 #training-cycle-toggle-btn svg {
   color: #fff;
 }
@@ -1785,11 +1789,130 @@ input[type="range"]:focus-visible {
   gap: 12px;
 }
 
-#training-start-btn {
+#training-volume-form {
+  display: grid;
+  gap: 12px;
+}
+
+.training-volume-total,
+.training-volume-counter-wrap {
+  border: 1px solid var(--dark-blue);
+  border-radius: 10px;
+  background: linear-gradient(145deg, #8f98a3 0%, #f2f5f8 46%, #7f8894 100%);
+  color: var(--dark-blue);
+  padding: 10px 12px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: 260px;
+  margin: 0 auto;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.training-volume-total span {
+  font-size: 4rem;
+  font-weight: 600;
+}
+
+.training-volume-total strong {
+  font-size: 2rem;
+  color: #2d6a4f;
+}
+
+#training-start-btn,
+#training-volume-start-btn,
+#training-volume-next-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.training-volume-modal-card {
+  width: min(520px, 100%);
+}
+
+.training-volume-meta-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 8px 0 14px;
+}
+
+.training-volume-meta-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  border-radius: 12px;
+  background: #2d6a4f;
+  color: #fff;
+  padding: 10px 12px;
+}
+
+.training-volume-meta-block .training-meta-value {
+  font-size: 2.1rem;
+}
+
+.training-volume-progress-wrap {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.training-volume-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--dark-blue);
+  font-weight: 700;
+}
+
+#training-volume-progress-input {
+  width: 100%;
+  accent-color: var(--light-blue);
+}
+
+#training-volume-progress-input:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.training-volume-counter-wrap {
+  margin-top: 10px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.training-volume-counter-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--dark-blue);
+}
+
+.training-volume-counter {
+  display: flex;
+  gap: 10px;
+}
+
+.training-volume-digit {
+  width: 72px;
+  height: 84px;
+  border-radius: 8px;
+  border: 1px solid #232323;
+  background: linear-gradient(180deg, #050505 0%, #3a3a3a 40%, #3a3a3a 60%, #050505 100%);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 4rem;
+  line-height: 1.4;
+  font-weight: 800;
+  font-family: "Courier New", monospace;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.12), inset 0 -3px 6px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 -1px 0 rgba(255, 255, 255, 0.28), 0 2px 2px rgba(0, 0, 0, 0.45);
 }
 
 .training-hold-modal-card {
@@ -3096,7 +3219,7 @@ input[type="range"]:focus-visible {
   border-radius: 4px;
   border: none;
   background: var(--zone-danger-color, #9b2226);
-  margin-left: -16px;
+  color: transparent;
 }
 
 .zone-alert {
@@ -3104,7 +3227,13 @@ input[type="range"]:focus-visible {
   width: 16px;
   height: 16px;
   border-radius: 4px;
-  border: none;
+  background-image:
+    linear-gradient(180deg, #050505 0%, #3a3a3a 50%, #050505 100%),
+    linear-gradient(180deg, #8d8d8d 0%, #ffffff 52%, #7b7b7b 100%);
+  background-origin: border-box;
+  background-clip: padding-box, text;
+  -webkit-background-clip: padding-box, text;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
   background: var(--zone-alert-color, #faf611);
   margin-left: -16px;
 }
