@@ -313,6 +313,7 @@ label {
 .use-timer-fieldset {
   border: none;
   padding: 0;
+  grid-column: 1 / -1;
 }
 
 .yes-no-fieldset {
@@ -329,6 +330,11 @@ label {
   border-radius: 999px;
   background: #ece6dd;
   min-width: 128px;
+}
+
+.timer-mode-switch {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 260px;
 }
 
 .switch-option {
@@ -370,12 +376,39 @@ label {
   color: #fff;
 }
 
+.switch-option input[type="radio"][value="none"]:checked + span {
+  background: #c62828;
+  color: #fff;
+}
+
+.switch-option input[type="radio"][value="beeps"]:checked + span {
+  background: #1f6feb;
+  color: #fff;
+}
+
+.switch-option input[type="radio"][value="hold"]:checked + span {
+  background: #2d6a4f;
+  color: #fff;
+}
+
 input[type="radio"][value="yes"]:checked {
   accent-color: #2d6a4f;
 }
 
 input[type="radio"][value="no"]:checked {
   accent-color: #c62828;
+}
+
+input[type="radio"][value="none"]:checked {
+  accent-color: #c62828;
+}
+
+input[type="radio"][value="beeps"]:checked {
+  accent-color: #1f6feb;
+}
+
+input[type="radio"][value="hold"]:checked {
+  accent-color: #2d6a4f;
 }
 
 .checkbox-label input[type="radio"][value="yes"]:checked + span {
