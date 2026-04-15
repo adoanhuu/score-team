@@ -225,15 +225,19 @@
                 </div>
               </fieldset>
               <fieldset class="use-timer-fieldset yes-no-fieldset">
-                <legend>Utiliser timer</legend>
-                <div class="yes-no-switch" role="radiogroup" aria-label="Utiliser timer">
+                <legend>Timer</legend>
+                <div class="yes-no-switch timer-mode-switch" role="radiogroup" aria-label="Mode de timer">
                   <label class="switch-option">
-                    <input type="radio" name="use-timer" value="yes" checked />
-                    <span>Oui</span>
+                    <input type="radio" name="use-timer" value="none" />
+                    <span>Aucun</span>
                   </label>
                   <label class="switch-option">
-                    <input type="radio" name="use-timer" value="no" />
-                    <span>Non</span>
+                    <input type="radio" name="use-timer" value="beeps" />
+                    <span>Beeps</span>
+                  </label>
+                  <label class="switch-option">
+                    <input type="radio" name="use-timer" value="hold" checked />
+                    <span>Tps tenue</span>
                   </label>
                 </div>
               </fieldset>
