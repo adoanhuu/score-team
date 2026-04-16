@@ -5414,7 +5414,7 @@ function loadNextQuizShieldsQuestion() {
 
   // Reset button states
   els.quizShieldsOptionButtons?.forEach(btn => {
-    btn.classList.remove("correct", "incorrect");
+    btn.classList.remove("correct", "incorrect", "quiz-option-muted");
     btn.disabled = false;
   });
 
@@ -5444,21 +5444,23 @@ function handleQuizShieldsAnswer(selectedCategory) {
     els.quizShieldsScoreValue.textContent = String(trainingQuizShieldsSessionState.score);
   }
 
-  // Show feedback
+  // Keep feedback text hidden; only button highlight indicates correctness.
   if (els.quizShieldsFeedback) {
-    els.quizShieldsFeedback.classList.remove("hidden");
-    els.quizShieldsFeedback.textContent = isCorrect ? `✓ Correct ! C'est ${correctCategory}` : `✗ Incorrect. La réponse était ${correctCategory}`;
-    els.quizShieldsFeedback.classList.toggle("correct", isCorrect);
-    els.quizShieldsFeedback.classList.toggle("incorrect", !isCorrect);
+    els.quizShieldsFeedback.classList.add("hidden");
+    els.quizShieldsFeedback.textContent = "";
+    els.quizShieldsFeedback.classList.remove("correct", "incorrect");
   }
 
   // Update button states
   els.quizShieldsOptionButtons?.forEach(btn => {
     const btnCategory = btn.getAttribute("data-category");
+    btn.classList.remove("quiz-option-muted");
     if (btnCategory === correctCategory) {
       btn.classList.add("correct");
     } else if (btnCategory === selectedCategory && !isCorrect) {
       btn.classList.add("incorrect");
+    } else {
+      btn.classList.add("quiz-option-muted");
     }
     btn.disabled = true;
   });

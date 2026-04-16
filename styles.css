@@ -3942,15 +3942,15 @@ input[type="range"]:focus-visible {
 
 .quiz-shields-buttons {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
   margin: 8px 0;
 }
 
 .quiz-shields-option-btn {
-  padding: 10px 8px;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 8px 4px;
+  font-size: clamp(0.62rem, 1.9vw, 0.8rem);
+  font-weight: 800;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
@@ -3958,11 +3958,17 @@ input[type="range"]:focus-visible {
   background: var(--dark-blue);
   color: white;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  min-height: 60px;
+  gap: 0;
+  min-height: 44px;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.quiz-shields-option-btn .btn-text {
+  white-space: nowrap;
 }
 
 .quiz-shields-option-btn:hover:not(:disabled) {
@@ -3985,6 +3991,19 @@ input[type="range"]:focus-visible {
   background: #9b2226;
   border-color: #d62828;
   box-shadow: 0 0 8px rgba(214, 40, 40, 0.4);
+}
+
+.quiz-shields-option-btn.quiz-option-muted {
+  background: #b7bcc3;
+  border-color: #9aa1ab;
+  color: #334155;
+  box-shadow: none;
+}
+
+.quiz-shields-option-btn.correct:disabled,
+.quiz-shields-option-btn.incorrect:disabled,
+.quiz-shields-option-btn.quiz-option-muted:disabled {
+  opacity: 1;
 }
 
 .quiz-shields-feedback {
