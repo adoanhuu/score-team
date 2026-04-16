@@ -341,12 +341,17 @@ const els = {
   trainingQuizShieldsModal: document.getElementById("training-quiz-shields-modal"),
   trainingQuizShieldsModalOverlay: document.getElementById("training-quiz-shields-modal-overlay"),
   trainingQuizShieldsCloseBtn: document.getElementById("training-quiz-shields-close-btn"),
+  quizShieldsImageContainer: document.querySelector(".quiz-shields-image-container"),
   quizShieldsImage: document.getElementById("quiz-shields-image"),
   quizShieldsScoreValue: document.getElementById("quiz-shields-score-value"),
   quizShieldsQuestionValue: document.getElementById("quiz-shields-question-value"),
   quizShieldsOptionButtons: document.querySelectorAll(".quiz-shields-option-btn"),
   quizShieldsFeedback: document.getElementById("quiz-shields-feedback"),
   quizShieldsNextBtn: document.getElementById("quiz-shields-next-btn"),
+  quizShieldsResults: document.getElementById("quiz-shields-results"),
+  quizShieldsResultRing: document.getElementById("quiz-shields-result-ring"),
+  quizShieldsResultPercentage: document.getElementById("quiz-shields-result-percentage"),
+  quizShieldsRestartBtn: document.getElementById("quiz-shields-restart-btn"),
   targetCountFieldset: document.getElementById("target-count-fieldset"),
   duelNamesContainer: document.getElementById("duel-names-container"),
     duelNamesError: document.getElementById("duel-names-error"),
@@ -5382,6 +5387,11 @@ function openTrainingQuizShieldsModal() {
     answered: false,
   };
 
+  // Reset ring to 0
+  if (els.quizShieldsResultRing) {
+    els.quizShieldsResultRing.style.setProperty("--ring-progress", "0");
+  }
+
   loadNextQuizShieldsQuestion();
   
   els.trainingQuizShieldsModal?.classList.remove("hidden");
@@ -5389,6 +5399,16 @@ function openTrainingQuizShieldsModal() {
 
 function loadNextQuizShieldsQuestion() {
   if (!trainingQuizShieldsSessionState) return;
+
+  // Hide results section if visible
+  if (els.quizShieldsResults) {
+    els.quizShieldsResults.classList.add("hidden");
+  }
+
+  // Show image container for new question
+  if (els.quizShieldsImageContainer) {
+    els.quizShieldsImageContainer.classList.remove("hidden");
+  }
 
   trainingQuizShieldsSessionState.currentQuestion += 1;
   trainingQuizShieldsSessionState.answered = false;
@@ -5476,8 +5496,87 @@ function showQuizShieldsResults() {
   const total = trainingQuizShieldsSessionState?.totalQuestions || 21;
   const percentage = Math.round((score / total) * 100);
 
-  closeTrainingQuizShieldsModal();
-  showFlashInfo(`Quiz blasons terminé ! Score : ${score}/${total} (${percentage}%)`);
+  // Update results display with ring
+  if (els.quizShieldsResultPercentage) {
+    els.quizShieldsResultPercentage.textContent = `${percentage}%`;
+  }
+  if (els.quizShieldsResultRing) {
+    els.quizShieldsResultRing.style.setProperty("--ring-progress", `${percentage}`);
+  }
+
+  // Hide quiz content and show results
+  if (els.quizShieldsImageContainer) {
+    els.quizShieldsImageContainer.classList.add("hidden");
+  }
+  if (els.quizShieldsImage) {
+    els.quizShieldsImage.classList.add("hidden");
+  }
+  if (els.quizShieldsOptionButtons) {
+    els.quizShieldsOptionButtons.forEach(btn => {
+      btn.classList.add("hidden");
+    });
+  }
+  if (els.quizShieldsNextBtn) {
+    els.quizShieldsNextBtn.classList.add("hidden");
+  }
+  if (els.trainingQuizShieldsForm) {
+    els.trainingQuizShieldsForm.classList.add("hidden");
+  }
+  if (els.quizShieldsResults) {
+    els.quizShieldsResults.classList.remove("hidden");
+  }
+}
+
+function restartQuizShields() {
+  if (!trainingQuizShieldsSessionState) return;
+
+  // Rebuild a fresh shuffled pool while preserving category distribution.
+  const selectedCategories = trainingQuizShieldsSessionState.selectedCategories || getSelectedShieldCategories();
+  const questionPool = buildQuizShieldsPool(selectedCategories);
+  if (questionPool.length === 0) {
+    showFlashInfo("Aucun blason disponible pour redemarrer le quiz.");
+    return;
+  }
+
+  // Reset session state for a new quiz
+  trainingQuizShieldsSessionState.totalQuestions = questionPool.length;
+  trainingQuizShieldsSessionState.currentQuestion = 0;
+  trainingQuizShieldsSessionState.score = 0;
+  trainingQuizShieldsSessionState.selectedCategories = selectedCategories;
+  trainingQuizShieldsSessionState.questionPool = questionPool;
+  trainingQuizShieldsSessionState.currentShield = null;
+  trainingQuizShieldsSessionState.answered = false;
+
+  if (els.quizShieldsScoreValue) {
+    els.quizShieldsScoreValue.textContent = "0";
+  }
+
+  // Hide results section and reset ring
+  if (els.quizShieldsResults) {
+    els.quizShieldsResults.classList.add("hidden");
+  }
+  if (els.quizShieldsResultRing) {
+    els.quizShieldsResultRing.style.setProperty("--ring-progress", "0");
+  }
+
+  // Show quiz content
+  if (els.quizShieldsImageContainer) {
+    els.quizShieldsImageContainer.classList.remove("hidden");
+  }
+  if (els.quizShieldsImage) {
+    els.quizShieldsImage.classList.remove("hidden");
+  }
+  if (els.quizShieldsOptionButtons) {
+    els.quizShieldsOptionButtons.forEach(btn => {
+      btn.classList.remove("hidden");
+    });
+  }
+  if (els.trainingQuizShieldsForm) {
+    els.trainingQuizShieldsForm.classList.remove("hidden");
+  }
+
+  // Load the next question to start fresh
+  loadNextQuizShieldsQuestion();
 }
 
 function closeTrainingQuizShieldsModal() {
@@ -7326,6 +7425,9 @@ if (els.quizShieldsOptionButtons) {
 }
 if (els.quizShieldsNextBtn) {
   els.quizShieldsNextBtn.addEventListener("click", loadNextQuizShieldsQuestion);
+}
+if (els.quizShieldsRestartBtn) {
+  els.quizShieldsRestartBtn.addEventListener("click", restartQuizShields);
 }
 if (els.trainingCycleToggleBtn) {
   els.trainingCycleToggleBtn.addEventListener("click", () => {
