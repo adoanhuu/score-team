@@ -682,6 +682,15 @@ input[type="range"]:focus-visible {
   text-align: right;
 }
 
+.solo-beeps-settings {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.32);
+}
+
 .btn {
   border: none;
   border-radius: 10px;
