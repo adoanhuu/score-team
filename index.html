@@ -242,6 +242,22 @@
                 </div>
               </fieldset>
             </div>
+            <div id="solo-beeps-settings" class="solo-beeps-settings hidden">
+              <label for="solo-beeps-preparation-input">
+                <span class="label-inline">Temps de préparation <span class="label-optional">max 15s</span></span>
+                <div class="slider-row">
+                  <input id="solo-beeps-preparation-input" type="range" min="0" max="15" step="1" value="5" />
+                  <strong id="solo-beeps-preparation-value">5s</strong>
+                </div>
+              </label>
+              <label for="solo-beeps-tiring-input">
+                <span class="label-inline">Temps de tir <span id="solo-beeps-tiring-hint" class="label-optional">max 45s</span></span>
+                <div class="slider-row">
+                  <input id="solo-beeps-tiring-input" type="range" min="5" max="45" step="1" value="40" />
+                  <strong id="solo-beeps-tiring-value">40s</strong>
+                </div>
+              </label>
+            </div>
           </div>
         </details>
         <div class="start-action">

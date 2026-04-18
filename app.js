@@ -1,6 +1,6 @@
 const ARROWS_PER_VOLLEY = 6;
 const TEAM_ARCHERS_PER_VOLLEY = 3;
-const APP_VERSION = "v2.4.2";
+const APP_VERSION = "v2.4.3";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -22,6 +22,16 @@ const TRAINING_SETTINGS_DEFAULTS = {
   repetitions: 3,
   holdSeconds: 4,
   restSeconds: 5,
+};
+const SOLO_BEEPS_PREPARATION_MAX_SECONDS = 15;
+const SOLO_BEEPS_TIRING_MIN_SECONDS = 5;
+const SOLO_BEEPS_SETTINGS_DEFAULTS = {
+  preparationSeconds: 5,
+  tiringSecondsByRuleset: {
+    nature: 40,
+    campagne: 180,
+    "3d": 90,
+  },
 };
 const TRAINING_VOLUME_DEFAULTS = {
   series: 3,
@@ -216,6 +226,12 @@ const els = {
   useTargetGroupsInputs: document.querySelectorAll('input[name="use-target-groups"]'),
   useTimerFieldset: document.querySelector(".use-timer-fieldset"),
   useTimerInputs: document.querySelectorAll('input[name="use-timer"]'),
+  soloBeepsSettings: document.getElementById("solo-beeps-settings"),
+  soloBeepsPreparationInput: document.getElementById("solo-beeps-preparation-input"),
+  soloBeepsPreparationValue: document.getElementById("solo-beeps-preparation-value"),
+  soloBeepsTiringInput: document.getElementById("solo-beeps-tiring-input"),
+  soloBeepsTiringValue: document.getElementById("solo-beeps-tiring-value"),
+  soloBeepsTiringHint: document.getElementById("solo-beeps-tiring-hint"),
   showScoresInputs: document.querySelectorAll('input[name="show-scores"]'),
   groupColumnHeader: document.getElementById("group-column-header"),
   statsTabGroupsBtn: document.getElementById("stats-tab-groups-btn"),
@@ -724,11 +740,31 @@ function playLongBeepEndSequence() {
   ]);
 }
 
-function getSoloTiringTimeByRuleset(ruleset) {
-  if (ruleset === "nature") return 40;
+function getSoloBeepsMaxTiringSecondsByRuleset(ruleset) {
+  if (ruleset === "nature") return 45;
   if (ruleset === "3d") return 90;
   if (ruleset === "campagne") return 180;
   return 90;
+}
+
+function getSoloBeepsDefaultTiringSecondsByRuleset(ruleset) {
+  return SOLO_BEEPS_SETTINGS_DEFAULTS.tiringSecondsByRuleset[ruleset]
+    ?? getSoloBeepsMaxTiringSecondsByRuleset(ruleset);
+}
+
+function getSoloBeepsPreparationSeconds() {
+  const parsed = Number.parseInt(appConfig.soloBeeps?.preparationSeconds, 10);
+  return Number.isInteger(parsed)
+    ? Math.min(SOLO_BEEPS_PREPARATION_MAX_SECONDS, Math.max(0, parsed))
+    : SOLO_BEEPS_SETTINGS_DEFAULTS.preparationSeconds;
+}
+
+function getSoloTiringTimeByRuleset(ruleset) {
+  const maxSeconds = getSoloBeepsMaxTiringSecondsByRuleset(ruleset);
+  const parsed = Number.parseInt(appConfig.soloBeeps?.tiringSecondsByRuleset?.[ruleset], 10);
+  return Number.isInteger(parsed)
+    ? Math.min(maxSeconds, Math.max(SOLO_BEEPS_TIRING_MIN_SECONDS, parsed))
+    : getSoloBeepsDefaultTiringSecondsByRuleset(ruleset);
 }
 
 function scoreToValue(s) {
@@ -760,6 +796,12 @@ const appConfig = {
   successZoneByRuleset: {},
   trainingHold: {
     ...TRAINING_SETTINGS_DEFAULTS,
+  },
+  soloBeeps: {
+    preparationSeconds: SOLO_BEEPS_SETTINGS_DEFAULTS.preparationSeconds,
+    tiringSecondsByRuleset: {
+      ...SOLO_BEEPS_SETTINGS_DEFAULTS.tiringSecondsByRuleset,
+    },
   },
   trainingVolume: {
     ...TRAINING_VOLUME_DEFAULTS,
@@ -805,6 +847,28 @@ function loadConfig() {
         appConfig.trainingHold.restSeconds = Number.isInteger(parsedRestSeconds)
           ? Math.min(30, Math.max(5, parsedRestSeconds))
           : TRAINING_SETTINGS_DEFAULTS.restSeconds;
+      }
+      if (saved.soloBeeps && typeof saved.soloBeeps === "object") {
+        const parsedPreparationSeconds = Number.parseInt(saved.soloBeeps.preparationSeconds, 10);
+        appConfig.soloBeeps.preparationSeconds = Number.isInteger(parsedPreparationSeconds)
+          ? Math.min(SOLO_BEEPS_PREPARATION_MAX_SECONDS, Math.max(0, parsedPreparationSeconds))
+          : SOLO_BEEPS_SETTINGS_DEFAULTS.preparationSeconds;
+        const tiringByRuleset = saved.soloBeeps.tiringSecondsByRuleset;
+        ["nature", "campagne", "3d"].forEach((ruleset) => {
+          const parsedTiringSeconds = Number.parseInt(tiringByRuleset?.[ruleset], 10);
+          const maxSeconds = getSoloBeepsMaxTiringSecondsByRuleset(ruleset);
+          appConfig.soloBeeps.tiringSecondsByRuleset[ruleset] = Number.isInteger(parsedTiringSeconds)
+            ? Math.min(maxSeconds, Math.max(SOLO_BEEPS_TIRING_MIN_SECONDS, parsedTiringSeconds))
+            : getSoloBeepsDefaultTiringSecondsByRuleset(ruleset);
+        });
+      } else {
+        const legacyPreparationSeconds = Number.parseInt(saved.trainingHold?.restSeconds, 10);
+        if (Number.isInteger(legacyPreparationSeconds)) {
+          appConfig.soloBeeps.preparationSeconds = Math.min(
+            SOLO_BEEPS_PREPARATION_MAX_SECONDS,
+            Math.max(0, legacyPreparationSeconds),
+          );
+        }
       }
       if (saved.trainingVolume && typeof saved.trainingVolume === "object") {
         const parsedSeries = Number.parseInt(saved.trainingVolume.series, 10);
@@ -1009,6 +1073,7 @@ function syncSoloTimerModeInputs(mode) {
   if (input) {
     input.checked = true;
   }
+  updateSoloBeepsSettingsVisibility();
 }
 
 function getSetupSnapshot() {
@@ -2218,6 +2283,8 @@ function canUseTimerForCurrentSetup() {
 function updateUseTimerVisibility() {
   if (!els.useTimerFieldset) return;
   els.useTimerFieldset.classList.toggle("hidden", !canUseTimerForCurrentSetup());
+  syncSoloBeepsTiringInputForRuleset();
+  updateSoloBeepsSettingsVisibility();
 }
 
 function getSelectedUseTargetGroups() {
@@ -2236,6 +2303,58 @@ function getSelectedSoloTimerMode() {
 function getSelectedShowScores() {
   const checked = [...els.showScoresInputs].find((input) => input.checked);
   return checked ? checked.value === "yes" : true;
+}
+
+function updateSoloBeepsSettingsVisibility() {
+  if (!els.soloBeepsSettings) return;
+  const shouldShow = canUseTimerForCurrentSetup() && getSelectedSoloTimerMode() === SOLO_TIMER_MODE_BEEPS;
+  els.soloBeepsSettings.classList.toggle("hidden", !shouldShow);
+}
+
+function updateSoloBeepsPreparationDisplay() {
+  if (!els.soloBeepsPreparationInput || !els.soloBeepsPreparationValue) return;
+  const seconds = Number.parseInt(els.soloBeepsPreparationInput.value, 10);
+  const safeSeconds = Number.isInteger(seconds)
+    ? Math.min(SOLO_BEEPS_PREPARATION_MAX_SECONDS, Math.max(0, seconds))
+    : SOLO_BEEPS_SETTINGS_DEFAULTS.preparationSeconds;
+  els.soloBeepsPreparationInput.value = String(safeSeconds);
+  els.soloBeepsPreparationValue.textContent = `${safeSeconds}s`;
+  appConfig.soloBeeps.preparationSeconds = safeSeconds;
+  saveConfig();
+  setRangeProgress(els.soloBeepsPreparationInput);
+}
+
+function updateSoloBeepsTiringDisplay(ruleset = els.rulesetSelect?.value || "nature") {
+  if (!els.soloBeepsTiringInput || !els.soloBeepsTiringValue) return;
+  const maxSeconds = getSoloBeepsMaxTiringSecondsByRuleset(ruleset);
+  const seconds = Number.parseInt(els.soloBeepsTiringInput.value, 10);
+  const safeSeconds = Number.isInteger(seconds)
+    ? Math.min(maxSeconds, Math.max(SOLO_BEEPS_TIRING_MIN_SECONDS, seconds))
+    : getSoloBeepsDefaultTiringSecondsByRuleset(ruleset);
+  els.soloBeepsTiringInput.max = String(maxSeconds);
+  els.soloBeepsTiringInput.value = String(safeSeconds);
+  els.soloBeepsTiringValue.textContent = `${safeSeconds}s`;
+  if (els.soloBeepsTiringHint) {
+    els.soloBeepsTiringHint.textContent = `max ${maxSeconds}s`;
+  }
+  if (!appConfig.soloBeeps.tiringSecondsByRuleset) {
+    appConfig.soloBeeps.tiringSecondsByRuleset = {};
+  }
+  appConfig.soloBeeps.tiringSecondsByRuleset[ruleset] = safeSeconds;
+  saveConfig();
+  setRangeProgress(els.soloBeepsTiringInput);
+}
+
+function syncSoloBeepsTiringInputForRuleset(ruleset = els.rulesetSelect?.value || "nature") {
+  if (!els.soloBeepsTiringInput) return;
+  const maxSeconds = getSoloBeepsMaxTiringSecondsByRuleset(ruleset);
+  const savedSeconds = Number.parseInt(appConfig.soloBeeps?.tiringSecondsByRuleset?.[ruleset], 10);
+  const safeSeconds = Number.isInteger(savedSeconds)
+    ? Math.min(maxSeconds, Math.max(SOLO_BEEPS_TIRING_MIN_SECONDS, savedSeconds))
+    : getSoloBeepsDefaultTiringSecondsByRuleset(ruleset);
+  els.soloBeepsTiringInput.max = String(maxSeconds);
+  els.soloBeepsTiringInput.value = String(safeSeconds);
+  updateSoloBeepsTiringDisplay(ruleset);
 }
 
 function getCurrentConfigForSetup() {
@@ -4423,22 +4542,27 @@ function shouldUseSoloVolleyTimer() {
 }
 
 function openSoloBeepsTimerModal() {
-  const restSeconds = Number.parseInt(els.trainingRestSecondsInput?.value || String(appConfig.trainingHold.restSeconds), 10);
-  const safeRest = Number.isInteger(restSeconds) ? Math.min(30, Math.max(5, restSeconds)) : appConfig.trainingHold.restSeconds;
+  const preparationSeconds = Number.parseInt(
+    els.soloBeepsPreparationInput?.value || String(getSoloBeepsPreparationSeconds()),
+    10,
+  );
+  const safePreparation = Number.isInteger(preparationSeconds)
+    ? Math.min(SOLO_BEEPS_PREPARATION_MAX_SECONDS, Math.max(0, preparationSeconds))
+    : getSoloBeepsPreparationSeconds();
   const tiringTime = getSoloTiringTimeByRuleset(state.activeRuleset);
   const arrowsPerVolley = Math.max(1, state.arrowsPerVolley || 1);
   const shotIntervalSeconds = tiringTime / arrowsPerVolley;
 
   stopTrainingCycle();
   if (els.trainingHoldModalTitleText) {
-    els.trainingHoldModalTitleText.textContent = "Beeps de volee";
+    els.trainingHoldModalTitleText.textContent = "Beeps de volée";
   }
-  setTrainingMetaLabel(els.trainingHoldSeriesText, "Tps repos");
+  setTrainingMetaLabel(els.trainingHoldSeriesText, "Tps prépa");
   setTrainingMetaLabel(els.trainingHoldRepetitionsText, "Tps tir");
   syncSoloBeepsMetaBlocksColor();
 
   if (els.trainingHoldSeriesValue) {
-    els.trainingHoldSeriesValue.textContent = `${safeRest}s`;
+    els.trainingHoldSeriesValue.textContent = `${safePreparation}s`;
   }
   if (els.trainingHoldRepetitionsValue) {
     els.trainingHoldRepetitionsValue.textContent = `${tiringTime}s`;
@@ -4446,14 +4570,14 @@ function openSoloBeepsTimerModal() {
 
   state.inputLocked = true;
   soloBeepsTimerState = {
-    restSeconds: safeRest,
+    preparationSeconds: safePreparation,
     tiringSeconds: tiringTime,
     arrowsPerVolley,
     shotIntervalSeconds,
     tiringElapsedSeconds: 0,
     nextShotBeepIndex: 1,
-    phase: "rest",
-    secondsRemaining: safeRest,
+    phase: "preparation",
+    secondsRemaining: safePreparation,
     isPaused: true,
   };
 
@@ -4623,9 +4747,18 @@ function resumeTrainingCycle() {
 function resumeSoloBeepsTimer() {
   if (!soloBeepsTimerState || trainingCycleIntervalId) return;
   soloBeepsTimerState.isPaused = false;
-  speakTrainingMessage("Préparez-vous");
+  if (
+    soloBeepsTimerState.phase === "preparation"
+    && soloBeepsTimerState.secondsRemaining === soloBeepsTimerState.preparationSeconds
+    && soloBeepsTimerState.preparationSeconds > 0
+  ) {
+    speakTrainingMessage("Préparez-vous");
+  }
   trainingCycleIntervalId = window.setInterval(tickSoloBeepsTimer, 1000);
   updateTrainingCycleToggleButton(false);
+  if (soloBeepsTimerState.phase === "preparation" && soloBeepsTimerState.secondsRemaining === 0) {
+    tickSoloBeepsTimer();
+  }
 }
 
 function renderSoloBeepsTimer() {
@@ -4635,23 +4768,23 @@ function renderSoloBeepsTimer() {
     setTrainingCycleRingSeconds(soloBeepsTimerState.secondsRemaining);
   }
   if (els.trainingCycleRingLabel) {
-    els.trainingCycleRingLabel.textContent = soloBeepsTimerState.phase === "rest" ? "Repos" : "Tir";
+    els.trainingCycleRingLabel.textContent = soloBeepsTimerState.phase === "preparation" ? "Prépa" : "Tir";
   }
   if (els.trainingCycleRing) {
-    const cycleTotal = Math.max(1, soloBeepsTimerState.restSeconds + soloBeepsTimerState.tiringSeconds);
-    const remaining = soloBeepsTimerState.phase === "rest"
+    const cycleTotal = Math.max(1, soloBeepsTimerState.preparationSeconds + soloBeepsTimerState.tiringSeconds);
+    const remaining = soloBeepsTimerState.phase === "preparation"
       ? Math.max(0, soloBeepsTimerState.secondsRemaining + soloBeepsTimerState.tiringSeconds)
       : Math.max(0, soloBeepsTimerState.secondsRemaining);
     const progressPct = Math.min(100, Math.max(0, (remaining / cycleTotal) * 100));
     els.trainingCycleRing.style.setProperty("--ring-progress", `${progressPct}`);
-    els.trainingCycleRing.classList.toggle("is-rest", soloBeepsTimerState.phase === "rest");
+    els.trainingCycleRing.classList.toggle("is-rest", soloBeepsTimerState.phase === "preparation");
     els.trainingCycleRing.classList.toggle("is-hold", soloBeepsTimerState.phase === "tiring");
     els.trainingCycleRing.classList.remove("is-series-break");
     syncSoloBeepsMetaBlocksColor();
     els.trainingCycleRing.setAttribute(
       "aria-label",
-      soloBeepsTimerState.phase === "rest"
-        ? "Décompte du temps de repos"
+      soloBeepsTimerState.phase === "preparation"
+        ? "Décompte du temps de préparation"
         : "Décompte du temps de tir",
     );
   }
@@ -4660,23 +4793,26 @@ function renderSoloBeepsTimer() {
 function tickSoloBeepsTimer() {
   if (!soloBeepsTimerState || soloBeepsTimerState.isPaused) return;
 
-  if (soloBeepsTimerState.secondsRemaining > 0) {
-    soloBeepsTimerState.secondsRemaining -= 1;
-    renderSoloBeepsTimer();
-    return;
-  }
-
-  if (soloBeepsTimerState.phase === "rest") {
+  if (soloBeepsTimerState.phase === "preparation") {
+    if (soloBeepsTimerState.secondsRemaining > 0) {
+      soloBeepsTimerState.secondsRemaining -= 1;
+      renderSoloBeepsTimer();
+      return;
+    }
     soloBeepsTimerState.phase = "tiring";
     soloBeepsTimerState.secondsRemaining = soloBeepsTimerState.tiringSeconds;
     soloBeepsTimerState.tiringElapsedSeconds = 0;
-    soloBeepsTimerState.nextShotBeepIndex = 0;
+    soloBeepsTimerState.nextShotBeepIndex = 1;
     playTrainingBeepSequence([{ frequency: 1000, duration: 0.12, delay: 0 }]);
     renderSoloBeepsTimer();
     return;
   }
 
-  soloBeepsTimerState.tiringElapsedSeconds += 1;
+  if (soloBeepsTimerState.secondsRemaining > 0) {
+    soloBeepsTimerState.secondsRemaining -= 1;
+    soloBeepsTimerState.tiringElapsedSeconds += 1;
+  }
+
   const maxIntervalBeeps = Math.max(0, (soloBeepsTimerState.arrowsPerVolley || 1) - 1);
   while (
     soloBeepsTimerState.nextShotBeepIndex <= maxIntervalBeeps
@@ -4685,6 +4821,11 @@ function tickSoloBeepsTimer() {
   ) {
     playTrainingBeepSequence([{ frequency: 1080, duration: 0.1, delay: 0 }]);
     soloBeepsTimerState.nextShotBeepIndex += 1;
+  }
+
+  renderSoloBeepsTimer();
+  if (soloBeepsTimerState.secondsRemaining > 0) {
+    return;
   }
 
   completeSoloBeepsTimer();
@@ -4709,7 +4850,7 @@ function completeSoloBeepsTimer() {
   soloBeepsTimerState = null;
   els.trainingHoldModal?.classList.add("hidden");
   speakTrainingMessage("Terminé");
-  showFlashInfo("Timer Beeps termine. Vous pouvez saisir la volee.");
+  showFlashInfo("Timer Beeps terminé. Vous pouvez saisir la volée.");
   refreshScoringView({ scrollHistory: false, scrollCard: true });
 }
 
@@ -6582,7 +6723,10 @@ if (els.sessionTimeInput) {
   els.sessionTimeInput.addEventListener("change", persistAppState);
 }
 els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
-els.useTimerInputs.forEach((input) => input.addEventListener("change", persistAppState));
+els.useTimerInputs.forEach((input) => input.addEventListener("change", () => {
+  updateSoloBeepsSettingsVisibility();
+  persistAppState();
+}));
 els.showScoresInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.startBtn.addEventListener("click", startScoring);
 if (els.backSetupBtn) {
@@ -6934,6 +7078,12 @@ if (els.trainingHoldSecondsInput) {
 if (els.trainingRestSecondsInput) {
   els.trainingRestSecondsInput.addEventListener("input", updateTrainingRestSecondsDisplay);
 }
+if (els.soloBeepsPreparationInput) {
+  els.soloBeepsPreparationInput.addEventListener("input", updateSoloBeepsPreparationDisplay);
+}
+if (els.soloBeepsTiringInput) {
+  els.soloBeepsTiringInput.addEventListener("input", () => updateSoloBeepsTiringDisplay());
+}
 if (els.trainingVolumeSeriesInput) {
   els.trainingVolumeSeriesInput.addEventListener("input", updateTrainingVolumeDisplay);
 }
@@ -7199,6 +7349,9 @@ if (els.trainingHoldSecondsInput) {
 if (els.trainingRestSecondsInput) {
   els.trainingRestSecondsInput.value = String(appConfig.trainingHold.restSeconds);
 }
+if (els.soloBeepsPreparationInput) {
+  els.soloBeepsPreparationInput.value = String(getSoloBeepsPreparationSeconds());
+}
 if (els.trainingVolumeSeriesInput) {
   els.trainingVolumeSeriesInput.value = String(appConfig.trainingVolume.series);
 }
@@ -7212,6 +7365,9 @@ updateTrainingSeriesDisplay();
 updateTrainingRepetitionsDisplay();
 updateTrainingHoldSecondsDisplay();
 updateTrainingRestSecondsDisplay();
+updateSoloBeepsPreparationDisplay();
+syncSoloBeepsTiringInputForRuleset();
+updateSoloBeepsSettingsVisibility();
 updateTrainingVolumeDisplay();
 syncSoloScoringCardHeight();
 
