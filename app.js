@@ -17,6 +17,7 @@ const CONTEST_PROGRESS_KEY = "score-team-contest-progress-v1";
 const CONTEST_WEAPON_KEY = "score-team-contest-weapon-v1";
 const WELCOME_MODAL_MS = 2000;
 const TRAINING_SERIES_BREAK_SECONDS = 5;
+const QUIZ_SHIELDS_NEXT_DELAY_MS = 2000;
 const TRAINING_SETTINGS_DEFAULTS = {
   series: 3,
   repetitions: 3,
@@ -348,7 +349,6 @@ const els = {
   quizShieldsQuestionValue: document.getElementById("quiz-shields-question-value"),
   quizShieldsOptionButtons: document.querySelectorAll(".quiz-shields-option-btn"),
   quizShieldsFeedback: document.getElementById("quiz-shields-feedback"),
-  quizShieldsNextBtn: document.getElementById("quiz-shields-next-btn"),
   quizShieldsResults: document.getElementById("quiz-shields-results"),
   quizShieldsResultRing: document.getElementById("quiz-shields-result-ring"),
   quizShieldsResultPercentage: document.getElementById("quiz-shields-result-percentage"),
@@ -437,6 +437,7 @@ let multiModalForcedMode = null;
 let trainingCycleState = null;
 let trainingVolumeSessionState = null;
 let trainingQuizShieldsSessionState = null;
+let quizShieldsNextQuestionTimeoutId = null;
 let soloBeepsTimerState = null;
 let trainingAudioContext = null;
 const TRAINING_VOICE_VOLUME = 0.55;
@@ -5448,10 +5449,18 @@ function getSelectedShieldCategories() {
   return categories.length > 0 ? categories : ['PA', 'PG', 'MG', 'GG'];
 }
 
+function clearQuizShieldsNextQuestionTimeout() {
+  if (quizShieldsNextQuestionTimeoutId) {
+    window.clearTimeout(quizShieldsNextQuestionTimeoutId);
+    quizShieldsNextQuestionTimeoutId = null;
+  }
+}
+
 function openTrainingQuizShieldsModal() {
   closeTrainingModal();
   closeTrainingHoldModal();
   closeTrainingVolumeModal();
+  clearQuizShieldsNextQuestionTimeout();
 
   const selectedCategories = getSelectedShieldCategories();
   const questionPool = buildQuizShieldsPool(selectedCategories);
@@ -5482,6 +5491,7 @@ function openTrainingQuizShieldsModal() {
 
 function loadNextQuizShieldsQuestion() {
   if (!trainingQuizShieldsSessionState) return;
+  clearQuizShieldsNextQuestionTimeout();
 
   // Hide results section if visible
   if (els.quizShieldsResults) {
@@ -5518,16 +5528,15 @@ function loadNextQuizShieldsQuestion() {
   // Reset button states
   els.quizShieldsOptionButtons?.forEach(btn => {
     btn.classList.remove("correct", "incorrect", "quiz-option-muted");
+    btn.classList.add("quiz-option-default");
     btn.disabled = false;
+    btn.blur();
   });
 
-  // Hide feedback and next button
+  // Reset feedback for the next question
   if (els.quizShieldsFeedback) {
     els.quizShieldsFeedback.classList.add("hidden");
     els.quizShieldsFeedback.textContent = "";
-  }
-  if (els.quizShieldsNextBtn) {
-    els.quizShieldsNextBtn.classList.add("hidden");
   }
 }
 
@@ -5557,7 +5566,7 @@ function handleQuizShieldsAnswer(selectedCategory) {
   // Update button states
   els.quizShieldsOptionButtons?.forEach(btn => {
     const btnCategory = btn.getAttribute("data-category");
-    btn.classList.remove("quiz-option-muted");
+    btn.classList.remove("quiz-option-default", "quiz-option-muted");
     if (btnCategory === correctCategory) {
       btn.classList.add("correct");
     } else if (btnCategory === selectedCategory && !isCorrect) {
@@ -5568,10 +5577,11 @@ function handleQuizShieldsAnswer(selectedCategory) {
     btn.disabled = true;
   });
 
-  // Show next button
-  if (els.quizShieldsNextBtn) {
-    els.quizShieldsNextBtn.classList.remove("hidden");
-  }
+  quizShieldsNextQuestionTimeoutId = window.setTimeout(() => {
+    quizShieldsNextQuestionTimeoutId = null;
+    if (!trainingQuizShieldsSessionState || !trainingQuizShieldsSessionState.answered) return;
+    loadNextQuizShieldsQuestion();
+  }, QUIZ_SHIELDS_NEXT_DELAY_MS);
 }
 
 function showQuizShieldsResults() {
@@ -5599,9 +5609,6 @@ function showQuizShieldsResults() {
       btn.classList.add("hidden");
     });
   }
-  if (els.quizShieldsNextBtn) {
-    els.quizShieldsNextBtn.classList.add("hidden");
-  }
   if (els.trainingQuizShieldsForm) {
     els.trainingQuizShieldsForm.classList.add("hidden");
   }
@@ -5612,6 +5619,7 @@ function showQuizShieldsResults() {
 
 function restartQuizShields() {
   if (!trainingQuizShieldsSessionState) return;
+  clearQuizShieldsNextQuestionTimeout();
 
   // Rebuild a fresh shuffled pool while preserving category distribution.
   const selectedCategories = trainingQuizShieldsSessionState.selectedCategories || getSelectedShieldCategories();
@@ -5663,6 +5671,7 @@ function restartQuizShields() {
 }
 
 function closeTrainingQuizShieldsModal() {
+  clearQuizShieldsNextQuestionTimeout();
   els.trainingQuizShieldsModal?.classList.add("hidden");
   trainingQuizShieldsSessionState = null;
 }
@@ -7472,9 +7481,6 @@ if (els.quizShieldsOptionButtons) {
       }
     });
   });
-}
-if (els.quizShieldsNextBtn) {
-  els.quizShieldsNextBtn.addEventListener("click", loadNextQuizShieldsQuestion);
 }
 if (els.quizShieldsRestartBtn) {
   els.quizShieldsRestartBtn.addEventListener("click", restartQuizShields);

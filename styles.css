@@ -805,7 +805,6 @@ input[type="range"]:focus-visible {
 #training-volume-start-btn,
 #training-volume-next-btn,
 #training-quiz-shields-start-btn,
-#quiz-shields-next-btn,
 #quiz-shields-restart-btn,
 #training-cycle-toggle-btn {
   display: inline-flex;
@@ -821,7 +820,6 @@ input[type="range"]:focus-visible {
 #training-volume-start-btn svg,
 #training-volume-next-btn svg,
 #training-quiz-shields-start-btn svg,
-#quiz-shields-next-btn svg,
 #quiz-shields-restart-btn svg,
 #training-cycle-toggle-btn svg {
   color: #fff;
@@ -4008,13 +4006,30 @@ input[type="range"]:focus-visible {
   text-align: center;
 }
 
+.quiz-shields-option-btn.quiz-option-default {
+  background: var(--dark-blue);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: none;
+  opacity: 1;
+}
+
 .quiz-shields-option-btn .btn-text {
   white-space: nowrap;
 }
 
-.quiz-shields-option-btn:hover:not(:disabled) {
-  background: #155a1d;
-  transform: translateY(-2px);
+.quiz-shields-option-btn:focus-visible:not(:disabled),
+.quiz-shields-option-btn:active:not(:disabled) {
+  background: #1b4f91;
+  border-color: #5fa8ff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .quiz-shields-option-btn:hover:not(:disabled) {
+    background: #1b4f91;
+    border-color: #5fa8ff;
+    transform: translateY(-2px);
+  }
 }
 
 .quiz-shields-option-btn:disabled {
