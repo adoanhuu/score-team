@@ -171,7 +171,7 @@ const els = {
   welcomeModalMessage: document.getElementById("welcome-modal-message"),
   historyModeFilter: document.getElementById("history-mode-filter"),
   historyRulesetFilter: document.getElementById("history-ruleset-filter"),
-  historyResetFiltersBtn: document.getElementById("history-reset-filters-btn"),
+  historySessionTypeFilter: document.getElementById("history-session-type-filter"),
   historyPagination: document.getElementById("history-pagination"),
   historyList: document.getElementById("history-list"),
   statsSuccessZone: document.getElementById("stats-success-zone"),
@@ -4266,9 +4266,11 @@ let historyCurrentPage = 1;
 function renderHistoryList() {
   const selectedMode = els.historyModeFilter.value;
   const selectedRuleset = els.historyRulesetFilter.value;
+  const selectedSessionType = els.historySessionTypeFilter?.value || "all";
   let entries = loadHistoryEntries().filter((entry) => {
     if (selectedMode !== "all" && entry.scoringMode !== selectedMode) return false;
     if (selectedRuleset !== "all" && entry.ruleset !== selectedRuleset) return false;
+    if (selectedSessionType !== "all" && normalizeSoloSessionType(entry.soloSessionType) !== selectedSessionType) return false;
     return true;
   });
 
@@ -7585,12 +7587,12 @@ if (els.pelotonExtraArrowModalOverlay) {
 }
 els.historyModeFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
 els.historyRulesetFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
-els.historyResetFiltersBtn.addEventListener("click", () => {
-  els.historyModeFilter.value = "all";
-  els.historyRulesetFilter.value = "all";
-  historyCurrentPage = 1;
-  renderHistoryList();
-});
+if (els.historySessionTypeFilter) {
+  els.historySessionTypeFilter.addEventListener("change", () => {
+    historyCurrentPage = 1;
+    renderHistoryList();
+  });
+}
 if (els.configBtn) {
   els.configBtn.addEventListener("click", () => {
     openConfigModal();

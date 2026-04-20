@@ -1545,7 +1545,7 @@ input[type="range"]:focus-visible {
 
 .history-filter-row {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
