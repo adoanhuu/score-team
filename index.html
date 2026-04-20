@@ -520,6 +520,23 @@
                 <option value="all">Toutes les armes</option>
               </select>
             </label>
+            <fieldset class="general-stats-session-type-fieldset yes-no-fieldset">
+              <legend class="label-inline">Type de session</legend>
+              <div class="yes-no-switch general-stats-session-type-switch" role="radiogroup" aria-label="Type de session">
+                <label class="switch-option">
+                  <input type="radio" name="general-stats-session-type" value="all" checked />
+                  <span>Toutes</span>
+                </label>
+                <label class="switch-option">
+                  <input type="radio" name="general-stats-session-type" value="training" />
+                  <span>Entraînement</span>
+                </label>
+                <label class="switch-option">
+                  <input type="radio" name="general-stats-session-type" value="contest" />
+                  <span>Concours</span>
+                </label>
+              </div>
+            </fieldset>
           </div>
 
           <div id="general-stats-evolution-row" class="stats-grid-3 stats-evolution-row general-stats-evolution-row">

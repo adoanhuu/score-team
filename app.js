@@ -141,6 +141,7 @@ const els = {
   generalStatsCloseBtn: document.getElementById("general-stats-close-btn"),
   generalStatsRulesetFilter: document.getElementById("general-stats-ruleset-filter"),
   generalStatsWeaponFilter: document.getElementById("general-stats-weapon-filter"),
+  generalStatsSessionTypeInputs: document.querySelectorAll('input[name="general-stats-session-type"]'),
   generalStatsSessionCount: document.getElementById("general-stats-session-count"),
   generalStatsAvgSession: document.getElementById("general-stats-avg-session"),
   generalStatsAvgArrow: document.getElementById("general-stats-avg-arrow"),
@@ -1102,6 +1103,20 @@ function normalizeSoloSessionType(value, fallback = SOLO_SESSION_TYPE_TRAINING) 
 function syncSoloSessionTypeInputs(sessionType) {
   const normalizedType = normalizeSoloSessionType(sessionType);
   const input = [...els.soloSessionTypeInputs].find((item) => item.value === normalizedType);
+  if (input) {
+    input.checked = true;
+  }
+}
+
+function getSelectedGeneralStatsSessionType() {
+  const checked = [...els.generalStatsSessionTypeInputs].find((input) => input.checked);
+  const value = checked ? checked.value : "all";
+  return value === "all" ? "all" : normalizeSoloSessionType(value);
+}
+
+function syncGeneralStatsSessionTypeInputs(sessionType = "all") {
+  const normalizedType = sessionType === "all" ? "all" : normalizeSoloSessionType(sessionType);
+  const input = [...els.generalStatsSessionTypeInputs].find((item) => item.value === normalizedType);
   if (input) {
     input.checked = true;
   }
@@ -4031,7 +4046,7 @@ function renderGeneralStatsEvolution(entries) {
     })
     .join(" ");
 
-  const xSpacingPx = 50;
+  const xSpacingPx = 24;
   const chartWidth = Math.max(280, ((ordered.length - 1) * xSpacingPx) + 80);
   els.generalStatsEvolutionChart.style.width = `${chartWidth}px`;
   els.generalStatsEvolutionAxis.style.width = `${chartWidth}px`;
@@ -4050,6 +4065,7 @@ function renderGeneralStatsEvolution(entries) {
 function renderGeneralStatsModal() {
   const selectedRuleset = els.generalStatsRulesetFilter?.value || "all";
   const selectedWeapon = els.generalStatsWeaponFilter?.value || "all";
+  const selectedSessionType = getSelectedGeneralStatsSessionType();
   const hasEmptyFilter = !String(selectedRuleset).trim() || !String(selectedWeapon).trim();
   const isAllWeaponsSelected = selectedWeapon === "all";
 
@@ -4071,6 +4087,7 @@ function renderGeneralStatsModal() {
   const entries = loadHistoryEntries().filter((entry) => {
     if (selectedRuleset !== "all" && entry.ruleset !== selectedRuleset) return false;
     if (selectedWeapon !== "all" && entry.weapon !== selectedWeapon) return false;
+    if (selectedSessionType !== "all" && normalizeSoloSessionType(entry.soloSessionType) !== selectedSessionType) return false;
     return true;
   });
   if (entries.length === 0) {
@@ -4178,6 +4195,7 @@ function openGeneralStatsModal() {
   if (els.generalStatsWeaponFilter) {
     els.generalStatsWeaponFilter.value = "all";
   }
+  syncGeneralStatsSessionTypeInputs("all");
   syncGeneralStatsWeaponFilter();
   if (!renderGeneralStatsModal()) {
     showFlashInfo("Aucune statistique disponible. Enregistrez au moins une session dans l'historique.");
@@ -7361,6 +7379,12 @@ if (els.generalStatsWeaponFilter) {
     renderGeneralStatsModal();
   });
 }
+els.generalStatsSessionTypeInputs.forEach((input) => {
+  input.addEventListener("change", () => {
+    state.generalStatsGraphEnabled = true;
+    renderGeneralStatsModal();
+  });
+});
 document.querySelectorAll(".stats-tab").forEach((btn) => {
   btn.addEventListener("click", () => switchStatsTab(btn.dataset.statsTab || "summary"));
 });
