@@ -1899,6 +1899,67 @@ input[type="range"]:focus-visible {
   gap: 12px;
 }
 
+#contest-modal .modal-body {
+  padding: 20px;
+}
+
+.contest-info-card {
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+}
+
+.contest-info-list {
+  display: grid;
+  gap: 12px;
+}
+
+.contest-info-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2a24;
+}
+
+.contest-info-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--dark-blue);
+}
+
+#contest-modal .modal-head h3 {
+  text-transform: none;
+}
+
+.contest-qr-block {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.contest-qr-image {
+  width: 180px;
+  height: 180px;
+  display: block;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.contest-qr-caption {
+  max-width: 100%;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #536357;
+  word-break: break-all;
+}
+
 #training-volume-form {
   display: grid;
   gap: 12px;
@@ -2657,6 +2718,10 @@ input[type="range"]:focus-visible {
 
 .login-modal-card {
   width: min(460px, 100%);
+}
+
+.contest-modal-card {
+  width: min(560px, 100%);
 }
 
 .login-form {
@@ -3664,8 +3729,16 @@ input[type="range"]:focus-visible {
   position: relative;
   z-index: 1;
 }
-#home-contest-btn:disabled::before {
+#home-contest-btn.is-inactive::before {
   filter: grayscale(1);
+}
+#home-contest-btn.is-inactive {
+  opacity: 0.82;
+}
+#home-contest-btn.is-inactive .home-tile-label {
+  background-color: #8f8f8f;
+  border-color: #8f8f8f;
+  box-shadow: none;
 }
 #home-history-btn{
   background-image: url('images/history.png');
