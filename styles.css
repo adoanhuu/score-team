@@ -254,34 +254,45 @@ label {
 }
 
 .mode-fieldset {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 8px 10px;
+  border: none;
+  padding: 0;
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  white-space: nowrap;
+  display: grid;
+  gap: 6px;
 }
 
 .mode-fieldset legend {
+  display: block;
+  margin-bottom: 0;
+  padding: 0;
   font-weight: 700;
-  padding: 0 4px;
-  margin-right: 4px;
+  font-size: inherit;
+}
+
+.mode-fieldset legend .label-inline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .mode-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin-top: 0;
-  font-weight: 600;
 }
 
 .mode-option.disabled {
-  opacity: 0.4;
   pointer-events: none;
+  opacity: 1;
+}
+
+.mode-option.disabled span {
+  background: #d1d5db;
+  color: #6b7280;
+}
+
+.mode-option.disabled input[type="radio"]:checked + span {
+  background: #d1d5db;
+  color: #6b7280;
 }
 
 .checkbox-label {
@@ -316,6 +327,12 @@ label {
   grid-column: 1 / -1;
 }
 
+.solo-session-type-inline {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
 .yes-no-fieldset {
   display: grid;
   gap: 6px;
@@ -334,6 +351,16 @@ label {
 
 .timer-mode-switch {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 260px;
+}
+
+.mode-switch {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 260px;
+}
+
+.session-type-switch {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   min-width: 260px;
 }
 
@@ -391,6 +418,31 @@ label {
   color: #fff;
 }
 
+.switch-option input[type="radio"][value="individual"]:checked + span {
+  background: #1f6feb;
+  color: #fff;
+}
+
+.switch-option input[type="radio"][value="team"]:checked + span {
+  background: #1f6feb;
+  color: #fff;
+}
+
+.switch-option input[type="radio"][value="mixed"]:checked + span {
+  background: #1f6feb;
+  color: #fff;
+}
+
+.switch-option input[type="radio"][value="training"]:checked + span {
+  background: #1f6feb;
+  color: #fff;
+}
+
+.switch-option input[type="radio"][value="contest"]:checked + span {
+  background: #1f6feb;
+  color: #fff;
+}
+
 input[type="radio"][value="yes"]:checked {
   accent-color: #2d6a4f;
 }
@@ -409,6 +461,26 @@ input[type="radio"][value="beeps"]:checked {
 
 input[type="radio"][value="hold"]:checked {
   accent-color: #2d6a4f;
+}
+
+input[type="radio"][value="individual"]:checked {
+  accent-color: #1f6feb;
+}
+
+input[type="radio"][value="team"]:checked {
+  accent-color: #1f6feb;
+}
+
+input[type="radio"][value="mixed"]:checked {
+  accent-color: #1f6feb;
+}
+
+input[type="radio"][value="training"]:checked {
+  accent-color: #1f6feb;
+}
+
+input[type="radio"][value="contest"]:checked {
+  accent-color: #1f6feb;
 }
 
 .checkbox-label input[type="radio"][value="yes"]:checked + span {
@@ -3248,6 +3320,10 @@ input[type="range"]:focus-visible {
 @media (min-width: 640px) {
   .grid-two {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .solo-session-type-inline {
+    grid-column: 2;
   }
 }
 

@@ -41,6 +41,8 @@ const TRAINING_VOLUME_DEFAULTS = {
 const SOLO_TIMER_MODE_NONE = "none";
 const SOLO_TIMER_MODE_BEEPS = "beeps";
 const SOLO_TIMER_MODE_HOLD = "hold";
+const SOLO_SESSION_TYPE_TRAINING = "training";
+const SOLO_SESSION_TYPE_CONTEST = "contest";
 
 const state = {
   targetCount: 21,
@@ -59,6 +61,7 @@ const state = {
   completionArchived: false,
   statsOpenedFromHistory: false,
   useTargetGroups: true,
+  soloSessionType: SOLO_SESSION_TYPE_TRAINING,
   soloTimerMode: SOLO_TIMER_MODE_HOLD,
   showScores: true,
   editingVolleyIndex: null,
@@ -224,6 +227,7 @@ const els = {
   configMissLimitIndiv: document.getElementById("config-miss-limit-indiv"),
   configMissLimitIndivValue: document.getElementById("config-miss-limit-indiv-value"),
   useTargetGroupsInputs: document.querySelectorAll('input[name="use-target-groups"]'),
+  soloSessionTypeInputs: document.querySelectorAll('input[name="solo-session-type"]'),
   useTimerFieldset: document.querySelector(".use-timer-fieldset"),
   useTimerInputs: document.querySelectorAll('input[name="use-timer"]'),
   soloBeepsSettings: document.getElementById("solo-beeps-settings"),
@@ -1088,6 +1092,21 @@ function isSoloTimerEnabled(mode) {
   return normalizeSoloTimerMode(mode, SOLO_TIMER_MODE_NONE) !== SOLO_TIMER_MODE_NONE;
 }
 
+function normalizeSoloSessionType(value, fallback = SOLO_SESSION_TYPE_TRAINING) {
+  if (value === SOLO_SESSION_TYPE_TRAINING || value === SOLO_SESSION_TYPE_CONTEST) {
+    return value;
+  }
+  return fallback;
+}
+
+function syncSoloSessionTypeInputs(sessionType) {
+  const normalizedType = normalizeSoloSessionType(sessionType);
+  const input = [...els.soloSessionTypeInputs].find((item) => item.value === normalizedType);
+  if (input) {
+    input.checked = true;
+  }
+}
+
 function syncSoloTimerModeInputs(mode) {
   const normalizedMode = normalizeSoloTimerMode(mode);
   const input = [...els.useTimerInputs].find((item) => item.value === normalizedMode);
@@ -1107,6 +1126,7 @@ function getSetupSnapshot() {
     sessionDate: els.sessionDateInput ? els.sessionDateInput.value : "",
     sessionTime: els.sessionTimeInput ? els.sessionTimeInput.value : "",
     useTargetGroups: getSelectedUseTargetGroups(),
+    soloSessionType: getSelectedSoloSessionType(),
     timerMode,
     useTimer: isSoloTimerEnabled(timerMode),
     showScores: getSelectedShowScores(),
@@ -1291,6 +1311,7 @@ function persistAppState() {
             scoringMode: state.scoringMode,
             weapon: state.weapon || "",
             useTargetGroups: state.useTargetGroups,
+            soloSessionType: state.soloSessionType,
           timerMode: state.soloTimerMode,
           useTimer: isSoloTimerEnabled(state.soloTimerMode),
             showScores: state.showScores,
@@ -1338,6 +1359,7 @@ function persistContestProgressState() {
     scoringMode: state.scoringMode,
     weapon: state.weapon || "",
     useTargetGroups: state.useTargetGroups,
+    soloSessionType: state.soloSessionType,
     timerMode: state.soloTimerMode,
     useTimer: isSoloTimerEnabled(state.soloTimerMode),
     showScores: state.showScores,
@@ -1399,6 +1421,7 @@ function restoreContestProgressState(contestInfo, initialScoring = null) {
     ? scoring.weapon
     : getWeaponsForRuleset(scoring.activeRuleset)[0];
   state.useTargetGroups = typeof scoring.useTargetGroups === "boolean" ? scoring.useTargetGroups : state.useTargetGroups;
+  state.soloSessionType = normalizeSoloSessionType(scoring.soloSessionType, state.soloSessionType);
   state.soloTimerMode = normalizeSoloTimerMode(
     scoring.timerMode,
     normalizeSoloTimerMode(scoring.useTimer, state.soloTimerMode),
@@ -1486,6 +1509,7 @@ function restorePersistedState() {
     const input = [...els.useTargetGroupsInputs].find((i) => i.value === targetValue);
     if (input) input.checked = true;
   }
+  syncSoloSessionTypeInputs(normalizeSoloSessionType(setup.soloSessionType));
   syncSoloTimerModeInputs(normalizeSoloTimerMode(setup.timerMode, normalizeSoloTimerMode(setup.useTimer)));
   if (typeof setup.showScores === "boolean") {
     const targetValue = setup.showScores ? "yes" : "no";
@@ -1521,6 +1545,10 @@ function restorePersistedState() {
     ? saved.weapon
     : getWeaponsForRuleset(saved.activeRuleset)[0];
   state.useTargetGroups = typeof saved.useTargetGroups === "boolean" ? saved.useTargetGroups : true;
+  state.soloSessionType = normalizeSoloSessionType(
+    saved.soloSessionType,
+    normalizeSoloSessionType(setup.soloSessionType, SOLO_SESSION_TYPE_TRAINING),
+  );
   state.soloTimerMode = normalizeSoloTimerMode(
     saved.timerMode,
     normalizeSoloTimerMode(setup.timerMode, normalizeSoloTimerMode(saved.useTimer, normalizeSoloTimerMode(setup.useTimer))),
@@ -2324,6 +2352,11 @@ function getSelectedUseTargetGroups() {
   return checked ? checked.value === "yes" : true;
 }
 
+function getSelectedSoloSessionType() {
+  const checked = [...els.soloSessionTypeInputs].find((input) => input.checked);
+  return normalizeSoloSessionType(checked ? checked.value : SOLO_SESSION_TYPE_TRAINING);
+}
+
 function getSelectedSoloTimerMode() {
   if (!canUseTimerForCurrentSetup()) {
     return SOLO_TIMER_MODE_NONE;
@@ -2566,6 +2599,7 @@ function startScoring() {
   state.scoringMode = scoringMode;
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
   state.useTargetGroups = getSelectedUseTargetGroups();
+  state.soloSessionType = getSelectedSoloSessionType();
   state.soloTimerMode = getSelectedSoloTimerMode();
   state.showScores = getSelectedShowScores();
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
@@ -2775,6 +2809,7 @@ function buildResultsPayload() {
     sessionDate: state.sessionDate || "",
     sessionTime: state.sessionTime || "",
     useTargetGroups: state.useTargetGroups,
+    soloSessionType: state.soloSessionType,
     timerMode: state.soloTimerMode,
     useTimer: isSoloTimerEnabled(state.soloTimerMode),
     showScores: state.showScores,
@@ -4161,7 +4196,12 @@ function loadHistoryEntries() {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item) => item && typeof item === "object" && item.generatedAt);
+    return parsed
+      .filter((item) => item && typeof item === "object" && item.generatedAt)
+      .map((item) => ({
+        ...item,
+        soloSessionType: normalizeSoloSessionType(item.soloSessionType),
+      }));
   } catch {
     return [];
   }
@@ -4169,7 +4209,13 @@ function loadHistoryEntries() {
 
 function saveHistoryEntries(entries) {
   try {
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY_ITEMS)));
+    const normalizedEntries = entries
+      .filter((entry) => entry && typeof entry === "object")
+      .map((entry) => ({
+        ...entry,
+        soloSessionType: normalizeSoloSessionType(entry.soloSessionType),
+      }));
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(normalizedEntries.slice(0, MAX_HISTORY_ITEMS)));
   } catch {
     // Ignore storage failures.
   }
@@ -7030,6 +7076,7 @@ if (els.sessionTimeInput) {
   els.sessionTimeInput.addEventListener("change", persistAppState);
 }
 els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
+els.soloSessionTypeInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.useTimerInputs.forEach((input) => input.addEventListener("change", () => {
   updateSoloBeepsSettingsVisibility();
   persistAppState();

@@ -155,20 +155,35 @@
                 <input id="session-time-input" type="time" />
               </label>
             </div>
+            <div class="solo-session-type-inline yes-no-fieldset">
+              <span class="label-inline">Type de session</span>
+              <div class="yes-no-switch session-type-switch" role="radiogroup" aria-label="Type de session solo">
+                <label class="switch-option">
+                  <input type="radio" name="solo-session-type" value="training" checked />
+                  <span>Entraînement</span>
+                </label>
+                <label class="switch-option">
+                  <input type="radio" name="solo-session-type" value="contest" />
+                  <span>Concours</span>
+                </label>
+              </div>
+            </div>
             <fieldset class="mode-fieldset">
-              <legend>Mode de saisie</legend>
-              <label class="mode-option">
-                <input type="radio" name="scoring-mode" value="individual" checked />
-                <span>Individuel</span>
-              </label>
-              <label class="mode-option">
-                <input type="radio" name="scoring-mode" value="team" />
-                <span>Équipe</span>
-              </label>
-              <label class="mode-option">
-                <input type="radio" name="scoring-mode" value="mixed" />
-                <span>Mixte</span>
-              </label>
+              <legend class="label-inline">Mode de saisie</legend>
+              <div class="yes-no-switch mode-switch" role="radiogroup" aria-label="Mode de saisie">
+                <label class="mode-option switch-option">
+                  <input type="radio" name="scoring-mode" value="individual" checked />
+                  <span>Individuel</span>
+                </label>
+                <label class="mode-option switch-option">
+                  <input type="radio" name="scoring-mode" value="team" />
+                  <span>Équipe</span>
+                </label>
+                <label class="mode-option switch-option">
+                  <input type="radio" name="scoring-mode" value="mixed" />
+                  <span>Mixte</span>
+                </label>
+              </div>
             </fieldset>
             <label id="weapon-select-wrapper">
               <span class="label-inline">Type d'arme</span>
