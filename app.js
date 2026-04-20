@@ -1,6 +1,6 @@
 const ARROWS_PER_VOLLEY = 6;
 const TEAM_ARCHERS_PER_VOLLEY = 3;
-const APP_VERSION = "v2.4.3";
+const APP_VERSION = "v2.5.0";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -17,6 +17,7 @@ const CONTEST_PROGRESS_KEY = "score-team-contest-progress-v1";
 const CONTEST_WEAPON_KEY = "score-team-contest-weapon-v1";
 const WELCOME_MODAL_MS = 2000;
 const TRAINING_SERIES_BREAK_SECONDS = 5;
+const QUIZ_SHIELDS_NEXT_DELAY_MS = 2000;
 const TRAINING_SETTINGS_DEFAULTS = {
   series: 3,
   repetitions: 3,
@@ -41,6 +42,8 @@ const TRAINING_VOLUME_DEFAULTS = {
 const SOLO_TIMER_MODE_NONE = "none";
 const SOLO_TIMER_MODE_BEEPS = "beeps";
 const SOLO_TIMER_MODE_HOLD = "hold";
+const SOLO_SESSION_TYPE_TRAINING = "training";
+const SOLO_SESSION_TYPE_CONTEST = "contest";
 
 const state = {
   targetCount: 21,
@@ -59,6 +62,7 @@ const state = {
   completionArchived: false,
   statsOpenedFromHistory: false,
   useTargetGroups: true,
+  soloSessionType: SOLO_SESSION_TYPE_TRAINING,
   soloTimerMode: SOLO_TIMER_MODE_HOLD,
   showScores: true,
   editingVolleyIndex: null,
@@ -110,7 +114,6 @@ const els = {
   scoringCloseBtn: document.getElementById("scoring-close-btn"),
   startBtn: document.getElementById("start-btn"),
   backSetupBtn: document.getElementById("back-setup-btn"),
-  helpBtn: document.getElementById("help-btn"),
   stepBackBtn: document.getElementById("step-back-btn"),
   shootTitle: document.getElementById("volley-title"),
   progressText: document.getElementById("progress-text"),
@@ -138,6 +141,7 @@ const els = {
   generalStatsCloseBtn: document.getElementById("general-stats-close-btn"),
   generalStatsRulesetFilter: document.getElementById("general-stats-ruleset-filter"),
   generalStatsWeaponFilter: document.getElementById("general-stats-weapon-filter"),
+  generalStatsSessionTypeInputs: document.querySelectorAll('input[name="general-stats-session-type"]'),
   generalStatsSessionCount: document.getElementById("general-stats-session-count"),
   generalStatsAvgSession: document.getElementById("general-stats-avg-session"),
   generalStatsAvgArrow: document.getElementById("general-stats-avg-arrow"),
@@ -151,10 +155,6 @@ const els = {
   generalStatsEvolutionPath: document.getElementById("general-stats-evolution-path"),
   generalStatsEvolutionAvgLine: document.getElementById("general-stats-evolution-avg-line"),
   generalStatsEvolutionAxis: document.getElementById("general-stats-evolution-axis"),
-  helpModal: document.getElementById("help-modal"),
-  helpModalOverlay: document.getElementById("help-modal-overlay"),
-  helpCloseBtn: document.getElementById("help-close-btn"),
-  helpPagination: document.getElementById("help-pagination"),
   historyModal: document.getElementById("history-modal"),
   historyModalOverlay: document.getElementById("history-modal-overlay"),
   historyCloseBtn: document.getElementById("history-close-btn"),
@@ -168,7 +168,7 @@ const els = {
   welcomeModalMessage: document.getElementById("welcome-modal-message"),
   historyModeFilter: document.getElementById("history-mode-filter"),
   historyRulesetFilter: document.getElementById("history-ruleset-filter"),
-  historyResetFiltersBtn: document.getElementById("history-reset-filters-btn"),
+  historySessionTypeFilter: document.getElementById("history-session-type-filter"),
   historyPagination: document.getElementById("history-pagination"),
   historyList: document.getElementById("history-list"),
   statsSuccessZone: document.getElementById("stats-success-zone"),
@@ -224,6 +224,7 @@ const els = {
   configMissLimitIndiv: document.getElementById("config-miss-limit-indiv"),
   configMissLimitIndivValue: document.getElementById("config-miss-limit-indiv-value"),
   useTargetGroupsInputs: document.querySelectorAll('input[name="use-target-groups"]'),
+  soloSessionTypeInputs: document.querySelectorAll('input[name="solo-session-type"]'),
   useTimerFieldset: document.querySelector(".use-timer-fieldset"),
   useTimerInputs: document.querySelectorAll('input[name="use-timer"]'),
   soloBeepsSettings: document.getElementById("solo-beeps-settings"),
@@ -244,11 +245,11 @@ const els = {
   homeTrainingBtn: document.getElementById("home-training-btn"),
   homeTrainingTileBtn: document.getElementById("home-training-tile-btn"),
   homePelotonBtn: document.getElementById("home-peloton-btn"),
+  homeContestBtn: document.getElementById("home-contest-btn"),
   homeHistoryBtn: document.getElementById("home-history-btn"),
   homeStatsBtn: document.getElementById("home-stats-btn"),
   homeConfigBtn: document.getElementById("home-config-btn"),
   homeLoginBtn: document.getElementById("home-login-btn"),
-  homeHelpBtn: document.getElementById("home-help-btn"),
   loginModal: document.getElementById("login-modal"),
   loginModalOverlay: document.getElementById("login-modal-overlay"),
   loginCloseBtn: document.getElementById("login-close-btn"),
@@ -269,12 +270,13 @@ const els = {
   multiModal: document.getElementById("multi-modal"),
   multiModalOverlay: document.getElementById("multi-modal-overlay"),
   multiCloseBtn: document.getElementById("multi-close-btn"),
+  multiModalTitleText: document.getElementById("multi-modal-title-text"),
+  multiModeSelectWrapper: document.getElementById("multi-mode-select-wrapper"),
   multiRulesetSelect: document.getElementById("multi-ruleset-select"),
   rulesetLabel: document.getElementById("ruleset-label"),
   multiModeSelect: document.getElementById("multi-mode-select"),
   multiLudicModeContainer: document.getElementById("multi-ludic-mode-container"),
   multiLudicModeInputs: document.querySelectorAll('input[name="multi-ludic-mode"]'),
-  multiModeOptionContest: document.getElementById("multi-mode-option-contest"),
   contestCodeContainer: document.getElementById("contest-code-container"),
   contestCodeInput: document.getElementById("contest-code-input"),
   contestWeaponContainer: document.getElementById("contest-weapon-container"),
@@ -287,8 +289,14 @@ const els = {
   trainingOptionSelect: document.getElementById("training-option-select"),
   trainingHoldTimeForm: document.getElementById("training-hold-time-form"),
   trainingVolumeForm: document.getElementById("training-volume-form"),
+  trainingQuizShieldsForm: document.getElementById("training-quiz-shields-form"),
   trainingStartBtn: document.getElementById("training-start-btn"),
   trainingVolumeStartBtn: document.getElementById("training-volume-start-btn"),
+  trainingQuizShieldsStartBtn: document.getElementById("training-quiz-shields-start-btn"),
+  shieldPaCheckbox: document.getElementById("shield-pa-checkbox"),
+  shieldPgCheckbox: document.getElementById("shield-pg-checkbox"),
+  shieldMgCheckbox: document.getElementById("shield-mg-checkbox"),
+  shieldGgCheckbox: document.getElementById("shield-gg-checkbox"),
   trainingSeriesInput: document.getElementById("training-series-input"),
   trainingSeriesValue: document.getElementById("training-series-value"),
   trainingRepetitionsInput: document.getElementById("training-repetitions-input"),
@@ -332,6 +340,19 @@ const els = {
   trainingCycleToggleBtn: document.getElementById("training-cycle-toggle-btn"),
   trainingCycleToggleText: document.getElementById("training-cycle-toggle-text"),
   trainingCycleToggleIcon: document.getElementById("training-cycle-toggle-icon"),
+  trainingQuizShieldsModal: document.getElementById("training-quiz-shields-modal"),
+  trainingQuizShieldsModalOverlay: document.getElementById("training-quiz-shields-modal-overlay"),
+  trainingQuizShieldsCloseBtn: document.getElementById("training-quiz-shields-close-btn"),
+  quizShieldsImageContainer: document.querySelector(".quiz-shields-image-container"),
+  quizShieldsImage: document.getElementById("quiz-shields-image"),
+  quizShieldsScoreValue: document.getElementById("quiz-shields-score-value"),
+  quizShieldsQuestionValue: document.getElementById("quiz-shields-question-value"),
+  quizShieldsOptionButtons: document.querySelectorAll(".quiz-shields-option-btn"),
+  quizShieldsFeedback: document.getElementById("quiz-shields-feedback"),
+  quizShieldsResults: document.getElementById("quiz-shields-results"),
+  quizShieldsResultRing: document.getElementById("quiz-shields-result-ring"),
+  quizShieldsResultPercentage: document.getElementById("quiz-shields-result-percentage"),
+  quizShieldsRestartBtn: document.getElementById("quiz-shields-restart-btn"),
   targetCountFieldset: document.getElementById("target-count-fieldset"),
   duelNamesContainer: document.getElementById("duel-names-container"),
     duelNamesError: document.getElementById("duel-names-error"),
@@ -392,7 +413,6 @@ const els = {
   duelSummaryCardP2: document.getElementById("duel-summary-card-p2"),
   duelHistoryP1: document.getElementById("duel-history-p1"),
   duelHistoryP2: document.getElementById("duel-history-p2"),
-  helpVersion: document.getElementById("help-version"),
 };
 
 // Sentinel for "X" score (Field/Hunter: inner-bull, counted as 5 pts)
@@ -413,8 +433,11 @@ let welcomeModalTimer = null;
 let trainingCycleIntervalId = null;
 let duelBotMode = false;
 let duelBotShotTimeoutId = null;
+let multiModalForcedMode = null;
 let trainingCycleState = null;
 let trainingVolumeSessionState = null;
+let trainingQuizShieldsSessionState = null;
+let quizShieldsNextQuestionTimeoutId = null;
 let soloBeepsTimerState = null;
 let trainingAudioContext = null;
 const TRAINING_VOICE_VOLUME = 0.55;
@@ -1067,6 +1090,35 @@ function isSoloTimerEnabled(mode) {
   return normalizeSoloTimerMode(mode, SOLO_TIMER_MODE_NONE) !== SOLO_TIMER_MODE_NONE;
 }
 
+function normalizeSoloSessionType(value, fallback = SOLO_SESSION_TYPE_TRAINING) {
+  if (value === SOLO_SESSION_TYPE_TRAINING || value === SOLO_SESSION_TYPE_CONTEST) {
+    return value;
+  }
+  return fallback;
+}
+
+function syncSoloSessionTypeInputs(sessionType) {
+  const normalizedType = normalizeSoloSessionType(sessionType);
+  const input = [...els.soloSessionTypeInputs].find((item) => item.value === normalizedType);
+  if (input) {
+    input.checked = true;
+  }
+}
+
+function getSelectedGeneralStatsSessionType() {
+  const checked = [...els.generalStatsSessionTypeInputs].find((input) => input.checked);
+  const value = checked ? checked.value : "all";
+  return value === "all" ? "all" : normalizeSoloSessionType(value);
+}
+
+function syncGeneralStatsSessionTypeInputs(sessionType = "all") {
+  const normalizedType = sessionType === "all" ? "all" : normalizeSoloSessionType(sessionType);
+  const input = [...els.generalStatsSessionTypeInputs].find((item) => item.value === normalizedType);
+  if (input) {
+    input.checked = true;
+  }
+}
+
 function syncSoloTimerModeInputs(mode) {
   const normalizedMode = normalizeSoloTimerMode(mode);
   const input = [...els.useTimerInputs].find((item) => item.value === normalizedMode);
@@ -1086,6 +1138,7 @@ function getSetupSnapshot() {
     sessionDate: els.sessionDateInput ? els.sessionDateInput.value : "",
     sessionTime: els.sessionTimeInput ? els.sessionTimeInput.value : "",
     useTargetGroups: getSelectedUseTargetGroups(),
+    soloSessionType: getSelectedSoloSessionType(),
     timerMode,
     useTimer: isSoloTimerEnabled(timerMode),
     showScores: getSelectedShowScores(),
@@ -1270,6 +1323,7 @@ function persistAppState() {
             scoringMode: state.scoringMode,
             weapon: state.weapon || "",
             useTargetGroups: state.useTargetGroups,
+            soloSessionType: state.soloSessionType,
           timerMode: state.soloTimerMode,
           useTimer: isSoloTimerEnabled(state.soloTimerMode),
             showScores: state.showScores,
@@ -1317,6 +1371,7 @@ function persistContestProgressState() {
     scoringMode: state.scoringMode,
     weapon: state.weapon || "",
     useTargetGroups: state.useTargetGroups,
+    soloSessionType: state.soloSessionType,
     timerMode: state.soloTimerMode,
     useTimer: isSoloTimerEnabled(state.soloTimerMode),
     showScores: state.showScores,
@@ -1378,6 +1433,7 @@ function restoreContestProgressState(contestInfo, initialScoring = null) {
     ? scoring.weapon
     : getWeaponsForRuleset(scoring.activeRuleset)[0];
   state.useTargetGroups = typeof scoring.useTargetGroups === "boolean" ? scoring.useTargetGroups : state.useTargetGroups;
+  state.soloSessionType = normalizeSoloSessionType(scoring.soloSessionType, state.soloSessionType);
   state.soloTimerMode = normalizeSoloTimerMode(
     scoring.timerMode,
     normalizeSoloTimerMode(scoring.useTimer, state.soloTimerMode),
@@ -1465,6 +1521,7 @@ function restorePersistedState() {
     const input = [...els.useTargetGroupsInputs].find((i) => i.value === targetValue);
     if (input) input.checked = true;
   }
+  syncSoloSessionTypeInputs(normalizeSoloSessionType(setup.soloSessionType));
   syncSoloTimerModeInputs(normalizeSoloTimerMode(setup.timerMode, normalizeSoloTimerMode(setup.useTimer)));
   if (typeof setup.showScores === "boolean") {
     const targetValue = setup.showScores ? "yes" : "no";
@@ -1500,6 +1557,10 @@ function restorePersistedState() {
     ? saved.weapon
     : getWeaponsForRuleset(saved.activeRuleset)[0];
   state.useTargetGroups = typeof saved.useTargetGroups === "boolean" ? saved.useTargetGroups : true;
+  state.soloSessionType = normalizeSoloSessionType(
+    saved.soloSessionType,
+    normalizeSoloSessionType(setup.soloSessionType, SOLO_SESSION_TYPE_TRAINING),
+  );
   state.soloTimerMode = normalizeSoloTimerMode(
     saved.timerMode,
     normalizeSoloTimerMode(setup.timerMode, normalizeSoloTimerMode(saved.useTimer, normalizeSoloTimerMode(setup.useTimer))),
@@ -2248,18 +2309,29 @@ function getCurrentSessionDateTime() {
   return { date, time };
 }
 
-function syncSessionDateTimeForSoloMode() {
-  if (state.contestMode || getSelectedScoringMode() !== "individual") {
+function syncSessionDateTimeForSoloMode(forceCurrent = false) {
+  if (state.contestMode) {
     return;
   }
   const { date, time } = getCurrentSessionDateTime();
+  let hasChanged = false;
   if (els.sessionDateInput) {
-    els.sessionDateInput.value = date;
+    const currentDate = typeof els.sessionDateInput.value === "string" ? els.sessionDateInput.value.trim() : "";
+    if (!currentDate || forceCurrent) {
+      els.sessionDateInput.value = date;
+      hasChanged = true;
+    }
   }
   if (els.sessionTimeInput) {
-    els.sessionTimeInput.value = time;
+    const currentTime = typeof els.sessionTimeInput.value === "string" ? els.sessionTimeInput.value.trim() : "";
+    if (!currentTime || forceCurrent) {
+      els.sessionTimeInput.value = time;
+      hasChanged = true;
+    }
   }
-  persistAppState();
+  if (hasChanged) {
+    persistAppState();
+  }
 }
 
 function updateWeaponSelectVisibility() {
@@ -2290,6 +2362,11 @@ function updateUseTimerVisibility() {
 function getSelectedUseTargetGroups() {
   const checked = [...els.useTargetGroupsInputs].find((input) => input.checked);
   return checked ? checked.value === "yes" : true;
+}
+
+function getSelectedSoloSessionType() {
+  const checked = [...els.soloSessionTypeInputs].find((input) => input.checked);
+  return normalizeSoloSessionType(checked ? checked.value : SOLO_SESSION_TYPE_TRAINING);
 }
 
 function getSelectedSoloTimerMode() {
@@ -2521,7 +2598,7 @@ function startScoring() {
   const points = presets[els.rulesetSelect.value];
   const scoringMode = getSelectedScoringMode();
 
-  if (!state.contestMode && scoringMode === "individual") {
+  if (!state.contestMode) {
     syncSessionDateTimeForSoloMode();
   }
 
@@ -2534,6 +2611,7 @@ function startScoring() {
   state.scoringMode = scoringMode;
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
   state.useTargetGroups = getSelectedUseTargetGroups();
+  state.soloSessionType = getSelectedSoloSessionType();
   state.soloTimerMode = getSelectedSoloTimerMode();
   state.showScores = getSelectedShowScores();
   state.arrowsPerVolley = getArrowsPerVolley(els.rulesetSelect.value, state.scoringMode);
@@ -2743,6 +2821,7 @@ function buildResultsPayload() {
     sessionDate: state.sessionDate || "",
     sessionTime: state.sessionTime || "",
     useTargetGroups: state.useTargetGroups,
+    soloSessionType: state.soloSessionType,
     timerMode: state.soloTimerMode,
     useTimer: isSoloTimerEnabled(state.soloTimerMode),
     showScores: state.showScores,
@@ -3235,53 +3314,8 @@ function closeStatsModal() {
   }
 }
 
-let helpCurrentPage = 1;
-const HELP_TOTAL_PAGES = 2;
-
-function renderHelpPagination() {
-  const pages = els.helpModal.querySelectorAll(".help-page");
-  pages.forEach((page) => {
-    const pageNum = Number(page.dataset.helpPage);
-    page.classList.toggle("hidden", pageNum !== helpCurrentPage);
-  });
-
-  els.helpPagination.innerHTML = "";
-
-  const prevBtn = document.createElement("button");
-  prevBtn.className = "btn btn-light btn-icon pagination-btn";
-  prevBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M15.4 16.6 10.8 12l4.6-4.6L14 6l-6 6 6 6 1.4-1.4Z" fill="currentColor"/></svg>`;
-  prevBtn.disabled = helpCurrentPage <= 1;
-  prevBtn.addEventListener("click", () => { helpCurrentPage--; renderHelpPagination(); });
-  els.helpPagination.appendChild(prevBtn);
-
-  const indicator = document.createElement("span");
-  indicator.className = "pagination-indicator";
-  indicator.textContent = `${helpCurrentPage} / ${HELP_TOTAL_PAGES}`;
-  els.helpPagination.appendChild(indicator);
-
-  const nextBtn = document.createElement("button");
-  nextBtn.className = "btn btn-light btn-icon pagination-btn";
-  nextBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16"><path d="M8.6 16.6l4.6-4.6-4.6-4.6L10 6l6 6-6 6-1.4-1.4Z" fill="currentColor"/></svg>`;
-  nextBtn.disabled = helpCurrentPage >= HELP_TOTAL_PAGES;
-  nextBtn.addEventListener("click", () => { helpCurrentPage++; renderHelpPagination(); });
-  els.helpPagination.appendChild(nextBtn);
-}
-
-function openHelpModal() {
-  closeStatsModal();
-  closeGeneralStatsModal();
-  closeTrainingModal();
-  closeTrainingHoldModal();
-  closeHistoryModal();
-  closeMultiModal();
-  closeDuelModal();
-  helpCurrentPage = 1;
-  renderHelpPagination();
-  els.helpModal.classList.remove("hidden");
-}
-
 function closeHelpModal() {
-  els.helpModal.classList.add("hidden");
+  return;
 }
 
 function setLoginFeedback(message, tone = "error") {
@@ -3518,12 +3552,9 @@ async function handlePasswordSubmit(event) {
 }
 
 function updateMultiContestModeAvailability() {
-  if (!els.multiModeOptionContest) return;
   const isLoggedIn = hasStoredAuthToken();
-  els.multiModeOptionContest.hidden = false;
-  els.multiModeOptionContest.disabled = !isLoggedIn;
-  if (!isLoggedIn && els.multiModeSelect?.value === "contest") {
-    els.multiModeSelect.value = "duel";
+  if (els.homeContestBtn) {
+    els.homeContestBtn.disabled = !isLoggedIn;
   }
 }
 
@@ -3964,7 +3995,7 @@ function renderGeneralStatsEvolution(entries) {
     })
     .join(" ");
 
-  const xSpacingPx = 50;
+  const xSpacingPx = 24;
   const chartWidth = Math.max(280, ((ordered.length - 1) * xSpacingPx) + 80);
   els.generalStatsEvolutionChart.style.width = `${chartWidth}px`;
   els.generalStatsEvolutionAxis.style.width = `${chartWidth}px`;
@@ -3983,6 +4014,7 @@ function renderGeneralStatsEvolution(entries) {
 function renderGeneralStatsModal() {
   const selectedRuleset = els.generalStatsRulesetFilter?.value || "all";
   const selectedWeapon = els.generalStatsWeaponFilter?.value || "all";
+  const selectedSessionType = getSelectedGeneralStatsSessionType();
   const hasEmptyFilter = !String(selectedRuleset).trim() || !String(selectedWeapon).trim();
   const isAllWeaponsSelected = selectedWeapon === "all";
 
@@ -4004,6 +4036,7 @@ function renderGeneralStatsModal() {
   const entries = loadHistoryEntries().filter((entry) => {
     if (selectedRuleset !== "all" && entry.ruleset !== selectedRuleset) return false;
     if (selectedWeapon !== "all" && entry.weapon !== selectedWeapon) return false;
+    if (selectedSessionType !== "all" && normalizeSoloSessionType(entry.soloSessionType) !== selectedSessionType) return false;
     return true;
   });
   if (entries.length === 0) {
@@ -4111,6 +4144,7 @@ function openGeneralStatsModal() {
   if (els.generalStatsWeaponFilter) {
     els.generalStatsWeaponFilter.value = "all";
   }
+  syncGeneralStatsSessionTypeInputs("all");
   syncGeneralStatsWeaponFilter();
   if (!renderGeneralStatsModal()) {
     showFlashInfo("Aucune statistique disponible. Enregistrez au moins une session dans l'historique.");
@@ -4129,7 +4163,12 @@ function loadHistoryEntries() {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item) => item && typeof item === "object" && item.generatedAt);
+    return parsed
+      .filter((item) => item && typeof item === "object" && item.generatedAt)
+      .map((item) => ({
+        ...item,
+        soloSessionType: normalizeSoloSessionType(item.soloSessionType),
+      }));
   } catch {
     return [];
   }
@@ -4137,7 +4176,13 @@ function loadHistoryEntries() {
 
 function saveHistoryEntries(entries) {
   try {
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY_ITEMS)));
+    const normalizedEntries = entries
+      .filter((entry) => entry && typeof entry === "object")
+      .map((entry) => ({
+        ...entry,
+        soloSessionType: normalizeSoloSessionType(entry.soloSessionType),
+      }));
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(normalizedEntries.slice(0, MAX_HISTORY_ITEMS)));
   } catch {
     // Ignore storage failures.
   }
@@ -4188,9 +4233,11 @@ let historyCurrentPage = 1;
 function renderHistoryList() {
   const selectedMode = els.historyModeFilter.value;
   const selectedRuleset = els.historyRulesetFilter.value;
+  const selectedSessionType = els.historySessionTypeFilter?.value || "all";
   let entries = loadHistoryEntries().filter((entry) => {
     if (selectedMode !== "all" && entry.scoringMode !== selectedMode) return false;
     if (selectedRuleset !== "all" && entry.ruleset !== selectedRuleset) return false;
+    if (selectedSessionType !== "all" && normalizeSoloSessionType(entry.soloSessionType) !== selectedSessionType) return false;
     return true;
   });
 
@@ -4409,7 +4456,11 @@ function closeHistoryModal() {
   els.historyModal.classList.add("hidden");
 }
 
-async function openMultiModal() {
+function getActiveMultiModalMode() {
+  return multiModalForcedMode || els.multiModeSelect?.value || "duel";
+}
+
+function prepareMultiModal() {
   updateMultiContestModeAvailability();
   closeStatsModal();
   closeGeneralStatsModal();
@@ -4419,27 +4470,23 @@ async function openMultiModal() {
   closeHistoryModal();
   closeConfigModal();
   closeDuelModal();
-  
-  // Masquer le message d'erreur peloton
+
   if (els.pelotonNamesError) {
     els.pelotonNamesError.classList.add("hidden");
   }
-  
-    // Masquer le message d'erreur duel
-    if (els.duelNamesError) {
-      els.duelNamesError.classList.add("hidden");
-    }
-  
-  // Réinitialiser le slider du bot au démarrage
+  if (els.duelNamesError) {
+    els.duelNamesError.classList.add("hidden");
+  }
+
   duelBotMode = false;
   els.duelBotRow?.classList.remove("visible");
-  
+
   if (els.multiRulesetSelect) {
     const currentValue = els.multiRulesetSelect.value;
     const hasCurrentEnabled = currentValue && appConfig.enabledRulesets.includes(currentValue);
     if (!hasCurrentEnabled) {
       const firstEnabledOption = Array.from(els.multiRulesetSelect.querySelectorAll("option")).find(
-        (option) => option.value && appConfig.enabledRulesets.includes(option.value)
+        (option) => option.value && appConfig.enabledRulesets.includes(option.value),
       );
       if (firstEnabledOption) {
         els.multiRulesetSelect.value = firstEnabledOption.value;
@@ -4447,6 +4494,71 @@ async function openMultiModal() {
     }
     syncMultiContestWeaponSelectOptions(getStoredContestWeapon());
   }
+}
+
+async function applyMultiModalMode(mode, { autoStartStoredContest = false } = {}) {
+  if (mode === "duel") {
+    els.multiLudicModeContainer?.classList.add("hidden");
+    els.duelNamesContainer?.classList.remove("hidden");
+    els.pelotonNamesContainer?.classList.add("hidden");
+    els.targetCountFieldset?.classList.remove("hidden");
+    els.contestCodeContainer?.classList.add("hidden");
+    els.contestWeaponContainer?.classList.add("hidden");
+    const duelP2Value = els.duelNameP2?.value.trim().toLowerCase() || "";
+    if (duelP2Value === "paquito") {
+      duelBotMode = true;
+      els.duelBotRow?.classList.add("visible");
+    } else {
+      duelBotMode = false;
+      els.duelBotRow?.classList.remove("visible");
+    }
+    return;
+  }
+
+  if (mode === "peloton") {
+    els.multiLudicModeContainer?.classList.remove("hidden");
+    els.duelNamesContainer?.classList.add("hidden");
+    els.pelotonNamesContainer?.classList.remove("hidden");
+    els.targetCountFieldset?.classList.add("hidden");
+    els.contestCodeContainer?.classList.add("hidden");
+    els.contestWeaponContainer?.classList.add("hidden");
+    els.duelBotRow?.classList.remove("visible");
+    return;
+  }
+
+  els.multiLudicModeContainer?.classList.add("hidden");
+  els.duelNamesContainer?.classList.add("hidden");
+  els.pelotonNamesContainer?.classList.add("hidden");
+  els.targetCountFieldset?.classList.add("hidden");
+  els.duelBotRow?.classList.remove("visible");
+  const hasStoredUuid = Boolean(getStoredContestUuid());
+  if (hasStoredUuid) {
+    els.contestCodeContainer?.classList.add("hidden");
+    if (autoStartStoredContest) {
+      const startedFromStoredUuid = await startContestFromStoredUuidIfAvailable();
+      if (startedFromStoredUuid) {
+        return;
+      }
+      els.contestCodeContainer?.classList.remove("hidden");
+      els.contestCodeInput?.focus();
+    }
+  } else {
+    els.contestCodeContainer?.classList.remove("hidden");
+    if (autoStartStoredContest) {
+      els.contestCodeInput?.focus();
+    }
+  }
+  syncMultiContestWeaponSelectOptions(getStoredContestWeapon());
+  els.contestWeaponContainer?.classList.remove("hidden");
+}
+
+async function openMultiModal() {
+  prepareMultiModal();
+  multiModalForcedMode = null;
+  if (els.multiModalTitleText) {
+    els.multiModalTitleText.textContent = "Mode Multi";
+  }
+  els.multiModeSelectWrapper?.classList.remove("hidden");
   if (els.multiModeSelect) {
     const firstAvailableModeOption = Array.from(els.multiModeSelect.options).find(
       (option) => option.value && !option.disabled && !option.hidden,
@@ -4455,40 +4567,33 @@ async function openMultiModal() {
       els.multiModeSelect.value = firstAvailableModeOption.value;
     }
   }
-  // Initialiser l'affichage des éléments selon le mode
-  const mode = els.multiModeSelect?.value || "duel";
-  if (mode === "duel") {
-    els.multiLudicModeContainer?.classList.add("hidden");
-    els.duelNamesContainer?.classList.remove("hidden");
-    els.pelotonNamesContainer?.classList.add("hidden");
-    els.targetCountFieldset?.classList.remove("hidden");
-    els.contestCodeContainer?.classList.add("hidden");
-    els.contestWeaponContainer?.classList.add("hidden");
-  } else if (mode === "peloton") {
-    els.multiLudicModeContainer?.classList.remove("hidden");
-    els.duelNamesContainer?.classList.add("hidden");
-    els.pelotonNamesContainer?.classList.remove("hidden");
-    els.targetCountFieldset?.classList.add("hidden");
-    els.contestCodeContainer?.classList.add("hidden");
-    els.contestWeaponContainer?.classList.add("hidden");
-  } else if (mode === "contest") {
-    els.multiLudicModeContainer?.classList.remove("hidden");
-    els.duelNamesContainer?.classList.add("hidden");
-    els.pelotonNamesContainer?.classList.add("hidden");
-    els.targetCountFieldset?.classList.add("hidden");
-    const hasStoredUuid = Boolean(getStoredContestUuid());
-    if (hasStoredUuid) {
-      els.contestCodeContainer?.classList.add("hidden");
-    } else {
-      els.contestCodeContainer?.classList.remove("hidden");
-    }
-    syncMultiContestWeaponSelectOptions(getStoredContestWeapon());
-    els.contestWeaponContainer?.classList.remove("hidden");
-  }
+  await applyMultiModalMode(getActiveMultiModalMode());
   els.multiModal?.classList.remove("hidden");
 }
 
+async function openContestModal() {
+  if (!hasStoredAuthToken()) {
+    showFlashInfo("Connectez-vous pour accéder aux concours.");
+    openLoginModal();
+    return;
+  }
+
+  prepareMultiModal();
+  multiModalForcedMode = "contest";
+  if (els.multiModalTitleText) {
+    els.multiModalTitleText.textContent = "Concours";
+  }
+  els.multiModeSelectWrapper?.classList.add("hidden");
+  els.multiModal?.classList.remove("hidden");
+  await applyMultiModalMode("contest", { autoStartStoredContest: true });
+}
+
 function closeMultiModal() {
+  multiModalForcedMode = null;
+  if (els.multiModalTitleText) {
+    els.multiModalTitleText.textContent = "Mode Multi";
+  }
+  els.multiModeSelectWrapper?.classList.remove("hidden");
   els.multiModal?.classList.add("hidden");
 }
 
@@ -5067,11 +5172,13 @@ function updateTrainingRepetitionsDisplay() {
 }
 
 function syncTrainingOptionForm() {
-  if (!els.trainingOptionSelect || !els.trainingHoldTimeForm || !els.trainingVolumeForm) return;
+  if (!els.trainingOptionSelect || !els.trainingHoldTimeForm || !els.trainingVolumeForm || !els.trainingQuizShieldsForm) return;
   const isHoldTime = els.trainingOptionSelect.value === "hold-time";
   const isVolumeArrows = els.trainingOptionSelect.value === "volume-arrows";
+  const isQuizShields = els.trainingOptionSelect.value === "quiz-shields";
   els.trainingHoldTimeForm.classList.toggle("hidden", !isHoldTime);
   els.trainingVolumeForm.classList.toggle("hidden", !isVolumeArrows);
+  els.trainingQuizShieldsForm.classList.toggle("hidden", !isQuizShields);
 }
 
 function updateTrainingVolumeDisplay() {
@@ -5288,6 +5395,287 @@ function closeTrainingHoldModal() {
   }
 }
 
+// Blason image arrays by category
+const SHIELDS_BY_CATEGORY = {
+  PA: ['img_3_0.png', 'img_3_1.png', 'img_3_2.png', 'img_3_3.png', 'img_3_4.png', 'img_3_5.png', 'img_3_6.png', 'img_4_1.png', 'img_4_2.png', 'img_4_3.png', 'img_4_4.png', 'img_4_5.png', 'img_4_6.png', 'img_4_7.png', 'img_4_8.png', 'img_5_2.png', 'img_5_4.png', 'img_6_0.png', 'img_6_1.png', 'img_6_3.png', 'img_6_4.png', 'img_6_5.png', 'img_6_6.png', 'img_6_7.png', 'img_6_8.png', 'img_6_9.png', 'img_7_3.png', 'img_7_6.png', 'img_7_7.png', 'img_8_2.png', 'img_8_3.png', 'img_8_4.png'],
+  PG: ['img_10_0.png', 'img_10_1.png', 'img_10_5.png', 'img_10_7.png', 'img_10_8.png', 'img_11_0.png', 'img_11_1.png', 'img_11_2.png', 'img_11_3.png', 'img_11_6.png', 'img_11_7.png', 'img_12_1.png', 'img_12_2.png', 'img_12_3.png', 'img_12_5.png', 'img_12_6.png', 'img_13_0.png', 'img_13_1.png', 'img_9_0.png', 'img_9_1.png', 'img_9_2.png', 'img_9_3.png', 'img_9_4.png', 'img_9_5.png', 'img_9_6.png'],
+  MG: ['img_14_0.png', 'img_14_1.png', 'img_14_2.png', 'img_14_3.png', 'img_14_4.png', 'img_14_5.png', 'img_14_6.png', 'img_15_1.png', 'img_15_2.png', 'img_15_4.png', 'img_16_0.png', 'img_16_1.png', 'img_16_2.png', 'img_16_3.png', 'img_16_4.png', 'img_16_5.png', 'img_16_6.png', 'img_16_8.png', 'img_17_0.png', 'img_17_1.png', 'img_17_3.png', 'img_17_4.png', 'img_18_2.png', 'img_18_3.png'],
+  GG: ['img_19_0.png', 'img_19_1.png', 'img_19_2.png', 'img_19_3.png', 'img_19_4.png', 'img_19_5.png', 'img_20_0.png', 'img_21_0.png', 'img_21_1.png', 'img_21_2.png', 'img_21_3.png', 'img_21_4.png', 'img_21_5.png', 'img_21_6.png', 'img_22_0.png', 'img_22_1.png']
+};
+
+const QUIZ_SHIELDS_DISTRIBUTION = {
+  PA: 4,
+  PG: 6,
+  MG: 7,
+  GG: 4,
+};
+
+function shuffleArray(values) {
+  const copy = [...values];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const randomIndex = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[randomIndex]] = [copy[randomIndex], copy[i]];
+  }
+  return copy;
+}
+
+function buildQuizShieldsPool(selectedCategories) {
+  const categories = selectedCategories.length > 0 ? selectedCategories : ["PA", "PG", "MG", "GG"];
+  const pool = [];
+
+  categories.forEach((category) => {
+    const wantedCount = QUIZ_SHIELDS_DISTRIBUTION[category] || 0;
+    const shields = SHIELDS_BY_CATEGORY[category] || [];
+    const shuffledShields = shuffleArray(shields);
+    const takeCount = Math.min(wantedCount, shuffledShields.length);
+
+    for (let index = 0; index < takeCount; index += 1) {
+      pool.push({
+        category,
+        image: shuffledShields[index],
+      });
+    }
+  });
+
+  return shuffleArray(pool);
+}
+
+function getSelectedShieldCategories() {
+  const categories = [];
+  if (els.shieldPaCheckbox?.checked) categories.push('PA');
+  if (els.shieldPgCheckbox?.checked) categories.push('PG');
+  if (els.shieldMgCheckbox?.checked) categories.push('MG');
+  if (els.shieldGgCheckbox?.checked) categories.push('GG');
+  return categories.length > 0 ? categories : ['PA', 'PG', 'MG', 'GG'];
+}
+
+function clearQuizShieldsNextQuestionTimeout() {
+  if (quizShieldsNextQuestionTimeoutId) {
+    window.clearTimeout(quizShieldsNextQuestionTimeoutId);
+    quizShieldsNextQuestionTimeoutId = null;
+  }
+}
+
+function openTrainingQuizShieldsModal() {
+  closeTrainingModal();
+  closeTrainingHoldModal();
+  closeTrainingVolumeModal();
+  clearQuizShieldsNextQuestionTimeout();
+
+  const selectedCategories = getSelectedShieldCategories();
+  const questionPool = buildQuizShieldsPool(selectedCategories);
+  if (questionPool.length === 0) {
+    showFlashInfo("Aucun blason disponible pour démarrer le quiz.");
+    return;
+  }
+
+  trainingQuizShieldsSessionState = {
+    totalQuestions: questionPool.length,
+    currentQuestion: 0,
+    score: 0,
+    selectedCategories,
+    questionPool,
+    currentShield: null,
+    answered: false,
+  };
+
+  // Reset ring to 0
+  if (els.quizShieldsResultRing) {
+    els.quizShieldsResultRing.style.setProperty("--ring-progress", "0");
+  }
+
+  loadNextQuizShieldsQuestion();
+  
+  els.trainingQuizShieldsModal?.classList.remove("hidden");
+}
+
+function loadNextQuizShieldsQuestion() {
+  if (!trainingQuizShieldsSessionState) return;
+  clearQuizShieldsNextQuestionTimeout();
+
+  // Hide results section if visible
+  if (els.quizShieldsResults) {
+    els.quizShieldsResults.classList.add("hidden");
+  }
+
+  // Show image container for new question
+  if (els.quizShieldsImageContainer) {
+    els.quizShieldsImageContainer.classList.remove("hidden");
+  }
+
+  trainingQuizShieldsSessionState.currentQuestion += 1;
+  trainingQuizShieldsSessionState.answered = false;
+
+  if (trainingQuizShieldsSessionState.currentQuestion > trainingQuizShieldsSessionState.totalQuestions) {
+    showQuizShieldsResults();
+    return;
+  }
+
+  trainingQuizShieldsSessionState.currentShield =
+    trainingQuizShieldsSessionState.questionPool[trainingQuizShieldsSessionState.currentQuestion - 1];
+
+  // Update UI
+  if (els.quizShieldsQuestionValue) {
+    els.quizShieldsQuestionValue.textContent = `${trainingQuizShieldsSessionState.currentQuestion}/${trainingQuizShieldsSessionState.totalQuestions}`;
+  }
+
+  if (els.quizShieldsImage) {
+    const { category, image } = trainingQuizShieldsSessionState.currentShield;
+    els.quizShieldsImage.src = `images/blasons/${category}/${image}`;
+    els.quizShieldsImage.alt = `Blason à identifier - ${category}`;
+  }
+
+  // Reset button states
+  els.quizShieldsOptionButtons?.forEach(btn => {
+    btn.classList.remove("correct", "incorrect", "quiz-option-muted");
+    btn.classList.add("quiz-option-default");
+    btn.disabled = false;
+    btn.blur();
+  });
+
+  // Reset feedback for the next question
+  if (els.quizShieldsFeedback) {
+    els.quizShieldsFeedback.classList.add("hidden");
+    els.quizShieldsFeedback.textContent = "";
+  }
+}
+
+function handleQuizShieldsAnswer(selectedCategory) {
+  if (!trainingQuizShieldsSessionState || trainingQuizShieldsSessionState.answered) return;
+
+  trainingQuizShieldsSessionState.answered = true;
+  const correctCategory = trainingQuizShieldsSessionState.currentShield.category;
+  const isCorrect = selectedCategory === correctCategory;
+
+  if (isCorrect) {
+    trainingQuizShieldsSessionState.score += 1;
+  }
+
+  // Update UI
+  if (els.quizShieldsScoreValue) {
+    els.quizShieldsScoreValue.textContent = String(trainingQuizShieldsSessionState.score);
+  }
+
+  // Keep feedback text hidden; only button highlight indicates correctness.
+  if (els.quizShieldsFeedback) {
+    els.quizShieldsFeedback.classList.add("hidden");
+    els.quizShieldsFeedback.textContent = "";
+    els.quizShieldsFeedback.classList.remove("correct", "incorrect");
+  }
+
+  // Update button states
+  els.quizShieldsOptionButtons?.forEach(btn => {
+    const btnCategory = btn.getAttribute("data-category");
+    btn.classList.remove("quiz-option-default", "quiz-option-muted");
+    if (btnCategory === correctCategory) {
+      btn.classList.add("correct");
+    } else if (btnCategory === selectedCategory && !isCorrect) {
+      btn.classList.add("incorrect");
+    } else {
+      btn.classList.add("quiz-option-muted");
+    }
+    btn.disabled = true;
+  });
+
+  quizShieldsNextQuestionTimeoutId = window.setTimeout(() => {
+    quizShieldsNextQuestionTimeoutId = null;
+    if (!trainingQuizShieldsSessionState || !trainingQuizShieldsSessionState.answered) return;
+    loadNextQuizShieldsQuestion();
+  }, QUIZ_SHIELDS_NEXT_DELAY_MS);
+}
+
+function showQuizShieldsResults() {
+  const score = trainingQuizShieldsSessionState?.score || 0;
+  const total = trainingQuizShieldsSessionState?.totalQuestions || 21;
+  const percentage = Math.round((score / total) * 100);
+
+  // Update results display with ring
+  if (els.quizShieldsResultPercentage) {
+    els.quizShieldsResultPercentage.textContent = `${percentage}%`;
+  }
+  if (els.quizShieldsResultRing) {
+    els.quizShieldsResultRing.style.setProperty("--ring-progress", `${percentage}`);
+  }
+
+  // Hide quiz content and show results
+  if (els.quizShieldsImageContainer) {
+    els.quizShieldsImageContainer.classList.add("hidden");
+  }
+  if (els.quizShieldsImage) {
+    els.quizShieldsImage.classList.add("hidden");
+  }
+  if (els.quizShieldsOptionButtons) {
+    els.quizShieldsOptionButtons.forEach(btn => {
+      btn.classList.add("hidden");
+    });
+  }
+  if (els.trainingQuizShieldsForm) {
+    els.trainingQuizShieldsForm.classList.add("hidden");
+  }
+  if (els.quizShieldsResults) {
+    els.quizShieldsResults.classList.remove("hidden");
+  }
+}
+
+function restartQuizShields() {
+  if (!trainingQuizShieldsSessionState) return;
+  clearQuizShieldsNextQuestionTimeout();
+
+  // Rebuild a fresh shuffled pool while preserving category distribution.
+  const selectedCategories = trainingQuizShieldsSessionState.selectedCategories || getSelectedShieldCategories();
+  const questionPool = buildQuizShieldsPool(selectedCategories);
+  if (questionPool.length === 0) {
+    showFlashInfo("Aucun blason disponible pour redemarrer le quiz.");
+    return;
+  }
+
+  // Reset session state for a new quiz
+  trainingQuizShieldsSessionState.totalQuestions = questionPool.length;
+  trainingQuizShieldsSessionState.currentQuestion = 0;
+  trainingQuizShieldsSessionState.score = 0;
+  trainingQuizShieldsSessionState.selectedCategories = selectedCategories;
+  trainingQuizShieldsSessionState.questionPool = questionPool;
+  trainingQuizShieldsSessionState.currentShield = null;
+  trainingQuizShieldsSessionState.answered = false;
+
+  if (els.quizShieldsScoreValue) {
+    els.quizShieldsScoreValue.textContent = "0";
+  }
+
+  // Hide results section and reset ring
+  if (els.quizShieldsResults) {
+    els.quizShieldsResults.classList.add("hidden");
+  }
+  if (els.quizShieldsResultRing) {
+    els.quizShieldsResultRing.style.setProperty("--ring-progress", "0");
+  }
+
+  // Show quiz content
+  if (els.quizShieldsImageContainer) {
+    els.quizShieldsImageContainer.classList.remove("hidden");
+  }
+  if (els.quizShieldsImage) {
+    els.quizShieldsImage.classList.remove("hidden");
+  }
+  if (els.quizShieldsOptionButtons) {
+    els.quizShieldsOptionButtons.forEach(btn => {
+      btn.classList.remove("hidden");
+    });
+  }
+  if (els.trainingQuizShieldsForm) {
+    els.trainingQuizShieldsForm.classList.remove("hidden");
+  }
+
+  // Load the next question to start fresh
+  loadNextQuizShieldsQuestion();
+}
+
+function closeTrainingQuizShieldsModal() {
+  clearQuizShieldsNextQuestionTimeout();
+  els.trainingQuizShieldsModal?.classList.add("hidden");
+  trainingQuizShieldsSessionState = null;
+}
+
 async function startContestFromStoredUuidIfAvailable() {
   const storedContestUuid = getStoredContestUuid();
   if (!storedContestUuid) {
@@ -5333,7 +5721,7 @@ function getSelectedMultiTargetCount() {
 }
 
 function isMultiLudicModeEnabled() {
-  if ((els.multiModeSelect?.value || "duel") === "duel") {
+  if (getActiveMultiModalMode() === "duel") {
     return false;
   }
   const checked = [...(els.multiLudicModeInputs || [])].find((input) => input.checked);
@@ -5342,7 +5730,7 @@ function isMultiLudicModeEnabled() {
 
 function resetDuelStateFromMultiConfig() {
   const ruleset = els.multiRulesetSelect?.value || "3d";
-  const mode = els.multiModeSelect?.value || "duel";
+  const mode = getActiveMultiModalMode();
   state.multiLudicMode = isMultiLudicModeEnabled();
   const targetCount = mode === "peloton"
     ? getTargetCountForRuleset(ruleset)
@@ -6306,7 +6694,7 @@ function restartDuelSession() {
 
 function openDuelModal() {
   resetDuelStateFromMultiConfig();
-  const mode = els.multiModeSelect?.value || "duel";
+  const mode = getActiveMultiModalMode();
 
   if (mode === "duel") {
     const duelNameP1 = els.duelNameP1 ? els.duelNameP1.value.trim() : "";
@@ -6686,7 +7074,7 @@ els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => 
   updateSuccessZoneSlider();
   updateWeaponSelectVisibility();
   updateUseTimerVisibility();
-  if (scoringMode === "individual" && !state.contestMode) {
+  if (!state.contestMode) {
     syncSessionDateTimeForSoloMode();
   }
   state._lastRuleset = ruleset;
@@ -6723,6 +7111,7 @@ if (els.sessionTimeInput) {
   els.sessionTimeInput.addEventListener("change", persistAppState);
 }
 els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
+els.soloSessionTypeInputs.forEach((input) => input.addEventListener("change", persistAppState));
 els.useTimerInputs.forEach((input) => input.addEventListener("change", () => {
   updateSoloBeepsSettingsVisibility();
   persistAppState();
@@ -6746,7 +7135,7 @@ function showSetupFromHome() {
     updateUseTimerVisibility();
     updateSuccessZoneSlider();
   }
-  syncSessionDateTimeForSoloMode();
+  syncSessionDateTimeForSoloMode(true);
   els.setupCard.classList.remove("hidden");
 }
 
@@ -6809,6 +7198,9 @@ els.homeTrainingBtn.addEventListener("click", showSetupFromHome);
 if (els.homeTrainingTileBtn) {
   els.homeTrainingTileBtn.addEventListener("click", openTrainingModal);
 }
+if (els.homeContestBtn) {
+  els.homeContestBtn.addEventListener("click", () => { void openContestModal(); });
+}
 els.homePelotonBtn.addEventListener("click", () => { openMultiModal(); });
 els.homeHistoryBtn.addEventListener("click", () => { openHistoryModal(); });
 els.homeStatsBtn.addEventListener("click", () => { openGeneralStatsModal(); });
@@ -6837,10 +7229,9 @@ if (els.homeUserPasswordBtn) {
     openPasswordModal();
   });
 }
-els.homeHelpBtn.addEventListener("click", () => { openHelpModal(); });
 if (els.multiStartBtn) {
   els.multiStartBtn.addEventListener("click", async () => {
-    const mode = els.multiModeSelect?.value || "duel";
+    const mode = getActiveMultiModalMode();
     if (mode === "duel") {
       openDuelModal();
     } else if (mode === "peloton") {
@@ -6892,50 +7283,10 @@ if (els.multiModeSelect) {
     if (els.pelotonNamesError) {
       els.pelotonNamesError.classList.add("hidden");
     }
-      if (els.duelNamesError) {
-        els.duelNamesError.classList.add("hidden");
-      }
-    if (mode === "duel") {
-      els.multiLudicModeContainer?.classList.add("hidden");
-      els.duelNamesContainer?.classList.remove("hidden");
-      els.pelotonNamesContainer?.classList.add("hidden");
-      els.targetCountFieldset?.classList.remove("hidden");
-      els.contestCodeContainer?.classList.add("hidden");
-      els.contestWeaponContainer?.classList.add("hidden");
-      // Vérifier si Paquito est déjà entré et afficher le slider si nécessaire
-      const duelP2Value = els.duelNameP2?.value.trim().toLowerCase() || "";
-      if (duelP2Value === "paquito") {
-        duelBotMode = true;
-        els.duelBotRow?.classList.add("visible");
-      } else {
-        duelBotMode = false;
-        els.duelBotRow?.classList.remove("visible");
-      }
-    } else if (mode === "peloton") {
-      els.multiLudicModeContainer?.classList.remove("hidden");
-      els.duelNamesContainer?.classList.add("hidden");
-      els.pelotonNamesContainer?.classList.remove("hidden");
-      els.targetCountFieldset?.classList.add("hidden");
-      els.contestCodeContainer?.classList.add("hidden");
-      els.contestWeaponContainer?.classList.add("hidden");
-      els.duelBotRow?.classList.remove("visible");
-    } else if (mode === "contest") {
-      els.multiLudicModeContainer?.classList.remove("hidden");
-      els.duelNamesContainer?.classList.add("hidden");
-      els.pelotonNamesContainer?.classList.add("hidden");
-      els.targetCountFieldset?.classList.add("hidden");
-      els.duelBotRow?.classList.remove("visible");
-      const hasStoredUuid = Boolean(getStoredContestUuid());
-      if (hasStoredUuid) {
-        els.contestCodeContainer?.classList.add("hidden");
-        await startContestFromStoredUuidIfAvailable();
-      } else {
-        els.contestCodeContainer?.classList.remove("hidden");
-        els.contestCodeInput?.focus();
-      }
-      syncMultiContestWeaponSelectOptions(getStoredContestWeapon());
-      els.contestWeaponContainer?.classList.remove("hidden");
+    if (els.duelNamesError) {
+      els.duelNamesError.classList.add("hidden");
     }
+    await applyMultiModalMode(mode);
   });
 }
 if (els.setupCloseBtn) {
@@ -7005,11 +7356,15 @@ if (els.generalStatsWeaponFilter) {
     renderGeneralStatsModal();
   });
 }
+els.generalStatsSessionTypeInputs.forEach((input) => {
+  input.addEventListener("change", () => {
+    state.generalStatsGraphEnabled = true;
+    renderGeneralStatsModal();
+  });
+});
 document.querySelectorAll(".stats-tab").forEach((btn) => {
   btn.addEventListener("click", () => switchStatsTab(btn.dataset.statsTab || "summary"));
 });
-els.helpModalOverlay.addEventListener("click", (e) => e.stopPropagation());
-els.helpCloseBtn.addEventListener("click", closeHelpModal);
 if (els.loginModalOverlay) {
   els.loginModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 }
@@ -7066,6 +7421,9 @@ if (els.trainingVolumeStartBtn) {
     openTrainingVolumeModal();
   });
 }
+if (els.trainingQuizShieldsStartBtn) {
+  els.trainingQuizShieldsStartBtn.addEventListener("click", openTrainingQuizShieldsModal);
+}
 if (els.trainingSeriesInput) {
   els.trainingSeriesInput.addEventListener("input", updateTrainingSeriesDisplay);
 }
@@ -7107,6 +7465,25 @@ if (els.trainingVolumeCloseBtn) {
 }
 if (els.trainingVolumeNextBtn) {
   els.trainingVolumeNextBtn.addEventListener("click", registerNextTrainingVolumeVolley);
+}
+if (els.trainingQuizShieldsModalOverlay) {
+  els.trainingQuizShieldsModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.trainingQuizShieldsCloseBtn) {
+  els.trainingQuizShieldsCloseBtn.addEventListener("click", closeTrainingQuizShieldsModal);
+}
+if (els.quizShieldsOptionButtons) {
+  els.quizShieldsOptionButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const category = btn.getAttribute("data-category");
+      if (category) {
+        handleQuizShieldsAnswer(category);
+      }
+    });
+  });
+}
+if (els.quizShieldsRestartBtn) {
+  els.quizShieldsRestartBtn.addEventListener("click", restartQuizShields);
 }
 if (els.trainingCycleToggleBtn) {
   els.trainingCycleToggleBtn.addEventListener("click", () => {
@@ -7206,12 +7583,12 @@ if (els.pelotonExtraArrowModalOverlay) {
 }
 els.historyModeFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
 els.historyRulesetFilter.addEventListener("change", () => { historyCurrentPage = 1; renderHistoryList(); });
-els.historyResetFiltersBtn.addEventListener("click", () => {
-  els.historyModeFilter.value = "all";
-  els.historyRulesetFilter.value = "all";
-  historyCurrentPage = 1;
-  renderHistoryList();
-});
+if (els.historySessionTypeFilter) {
+  els.historySessionTypeFilter.addEventListener("change", () => {
+    historyCurrentPage = 1;
+    renderHistoryList();
+  });
+}
 if (els.configBtn) {
   els.configBtn.addEventListener("click", () => {
     openConfigModal();
@@ -7320,9 +7697,6 @@ syncWeaponSelectOptions();
 updateWeaponSelectVisibility();
 updateUseTimerVisibility();
 els.appVersion.textContent = APP_VERSION;
-if (els.helpVersion) {
-  els.helpVersion.textContent = APP_VERSION;
-}
 state._lastRuleset = els.rulesetSelect.value;
 state._lastScoringMode = getSelectedScoringMode();
 state._lastWeapon = els.weaponSelect ? els.weaponSelect.value : "";
