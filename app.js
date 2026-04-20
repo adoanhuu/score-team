@@ -2297,22 +2297,22 @@ function getCurrentSessionDateTime() {
   return { date, time };
 }
 
-function syncSessionDateTimeForSoloMode() {
-  if (state.contestMode || getSelectedScoringMode() !== "individual") {
+function syncSessionDateTimeForSoloMode(forceCurrent = false) {
+  if (state.contestMode) {
     return;
   }
   const { date, time } = getCurrentSessionDateTime();
   let hasChanged = false;
   if (els.sessionDateInput) {
     const currentDate = typeof els.sessionDateInput.value === "string" ? els.sessionDateInput.value.trim() : "";
-    if (!currentDate) {
+    if (!currentDate || forceCurrent) {
       els.sessionDateInput.value = date;
       hasChanged = true;
     }
   }
   if (els.sessionTimeInput) {
     const currentTime = typeof els.sessionTimeInput.value === "string" ? els.sessionTimeInput.value.trim() : "";
-    if (!currentTime) {
+    if (!currentTime || forceCurrent) {
       els.sessionTimeInput.value = time;
       hasChanged = true;
     }
@@ -2586,7 +2586,7 @@ function startScoring() {
   const points = presets[els.rulesetSelect.value];
   const scoringMode = getSelectedScoringMode();
 
-  if (!state.contestMode && scoringMode === "individual") {
+  if (!state.contestMode) {
     syncSessionDateTimeForSoloMode();
   }
 
@@ -7039,7 +7039,7 @@ els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => 
   updateSuccessZoneSlider();
   updateWeaponSelectVisibility();
   updateUseTimerVisibility();
-  if (scoringMode === "individual" && !state.contestMode) {
+  if (!state.contestMode) {
     syncSessionDateTimeForSoloMode();
   }
   state._lastRuleset = ruleset;
@@ -7100,7 +7100,7 @@ function showSetupFromHome() {
     updateUseTimerVisibility();
     updateSuccessZoneSlider();
   }
-  syncSessionDateTimeForSoloMode();
+  syncSessionDateTimeForSoloMode(true);
   els.setupCard.classList.remove("hidden");
 }
 
