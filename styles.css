@@ -1675,20 +1675,15 @@ input[type="range"]:focus-visible {
 
 #results-close-btn {
   background: #fff;
-  border: none;
-  border-radius: 50%;
-  min-width: 28px;
-  min-height: 28px;
-  width: 28px;
-  height: 28px;
-  padding: 4px;
-  margin-top: 0;
-}
-
-#results-close-btn svg {
-  width: 14px;
-  height: 14px;
   color: var(--dark-blue);
+  border: none;
+  border-radius: 10px;
+  min-width: 112px;
+  min-height: 42px;
+  padding: 10px 16px;
+  margin-top: 0;
+  margin-left: auto;
+  font-weight: 700;
 }
 
 .modal {

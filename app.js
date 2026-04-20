@@ -2274,13 +2274,24 @@ function syncSessionDateTimeForSoloMode() {
     return;
   }
   const { date, time } = getCurrentSessionDateTime();
+  let hasChanged = false;
   if (els.sessionDateInput) {
-    els.sessionDateInput.value = date;
+    const currentDate = typeof els.sessionDateInput.value === "string" ? els.sessionDateInput.value.trim() : "";
+    if (!currentDate) {
+      els.sessionDateInput.value = date;
+      hasChanged = true;
+    }
   }
   if (els.sessionTimeInput) {
-    els.sessionTimeInput.value = time;
+    const currentTime = typeof els.sessionTimeInput.value === "string" ? els.sessionTimeInput.value.trim() : "";
+    if (!currentTime) {
+      els.sessionTimeInput.value = time;
+      hasChanged = true;
+    }
   }
-  persistAppState();
+  if (hasChanged) {
+    persistAppState();
+  }
 }
 
 function updateWeaponSelectVisibility() {
