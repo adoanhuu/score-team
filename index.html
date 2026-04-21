@@ -117,7 +117,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M12 12c2.76 0 5-2.24 5-5S14.76 2 12 2 7 4.24 7 7s2.24 5 5 5Zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5Z" fill="currentColor"/>
             </svg>
-            <span>Individuel</span>
+            <span>Mode Solo</span>
           </h2>
           <div class="setup-head-actions">
             <button id="setup-close-btn" class="btn btn-light btn-icon home-btn" aria-label="Fermer">
@@ -207,6 +207,10 @@
                 <input id="success-zone-input" type="range" min="1" max="120" step="1" value="1" />
                 <strong id="success-zone-value">1</strong>
               </div>
+            </label>
+            <label id="contest-identifier-wrapper" class="hidden">
+              <span class="label-inline">Identifiant concours</span>
+              <input id="contest-identifier-input" type="text" placeholder="UUID ou code concours" autocomplete="off" maxlength="40" />
             </label>
             <label>
               Lieu
@@ -520,8 +524,8 @@
                 <option value="all">Toutes les armes</option>
               </select>
             </label>
-            <fieldset class="general-stats-session-type-fieldset yes-no-fieldset">
-              <legend class="label-inline">Type de session</legend>
+            <div class="general-stats-session-type-fieldset yes-no-fieldset" role="group" aria-label="Type de session">
+              <span class="label-inline">Type de session</span>
               <div class="yes-no-switch general-stats-session-type-switch" role="radiogroup" aria-label="Type de session">
                 <label class="switch-option">
                   <input type="radio" name="general-stats-session-type" value="all" checked />
@@ -536,7 +540,7 @@
                   <span>Concours</span>
                 </label>
               </div>
-            </fieldset>
+            </div>
           </div>
 
           <div id="general-stats-evolution-row" class="stats-grid-3 stats-evolution-row general-stats-evolution-row">

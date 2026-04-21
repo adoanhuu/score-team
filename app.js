@@ -116,6 +116,7 @@ const els = {
   lieuInput: document.getElementById("lieu-input"),
   sessionDateInput: document.getElementById("session-date-input"),
   sessionTimeInput: document.getElementById("session-time-input"),
+  contestIdentifierWrapper: document.getElementById("contest-identifier-wrapper"),
   contestIdentifierInput: document.getElementById("contest-identifier-input"),
   rulesetSelect: document.getElementById("ruleset-select"),
   scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
@@ -1129,6 +1130,7 @@ function syncSoloSessionTypeInputs(sessionType) {
   if (input) {
     input.checked = true;
   }
+  updateContestIdentifierVisibility();
 }
 
 function getSelectedGeneralStatsSessionType() {
@@ -2635,6 +2637,12 @@ function getSelectedUseTargetGroups() {
 function getSelectedSoloSessionType() {
   const checked = [...els.soloSessionTypeInputs].find((input) => input.checked);
   return normalizeSoloSessionType(checked ? checked.value : SOLO_SESSION_TYPE_TRAINING);
+}
+
+function updateContestIdentifierVisibility() {
+  if (!els.contestIdentifierWrapper) return;
+  const shouldShow = getSelectedSoloSessionType() === SOLO_SESSION_TYPE_CONTEST;
+  els.contestIdentifierWrapper.classList.toggle("hidden", !shouldShow);
 }
 
 function getSelectedSoloTimerMode() {
@@ -7752,7 +7760,10 @@ if (els.contestIdentifierInput) {
   els.contestIdentifierInput.addEventListener("input", persistAppState);
 }
 els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
-els.soloSessionTypeInputs.forEach((input) => input.addEventListener("change", persistAppState));
+els.soloSessionTypeInputs.forEach((input) => input.addEventListener("change", () => {
+  updateContestIdentifierVisibility();
+  persistAppState();
+}));
 els.useTimerInputs.forEach((input) => input.addEventListener("change", () => {
   updateSoloBeepsSettingsVisibility();
   persistAppState();
@@ -8354,6 +8365,7 @@ if (!restorePersistedState()) {
   updateSuccessZoneSlider();
   persistAppState();
 }
+updateContestIdentifierVisibility();
 syncSessionDateTimeForSoloMode();
 setRangeProgress(els.successZoneInput, els.successZoneInput.style.getPropertyValue("--zone-color").trim());
 setRangeProgress(els.configFullTargetTeam);

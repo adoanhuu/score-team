@@ -568,6 +568,7 @@ select {
   background: #fff;
   -webkit-appearance: none;
   appearance: none;
+  font-weight: 400;
 }
 
 input[type="checkbox"],
@@ -1796,7 +1797,7 @@ input[type="range"]:focus-visible {
 .general-stats-filter-row {
   margin-bottom: 8px;
   display: grid;
-  gap: 10px;
+  gap: 16px;
 }
 
 .general-stats-filter-row label {
@@ -1807,6 +1808,9 @@ input[type="range"]:focus-visible {
   border: none;
   padding: 0;
   margin: 0;
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
 }
 
 .duel-names-row {
