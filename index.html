@@ -728,6 +728,66 @@
         </div>
       </section>
 
+      <section id="contest-scores-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="contest-scores-modal-title">
+        <div class="modal-overlay" id="contest-scores-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="contest-scores-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2a10 10 0 1 0 10 10A10.012 10.012 0 0 0 12 2Zm0 17a7 7 0 1 1 7-7 7.008 7.008 0 0 1-7 7Zm0-11a4 4 0 1 0 4 4 4 4 0 0 0-4-4Zm0 5.5a1.5 1.5 0 1 1 1.5-1.5 1.502 1.502 0 0 1-1.5 1.5Z" fill="currentColor" />
+              </svg>
+              <span>Scores</span>
+            </h3>
+            <button id="contest-scores-close-btn" class="btn btn-light btn-icon" aria-label="Fermer scores concours">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div id="contest-scores-modal-content" class="modal-body"></div>
+        </div>
+      </section>
+
+      <section id="contest-stats-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="contest-stats-modal-title">
+        <div class="modal-overlay" id="contest-stats-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="contest-stats-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 19h16v2H4v-2Zm1-2V9h3v8H5Zm5 0V5h3v12h-3Zm5 0v-6h3v6h-3Z" fill="currentColor"/>
+              </svg>
+              <span>Statistiques</span>
+            </h3>
+            <button id="contest-stats-close-btn" class="btn btn-light btn-icon" aria-label="Fermer statistiques concours">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div id="contest-stats-modal-content" class="modal-body"></div>
+        </div>
+      </section>
+
+      <section id="contest-ranking-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="contest-ranking-modal-title">
+        <div class="modal-overlay" id="contest-ranking-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="contest-ranking-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M3 20h18v2H3Zm1-8h5v6H4Zm6-4h5v10h-5Zm6 2h4v8h-4Z" fill="currentColor"/>
+              </svg>
+              <span>Classement</span>
+            </h3>
+            <button id="contest-ranking-close-btn" class="btn btn-light btn-icon" aria-label="Fermer classement concours">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div id="contest-ranking-modal-content" class="modal-body"></div>
+        </div>
+      </section>
+
       <section id="training-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="training-modal-title">
         <div class="modal-overlay" id="training-modal-overlay"></div>
         <div class="modal-card">

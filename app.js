@@ -102,6 +102,7 @@ const state = {
   multiLudicMode: false,
   contestMode: false,
   contestInfo: null,
+  contestScoresContest: null,
 };
 
 const els = {
@@ -298,6 +299,18 @@ const els = {
   contestCloseBtn: document.getElementById("contest-close-btn"),
   contestModalTitleText: document.getElementById("contest-modal-title-text"),
   contestModalContent: document.getElementById("contest-modal-content"),
+  contestScoresModal: document.getElementById("contest-scores-modal"),
+  contestScoresModalOverlay: document.getElementById("contest-scores-modal-overlay"),
+  contestScoresCloseBtn: document.getElementById("contest-scores-close-btn"),
+  contestScoresModalContent: document.getElementById("contest-scores-modal-content"),
+  contestStatsModal: document.getElementById("contest-stats-modal"),
+  contestStatsModalOverlay: document.getElementById("contest-stats-modal-overlay"),
+  contestStatsCloseBtn: document.getElementById("contest-stats-close-btn"),
+  contestStatsModalContent: document.getElementById("contest-stats-modal-content"),
+  contestRankingModal: document.getElementById("contest-ranking-modal"),
+  contestRankingModalOverlay: document.getElementById("contest-ranking-modal-overlay"),
+  contestRankingCloseBtn: document.getElementById("contest-ranking-close-btn"),
+  contestRankingModalContent: document.getElementById("contest-ranking-modal-content"),
   trainingModal: document.getElementById("training-modal"),
   trainingModalOverlay: document.getElementById("training-modal-overlay"),
   trainingCloseBtn: document.getElementById("training-close-btn"),
@@ -4915,6 +4928,9 @@ async function openContestModal() {
   closeMultiModal();
   closeDuelModal();
   closePelotonModal();
+  closeContestScoresModal();
+  closeContestRankingModal();
+  closeContestStatsModal();
 
   if (els.contestModalContent) {
     els.contestModalContent.innerHTML = `
@@ -5007,31 +5023,10 @@ function renderContestInfo(contest) {
   const contestUuid = typeof contest.uuid === "string" && contest.uuid.trim() ? contest.uuid.trim() : "";
   const startDateTime = formatContestDateTime(contest.startDate);
   const endDateTime = formatContestDateTime(contest.endDate);
-  const participants = Array.isArray(contest.participants) ? contest.participants : [];
   const qrCodeSrc = contestUuid
     ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(contestUuid)}`
     : "";
-  const participantItems = participants.length
-    ? participants.map((participant) => {
-        const firstName = typeof participant?.first_name === "string" ? participant.first_name.trim() : "";
-        const lastName = typeof participant?.last_name === "string" ? participant.last_name.trim() : "";
-        const weapon = typeof participant?.weapon === "string" ? participant.weapon.trim() : "";
-        const targetNumber = Number.isFinite(participant?.target_number) ? Number(participant.target_number) : 0;
-        const totalScore = Number.isFinite(participant?.total_score) ? Number(participant.total_score) : 0;
-        const firstNameInitials = firstName
-          .split(/[\s-]+/)
-          .filter(Boolean)
-          .map((part) => part.charAt(0).toUpperCase())
-          .join("");
-        const archerName = [lastName.toUpperCase() || "-", firstNameInitials].filter(Boolean).join(" ");
-        const archerLabel = weapon && weapon !== "-" ? `${weapon} - ${archerName}` : archerName;
-        return `<div class="contest-participant-row" role="row">
-          <div class="contest-participant-cell" role="cell">${escapeHtml(archerLabel)}</div>
-          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${targetNumber}</div>
-          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${totalScore}</div>
-        </div>`;
-      }).join("")
-    : '<div class="contest-participant-empty">Aucun participant pour le moment.</div>';
+  state.contestScoresContest = contest && typeof contest === "object" ? { ...contest } : null;
 
   const html = `
     <div class="contest-info-panel">
@@ -5057,20 +5052,215 @@ function renderContestInfo(contest) {
           </div>
         ` : ""}
       </div>
-      <div class="contest-participants-block">
-        <h4 class="contest-participants-title">Participants</h4>
-        <div class="contest-participants-grid" role="table" aria-label="Liste des participants au concours">
-          <div class="contest-participant-row contest-participant-row-head" role="row">
-            <div class="contest-participant-cell" role="columnheader">Archer</div>
-            <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Cible</div>
-            <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Score</div>
-          </div>
-          ${participantItems}
-        </div>
+      <div class="contest-info-actions">
+        <button id="contest-scores-open-btn" class="btn btn-light contest-scores-btn" type="button">
+          <span>Scores</span>
+        </button>
+        <button id="contest-ranking-open-btn" class="btn btn-light contest-scores-btn" type="button">
+          <span>Classement</span>
+        </button>
+        <button id="contest-stats-open-btn" class="btn btn-light contest-scores-btn" type="button">
+          <span>Statistiques</span>
+        </button>
       </div>
     </div>
   `;
   els.contestModalContent.innerHTML = html;
+  document.getElementById("contest-scores-open-btn")?.addEventListener("click", openContestScoresModal);
+  document.getElementById("contest-ranking-open-btn")?.addEventListener("click", openContestRankingModal);
+  document.getElementById("contest-stats-open-btn")?.addEventListener("click", openContestStatsModal);
+}
+
+function buildContestParticipantsGridMarkup(contest) {
+  const participants = Array.isArray(contest?.participants) ? contest.participants : [];
+  const participantItems = participants.length
+    ? participants.map((participant) => {
+        const firstName = typeof participant?.first_name === "string" ? participant.first_name.trim() : "";
+        const lastName = typeof participant?.last_name === "string" ? participant.last_name.trim() : "";
+        const weapon = typeof participant?.weapon === "string" ? participant.weapon.trim() : "";
+        const targetNumber = Number.isFinite(participant?.target_number) ? Number(participant.target_number) : 0;
+        const totalScore = Number.isFinite(participant?.total_score) ? Number(participant.total_score) : 0;
+        const firstNameInitials = firstName
+          .split(/[\s-]+/)
+          .filter(Boolean)
+          .map((part) => part.charAt(0).toUpperCase())
+          .join("");
+        const archerName = [lastName.toUpperCase() || "-", firstNameInitials].filter(Boolean).join(" ");
+        const archerLabel = weapon && weapon !== "-" ? `${weapon} - ${archerName}` : archerName;
+        return `<div class="contest-participant-row" role="row">
+          <div class="contest-participant-cell" role="cell">${escapeHtml(archerLabel)}</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${targetNumber}</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${totalScore}</div>
+        </div>`;
+      }).join("")
+    : '<div class="contest-participant-empty">Aucun participant pour le moment.</div>';
+
+  return `
+    <div class="contest-participants-block">
+      <h4 class="contest-participants-title">Participants</h4>
+      <div class="contest-participants-grid" role="table" aria-label="Liste des participants au concours">
+        <div class="contest-participant-row contest-participant-row-head" role="row">
+          <div class="contest-participant-cell" role="columnheader">Archer</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Cible</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Score</div>
+        </div>
+        ${participantItems}
+      </div>
+    </div>
+  `;
+}
+
+function openContestScoresModal() {
+  if (!els.contestScoresModalContent) return;
+  const contest = state.contestScoresContest;
+  if (!contest) {
+    showFlashInfo("Aucun score concours à afficher.");
+    return;
+  }
+  els.contestScoresModalContent.innerHTML = buildContestParticipantsGridMarkup(contest);
+  els.contestScoresModal?.classList.remove("hidden");
+}
+
+function buildContestStatsMarkup(contest) {
+  const participants = Array.isArray(contest?.participants) ? contest.participants : [];
+  const participantCount = participants.length;
+  const totals = participants
+    .map((participant) => Number.isFinite(participant?.total_score) ? Number(participant.total_score) : 0);
+  const targets = participants
+    .map((participant) => Number.isFinite(participant?.target_number) ? Number(participant.target_number) : 0);
+  const cumulativeScore = totals.reduce((sum, value) => sum + value, 0);
+  const averageScore = participantCount > 0 ? cumulativeScore / participantCount : 0;
+  const averageTarget = participantCount > 0
+    ? targets.reduce((sum, value) => sum + value, 0) / participantCount
+    : 0;
+
+  let bestParticipantLabel = "-";
+  let bestScore = 0;
+  participants.forEach((participant) => {
+    const totalScore = Number.isFinite(participant?.total_score) ? Number(participant.total_score) : 0;
+    if (totalScore < bestScore) return;
+    bestScore = totalScore;
+    const firstName = typeof participant?.first_name === "string" ? participant.first_name.trim() : "";
+    const lastName = typeof participant?.last_name === "string" ? participant.last_name.trim() : "";
+    const initials = firstName
+      .split(/[\s-]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("");
+    const weapon = typeof participant?.weapon === "string" ? participant.weapon.trim() : "";
+    const name = [lastName.toUpperCase() || "-", initials].filter(Boolean).join(" ");
+    bestParticipantLabel = weapon && weapon !== "-" ? `${weapon} - ${name}` : name;
+  });
+
+  return `
+    <div class="stats-grid-2 contest-stats-grid">
+      <article>
+        <span>Archers</span>
+        <strong>${participantCount}</strong>
+      </article>
+      <article>
+        <span>Score moyen</span>
+        <strong>${averageScore.toFixed(1)}<span class="stats-unit">pts</span></strong>
+      </article>
+    </div>
+    <div class="stats-grid-2 stats-extra-row contest-stats-grid">
+      <article>
+        <span>Score cumulé</span>
+        <strong>${cumulativeScore}<span class="stats-unit">pts</span></strong>
+      </article>
+      <article>
+        <span>Cible moyenne</span>
+        <strong>${averageTarget.toFixed(1)}</strong>
+      </article>
+    </div>
+    <div class="stats-grid-2 stats-extra-row contest-stats-grid">
+      <article>
+        <span>Meilleur score</span>
+        <strong>${bestScore}<span class="stats-unit">pts</span></strong>
+        <small class="general-stats-meta">${escapeHtml(bestParticipantLabel)}</small>
+      </article>
+      <article>
+        <span>Quota rempli</span>
+        <strong>${contest?.totalUsers || 0}/${contest?.maxUsers || 0}</strong>
+      </article>
+    </div>
+  `;
+}
+
+function openContestStatsModal() {
+  if (!els.contestStatsModalContent) return;
+  const contest = state.contestScoresContest;
+  if (!contest) {
+    showFlashInfo("Aucune statistique concours à afficher.");
+    return;
+  }
+  els.contestStatsModalContent.innerHTML = buildContestStatsMarkup(contest);
+  els.contestStatsModal?.classList.remove("hidden");
+}
+
+function buildContestRankingMarkup(contest) {
+  const participants = Array.isArray(contest?.participants) ? [...contest.participants] : [];
+  const rankedParticipants = participants
+    .map((participant) => {
+      const firstName = typeof participant?.first_name === "string" ? participant.first_name.trim() : "";
+      const lastName = typeof participant?.last_name === "string" ? participant.last_name.trim() : "";
+      const weapon = typeof participant?.weapon === "string" ? participant.weapon.trim() : "";
+      const totalScore = Number.isFinite(participant?.total_score) ? Number(participant.total_score) : 0;
+      const targetNumber = Number.isFinite(participant?.target_number) ? Number(participant.target_number) : 0;
+      const initials = firstName
+        .split(/[\s-]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join("");
+      const archerName = [lastName.toUpperCase() || "-", initials].filter(Boolean).join(" ");
+      return {
+        archerLabel: weapon && weapon !== "-" ? `${weapon} - ${archerName}` : archerName,
+        totalScore,
+        targetNumber,
+      };
+    })
+    .sort((a, b) => {
+      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+      if (b.targetNumber !== a.targetNumber) return b.targetNumber - a.targetNumber;
+      return a.archerLabel.localeCompare(b.archerLabel, "fr");
+    });
+
+  const rows = rankedParticipants.length
+    ? rankedParticipants.map((participant, index) => `
+        <div class="contest-participant-row contest-ranking-row" role="row">
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${index + 1}</div>
+          <div class="contest-participant-cell" role="cell">${escapeHtml(participant.archerLabel)}</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${participant.targetNumber}</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${participant.totalScore}</div>
+        </div>
+      `).join("")
+    : '<div class="contest-participant-empty">Aucun classement disponible pour le moment.</div>';
+
+  return `
+    <div class="contest-participants-block">
+      <h4 class="contest-participants-title">Classement</h4>
+      <div class="contest-participants-grid" role="table" aria-label="Classement du concours">
+        <div class="contest-participant-row contest-participant-row-head contest-ranking-row" role="row">
+          <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">#</div>
+          <div class="contest-participant-cell" role="columnheader">Archer</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Cible</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Score</div>
+        </div>
+        ${rows}
+      </div>
+    </div>
+  `;
+}
+
+function openContestRankingModal() {
+  if (!els.contestRankingModalContent) return;
+  const contest = state.contestScoresContest;
+  if (!contest) {
+    showFlashInfo("Aucun classement concours à afficher.");
+    return;
+  }
+  els.contestRankingModalContent.innerHTML = buildContestRankingMarkup(contest);
+  els.contestRankingModal?.classList.remove("hidden");
 }
 
 function renderContestCreationForm() {
@@ -5230,6 +5420,31 @@ function closeContestModal() {
   }
   if (els.contestModalContent) {
     els.contestModalContent.innerHTML = "";
+  }
+  closeContestScoresModal();
+  closeContestRankingModal();
+  closeContestStatsModal();
+  state.contestScoresContest = null;
+}
+
+function closeContestScoresModal() {
+  els.contestScoresModal?.classList.add("hidden");
+  if (els.contestScoresModalContent) {
+    els.contestScoresModalContent.innerHTML = "";
+  }
+}
+
+function closeContestStatsModal() {
+  els.contestStatsModal?.classList.add("hidden");
+  if (els.contestStatsModalContent) {
+    els.contestStatsModalContent.innerHTML = "";
+  }
+}
+
+function closeContestRankingModal() {
+  els.contestRankingModal?.classList.add("hidden");
+  if (els.contestRankingModalContent) {
+    els.contestRankingModalContent.innerHTML = "";
   }
 }
 
@@ -8059,6 +8274,24 @@ if (els.contestModalOverlay) {
 }
 if (els.contestCloseBtn) {
   els.contestCloseBtn.addEventListener("click", closeContestModal);
+}
+if (els.contestScoresModalOverlay) {
+  els.contestScoresModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.contestScoresCloseBtn) {
+  els.contestScoresCloseBtn.addEventListener("click", closeContestScoresModal);
+}
+if (els.contestRankingModalOverlay) {
+  els.contestRankingModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.contestRankingCloseBtn) {
+  els.contestRankingCloseBtn.addEventListener("click", closeContestRankingModal);
+}
+if (els.contestStatsModalOverlay) {
+  els.contestStatsModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.contestStatsCloseBtn) {
+  els.contestStatsCloseBtn.addEventListener("click", closeContestStatsModal);
 }
 if (els.trainingOptionSelect) {
   els.trainingOptionSelect.addEventListener("change", syncTrainingOptionForm);

@@ -1911,6 +1911,18 @@ input[type="range"]:focus-visible {
   width: min(760px, 100%);
 }
 
+#contest-scores-modal .modal-card {
+  width: min(760px, 100%);
+}
+
+#contest-stats-modal .modal-card {
+  width: min(760px, 100%);
+}
+
+#contest-ranking-modal .modal-card {
+  width: min(760px, 100%);
+}
+
 .contest-info-panel {
   display: grid;
   gap: 14px;
@@ -1974,9 +1986,29 @@ input[type="range"]:focus-visible {
   word-break: break-all;
 }
 
+.contest-info-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.contest-scores-btn {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 10px;
+  font-weight: 700;
+  font-size: 0.86rem;
+  background: var(--light-blue);
+  border: 1px solid #1558c0;
+  color: #fff;
+  white-space: nowrap;
+}
+
 .contest-participants-block {
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
+  padding-top: 2px;
 }
 
 .contest-participants-title {
@@ -2044,6 +2076,15 @@ input[type="range"]:focus-visible {
   color: #536357;
   font-size: 0.88rem;
   font-weight: 600;
+}
+
+.contest-stats-grid article small {
+  display: block;
+  margin-top: 6px;
+}
+
+.contest-ranking-row {
+  grid-template-columns: 42px minmax(0, 1fr) 52px 58px;
 }
 
 #training-volume-form {
