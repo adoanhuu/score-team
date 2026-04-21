@@ -19,6 +19,65 @@ async function contestsHasOwnerId(env) {
   return rows.some((column) => String(column?.name || "").toLowerCase() === "owner_id");
 }
 
+function buildParticipantMetrics(rawData) {
+  let data = {};
+  try {
+    data = rawData ? JSON.parse(rawData) : {};
+  } catch {
+    data = {};
+  }
+
+  const safeData = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const volleys = Array.isArray(safeData.volleys)
+    ? safeData.volleys
+    : Array.isArray(safeData.shoots)
+      ? safeData.shoots
+      : [];
+
+  const targetNumber = Number.isInteger(safeData.completedTargets) && safeData.completedTargets >= 0
+    ? safeData.completedTargets
+    : volleys.length;
+
+  const totalScore = Number.isFinite(safeData.total)
+    ? Number(safeData.total)
+    : volleys.reduce((sum, volley) => {
+        if (Number.isFinite(volley?.total)) {
+          return sum + Number(volley.total);
+        }
+        const arrows = Array.isArray(volley?.arrows) ? volley.arrows : (Array.isArray(volley) ? volley : []);
+        return sum + arrows.reduce((arrowSum, value) => arrowSum + (Number.isFinite(value) ? Number(value) : 0), 0);
+      }, 0);
+
+  return {
+    targetNumber,
+    totalScore,
+  };
+}
+
+async function getContestParticipants(env, contestUuid) {
+  const rows = await env.DB.prepare(
+    `SELECT user_id, first_name, last_name, weapon, data
+     FROM contests_users
+     WHERE lower(contest_uuid) = lower(?)
+     ORDER BY lower(trim(last_name)), lower(trim(first_name)), id`
+  )
+    .bind(contestUuid)
+    .all();
+
+  const results = Array.isArray(rows?.results) ? rows.results : [];
+  return results.map((row) => {
+    const metrics = buildParticipantMetrics(row.data);
+    return {
+      user_id: row.user_id,
+      first_name: row.first_name || "",
+      last_name: row.last_name || "",
+      weapon: row.weapon || "",
+      target_number: metrics.targetNumber,
+      total_score: metrics.totalScore,
+    };
+  });
+}
+
 export async function onRequestGet({ request, env }) {
   const user = await getAuthenticatedUser(request, env);
   if (!user) {
@@ -58,6 +117,7 @@ export async function onRequestGet({ request, env }) {
     .first();
 
   if (contest) {
+    const participants = await getContestParticipants(env, contest.uuid);
     return jsonResponse(200, {
       found: true,
       contest: {
@@ -68,6 +128,7 @@ export async function onRequestGet({ request, env }) {
         endDate: contest.end_date,
         maxUsers: contest.max_users,
         totalUsers: Number(contest.total_users || 0),
+        participants,
       },
     });
   }

@@ -4999,44 +4999,67 @@ function renderContestInfo(contest) {
   const contestUuid = typeof contest.uuid === "string" && contest.uuid.trim() ? contest.uuid.trim() : "";
   const startDateTime = formatContestDateTime(contest.startDate);
   const endDateTime = formatContestDateTime(contest.endDate);
+  const participants = Array.isArray(contest.participants) ? contest.participants : [];
   const qrCodeSrc = contestUuid
     ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(contestUuid)}`
     : "";
+  const participantItems = participants.length
+    ? participants.map((participant) => {
+        const firstName = typeof participant?.first_name === "string" ? participant.first_name.trim() : "";
+        const lastName = typeof participant?.last_name === "string" ? participant.last_name.trim() : "";
+        const weapon = typeof participant?.weapon === "string" ? participant.weapon.trim() : "";
+        const targetNumber = Number.isFinite(participant?.target_number) ? Number(participant.target_number) : 0;
+        const totalScore = Number.isFinite(participant?.total_score) ? Number(participant.total_score) : 0;
+        const firstNameInitials = firstName
+          .split(/[\s-]+/)
+          .filter(Boolean)
+          .map((part) => part.charAt(0).toUpperCase())
+          .join("");
+        const archerName = [lastName.toUpperCase() || "-", firstNameInitials].filter(Boolean).join(" ");
+        const archerLabel = weapon && weapon !== "-" ? `${weapon} - ${archerName}` : archerName;
+        return `<div class="contest-participant-row" role="row">
+          <div class="contest-participant-cell" role="cell">${escapeHtml(archerLabel)}</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${targetNumber}</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${totalScore}</div>
+        </div>`;
+      }).join("")
+    : '<div class="contest-participant-empty">Aucun participant pour le moment.</div>';
 
   const html = `
-    <div class="contest-info-card">
-      <div class="contest-info-list">
-        <div class="contest-info-row">
-          <svg class="contest-info-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M12 2 3 7v6c0 5.05 3.84 9.74 9 10 5.16-.26 9-4.95 9-10V7l-9-5Zm0 2.18 6.75 3.75v4.97c0 3.86-2.84 7.61-6.75 8.02-3.91-.41-6.75-4.16-6.75-8.02V7.93L12 4.18Z" fill="currentColor" />
-          </svg>
-          <span>${escapeHtml(contestName)}</span>
+    <div class="contest-info-panel">
+      <div class="contest-info-card">
+        <div class="contest-info-list">
+          <div class="contest-info-row">
+            <span>${escapeHtml(contestName)}</span>
+          </div>
+          <div class="contest-info-row">
+            <span>${startDateTime.date} - ${startDateTime.time}</span>
+          </div>
+          <div class="contest-info-row">
+            <span>${endDateTime.date} - ${endDateTime.time}</span>
+          </div>
+          <div class="contest-info-row">
+            <span>${contest.totalUsers}/${contest.maxUsers}</span>
+          </div>
         </div>
-        <div class="contest-info-row">
-          <svg class="contest-info-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1h3V2Zm12 8H5v10h14V10Zm-2-4H7v2h10V6Z" fill="currentColor" />
-          </svg>
-          <span>${startDateTime.date} - ${startDateTime.time}</span>
-        </div>
-        <div class="contest-info-row">
-          <svg class="contest-info-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1h3V2Zm12 8H5v10h14V10Zm-2-4H7v2h10V6Z" fill="currentColor" />
-          </svg>
-          <span>${endDateTime.date} - ${endDateTime.time}</span>
-        </div>
-        <div class="contest-info-row">
-          <svg class="contest-info-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5ZM8 13c-2.67 0-8 1.34-8 4v2h7v-2.5c0-.95.37-1.81 1.05-2.56-.02-.3-.03-.6-.05-.94Z" fill="currentColor" />
-          </svg>
-          <span>${contest.totalUsers}/${contest.maxUsers}</span>
+        ${qrCodeSrc ? `
+          <div class="contest-qr-block">
+            <img class="contest-qr-image" src="${qrCodeSrc}" alt="QR code du concours" loading="lazy" />
+            <div class="contest-qr-caption">${escapeHtml(contestUuid)}</div>
+          </div>
+        ` : ""}
+      </div>
+      <div class="contest-participants-block">
+        <h4 class="contest-participants-title">Participants</h4>
+        <div class="contest-participants-grid" role="table" aria-label="Liste des participants au concours">
+          <div class="contest-participant-row contest-participant-row-head" role="row">
+            <div class="contest-participant-cell" role="columnheader">Archer</div>
+            <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Cible</div>
+            <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Score</div>
+          </div>
+          ${participantItems}
         </div>
       </div>
-      ${qrCodeSrc ? `
-        <div class="contest-qr-block">
-          <img class="contest-qr-image" src="${qrCodeSrc}" alt="QR code du concours" loading="lazy" />
-          <div class="contest-qr-caption">${escapeHtml(contestUuid)}</div>
-        </div>
-      ` : ""}
     </div>
   `;
   els.contestModalContent.innerHTML = html;
