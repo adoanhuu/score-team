@@ -785,9 +785,10 @@ function emitSoloVolleyLiberationCue() {
   speakSoloVolleyLiberation();
 }
 
-function playLongBeepEndSequence() {
+function playShortDoubleBeepEndSequence() {
   playTrainingBeepSequence([
-    { frequency: 1500, duration: 1.6, delay: 0, gain: 0.95 },
+    { frequency: 1500, duration: 0.14, delay: 0, gain: 0.95 },
+    { frequency: 1500, duration: 0.14, delay: 0.22, gain: 0.95 },
   ]);
 }
 
@@ -5814,7 +5815,7 @@ function completeSoloBeepsTimer() {
   state.soloTimerVolleyIndex = state.shoots.length;
   soloBeepsTimerState = null;
   els.trainingHoldModal?.classList.add("hidden");
-  speakTrainingMessage("Terminé");
+  playShortDoubleBeepEndSequence();
   showFlashInfo("Timer Beeps terminé. Vous pouvez saisir la volée.");
   refreshScoringView({ scrollHistory: false, scrollCard: true });
 }
