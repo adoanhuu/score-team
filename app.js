@@ -205,7 +205,7 @@ const els = {
   statsFullCount: document.getElementById("stats-full-count"),
   statsMissCount: document.getElementById("stats-miss-count"),
   statsDoubleMissCount: document.getElementById("stats-double-miss-count"),
-  statsScoreDist: document.getElementById("stats-score-dist"),
+  statsArrowDist: document.getElementById("stats-arrow-dist"),
   statsTabSummary: document.getElementById("stats-tab-summary"),
   statsTabGroups: document.getElementById("stats-tab-groups"),
   statsGroupDistCard: document.getElementById("stats-group-dist-card"),
@@ -2232,10 +2232,7 @@ function registerScore(score) {
     const editingIndexSnapshot = isEditing ? state.editingVolleyIndex : null;
     const delay = isEditing ? 0 : LAST_SCORE_PREVIEW_MS;
     window.setTimeout(() => {
-      const unsortedRulesets = ["nature", "ar"];
-      const newShoot = unsortedRulesets.includes(state.activeRuleset)
-        ? [...state.currentshoot]
-        : [...state.currentshoot].sort((a, b) => b - a);
+      const newShoot = [...state.currentshoot];
       const selectedGroup = getSelectedTargetGroup();
       if (Number.isInteger(editingIndexSnapshot)) {
         const replaceIndex = Math.max(0, Math.min(editingIndexSnapshot, state.shoots.length - 1));
@@ -3349,17 +3346,17 @@ function getDistributionBarColor(count, totalArrows, isMiss) {
   return "#9b2226";
 }
 
-function renderScoreDistribution(allowedPoints, volleys) {
+function buildScoreDistributionRows(allowedPoints, scores) {
   const counts = new Map();
   allowedPoints.forEach((score) => counts.set(score, 0));
-  volleys.flatMap((volley) => volley.arrows || []).forEach((score) => {
+  scores.forEach((score) => {
     counts.set(score, (counts.get(score) || 0) + 1);
   });
 
   const orderedScores = [...allowedPoints].sort((a, b) => b - a);
   const totalArrows = orderedScores.reduce((sum, score) => sum + (counts.get(score) || 0), 0);
 
-  els.statsScoreDist.innerHTML = orderedScores
+  return orderedScores
     .map((score, index) => {
       const count = counts.get(score) || 0;
       const pct = totalArrows > 0 ? (count / totalArrows) * 100 : 0;
@@ -3376,6 +3373,34 @@ function renderScoreDistribution(allowedPoints, volleys) {
       `;
     })
     .join("");
+}
+
+function renderPerArrowDistribution(allowedPoints, volleys, arrowsPerVolley) {
+  if (!els.statsArrowDist) return;
+
+  const safeArrowsPerVolley = Number.isInteger(arrowsPerVolley) ? Math.max(1, arrowsPerVolley) : 0;
+  if (safeArrowsPerVolley <= 0 || !Array.isArray(volleys) || volleys.length === 0) {
+    els.statsArrowDist.innerHTML = '<div class="stats-arrow-dist-empty">Aucune donnée de flèche.</div>';
+    return;
+  }
+
+  const sections = Array.from({ length: safeArrowsPerVolley }, (_, arrowIndex) => {
+    const arrowScores = volleys
+      .map((volley) => (Array.isArray(volley.arrows) ? volley.arrows[arrowIndex] : null))
+      .filter((score) => score !== null && score !== undefined);
+
+    const rowsHtml = buildScoreDistributionRows(allowedPoints, arrowScores);
+    const arrowCountLabel = `${arrowScores.length} flèche${arrowScores.length > 1 ? "s" : ""}`;
+
+    return `
+      <article class="stats-arrow-dist-card">
+        <strong class="stats-arrow-dist-title">Flèche ${arrowIndex + 1}</strong>
+        <div class="stats-score-dist">${rowsHtml}</div>
+      </article>
+    `;
+  });
+
+  els.statsArrowDist.innerHTML = `<div class="stats-arrow-dist-grid">${sections.join("")}</div>`;
 }
 
 function switchStatsTab(tabName) {
@@ -3613,7 +3638,7 @@ function openStatsModalFromPayload(payload) {
     Array.isArray(payload.allowedPoints) && payload.allowedPoints.length
       ? payload.allowedPoints
       : [...new Set(volleys.flatMap((volley) => volley.arrows || []))].sort((a, b) => b - a);
-  renderScoreDistribution(allowedPoints, volleys);
+  renderPerArrowDistribution(allowedPoints, volleys, payload.arrowsPerVolley || state.arrowsPerVolley);
   renderGroupDistribution(payload);
 
   if (els.statsTabGroupsBtn) {

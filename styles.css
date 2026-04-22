@@ -3319,6 +3319,36 @@ input[type="range"]:focus-visible {
   text-align: center;
 }
 
+.stats-arrow-dist {
+  margin-top: 8px;
+}
+
+.stats-arrow-dist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.stats-arrow-dist-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  background: #fff;
+}
+
+.stats-arrow-dist-title {
+  font-size: 0.95rem;
+}
+
+.stats-arrow-dist-empty {
+  text-align: center;
+  color: #888;
+  padding: 12px;
+}
+
 .stats-score-dist {
   margin-top: 8px;
   display: grid;
