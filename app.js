@@ -1,6 +1,6 @@
 const ARROWS_PER_VOLLEY = 6;
 const TEAM_ARCHERS_PER_VOLLEY = 3;
-const APP_VERSION = "v2.5.0";
+const APP_VERSION = "v2.5.1";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -45,6 +45,12 @@ const SOLO_TIMER_MODE_HOLD = "hold";
 const SOLO_SESSION_TYPE_TRAINING = "training";
 const SOLO_SESSION_TYPE_CONTEST = "contest";
 
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 const state = {
   targetCount: 21,
   successZone: 0,
@@ -71,11 +77,14 @@ const state = {
   soloTimerVolleyIndex: null,
   sessionDate: "",
   sessionTime: "",
+  contestIdentifier: "",
+  soloContestInfo: null,
   generalStatsGraphEnabled: false,
   duel: {
     ruleset: "3d",
     mode: "duel",
     targetCount: 4,
+    handicap: 0,
     arrowsPerTarget: 3,
     allowedPoints: [20, 15, 10, 0],
     currentTargetIndex: 0,
@@ -94,6 +103,7 @@ const state = {
   multiLudicMode: false,
   contestMode: false,
   contestInfo: null,
+  contestScoresContest: null,
 };
 
 const els = {
@@ -108,6 +118,8 @@ const els = {
   lieuInput: document.getElementById("lieu-input"),
   sessionDateInput: document.getElementById("session-date-input"),
   sessionTimeInput: document.getElementById("session-time-input"),
+  contestIdentifierWrapper: document.getElementById("contest-identifier-wrapper"),
+  contestIdentifierInput: document.getElementById("contest-identifier-input"),
   rulesetSelect: document.getElementById("ruleset-select"),
   scoringModeInputs: document.querySelectorAll('input[name="scoring-mode"]'),
   setupCloseBtn: document.getElementById("setup-close-btn"),
@@ -193,7 +205,7 @@ const els = {
   statsFullCount: document.getElementById("stats-full-count"),
   statsMissCount: document.getElementById("stats-miss-count"),
   statsDoubleMissCount: document.getElementById("stats-double-miss-count"),
-  statsScoreDist: document.getElementById("stats-score-dist"),
+  statsArrowDist: document.getElementById("stats-arrow-dist"),
   statsTabSummary: document.getElementById("stats-tab-summary"),
   statsTabGroups: document.getElementById("stats-tab-groups"),
   statsGroupDistCard: document.getElementById("stats-group-dist-card"),
@@ -283,6 +295,26 @@ const els = {
   multiContestWeaponSelect: document.getElementById("multi-contest-weapon-select"),
   multiStartBtn: document.getElementById("multi-start-btn"),
   multiTargetCountInputs: document.querySelectorAll('input[name="multi-target-count"]'),
+  duelHandicapField: document.getElementById("duel-handicap-field"),
+  duelHandicapSlider: document.getElementById("duel-handicap-slider"),
+  duelHandicapValue: document.getElementById("duel-handicap-value"),
+  contestModal: document.getElementById("contest-modal"),
+  contestModalOverlay: document.getElementById("contest-modal-overlay"),
+  contestCloseBtn: document.getElementById("contest-close-btn"),
+  contestModalTitleText: document.getElementById("contest-modal-title-text"),
+  contestModalContent: document.getElementById("contest-modal-content"),
+  contestScoresModal: document.getElementById("contest-scores-modal"),
+  contestScoresModalOverlay: document.getElementById("contest-scores-modal-overlay"),
+  contestScoresCloseBtn: document.getElementById("contest-scores-close-btn"),
+  contestScoresModalContent: document.getElementById("contest-scores-modal-content"),
+  contestStatsModal: document.getElementById("contest-stats-modal"),
+  contestStatsModalOverlay: document.getElementById("contest-stats-modal-overlay"),
+  contestStatsCloseBtn: document.getElementById("contest-stats-close-btn"),
+  contestStatsModalContent: document.getElementById("contest-stats-modal-content"),
+  contestRankingModal: document.getElementById("contest-ranking-modal"),
+  contestRankingModalOverlay: document.getElementById("contest-ranking-modal-overlay"),
+  contestRankingCloseBtn: document.getElementById("contest-ranking-close-btn"),
+  contestRankingModalContent: document.getElementById("contest-ranking-modal-content"),
   trainingModal: document.getElementById("training-modal"),
   trainingModalOverlay: document.getElementById("training-modal-overlay"),
   trainingCloseBtn: document.getElementById("training-close-btn"),
@@ -757,9 +789,10 @@ function emitSoloVolleyLiberationCue() {
   speakSoloVolleyLiberation();
 }
 
-function playLongBeepEndSequence() {
+function playShortDoubleBeepEndSequence() {
   playTrainingBeepSequence([
-    { frequency: 1500, duration: 1.6, delay: 0, gain: 0.95 },
+    { frequency: 1500, duration: 0.14, delay: 0, gain: 0.95 },
+    { frequency: 1500, duration: 0.14, delay: 0.22, gain: 0.95 },
   ]);
 }
 
@@ -1077,6 +1110,18 @@ function showFlashInfo(message) {
   }, FLASH_INFO_MS);
 }
 
+function showFlashError(message) {
+  showFlashInfo(message);
+}
+
+function showFlashWarning(message) {
+  showFlashInfo(message);
+}
+
+function showFlashSuccess(message) {
+  showFlashInfo(message);
+}
+
 function normalizeSoloTimerMode(value, fallback = SOLO_TIMER_MODE_HOLD) {
   if (value === SOLO_TIMER_MODE_NONE || value === SOLO_TIMER_MODE_BEEPS || value === SOLO_TIMER_MODE_HOLD) {
     return value;
@@ -1103,6 +1148,7 @@ function syncSoloSessionTypeInputs(sessionType) {
   if (input) {
     input.checked = true;
   }
+  updateContestIdentifierVisibility();
 }
 
 function getSelectedGeneralStatsSessionType() {
@@ -1134,6 +1180,7 @@ function getSetupSnapshot() {
     ruleset: els.rulesetSelect.value,
     scoringMode: getSelectedScoringMode(),
     weapon: els.weaponSelect ? els.weaponSelect.value : "",
+    contestIdentifier: els.contestIdentifierInput ? els.contestIdentifierInput.value.trim() : "",
     successZone: Number.parseInt(els.successZoneInput.value, 10) || 1,
     sessionDate: els.sessionDateInput ? els.sessionDateInput.value : "",
     sessionTime: els.sessionTimeInput ? els.sessionTimeInput.value : "",
@@ -1320,6 +1367,17 @@ function persistAppState() {
             lieu: state.lieu || "",
             sessionDate: state.sessionDate || "",
             sessionTime: state.sessionTime || "",
+            contestIdentifier: state.contestIdentifier || "",
+            soloContestInfo: state.soloContestInfo
+              ? {
+                  id: state.soloContestInfo.id,
+                  uuid: state.soloContestInfo.uuid,
+                  name: state.soloContestInfo.name,
+                  ruleset: state.soloContestInfo.ruleset,
+                  startDate: state.soloContestInfo.startDate,
+                  endDate: state.soloContestInfo.endDate,
+                }
+              : null,
             scoringMode: state.scoringMode,
             weapon: state.weapon || "",
             useTargetGroups: state.useTargetGroups,
@@ -1368,6 +1426,7 @@ function persistContestProgressState() {
     lieu: state.lieu || "",
     sessionDate: state.sessionDate || "",
     sessionTime: state.sessionTime || "",
+    contestIdentifier: state.contestIdentifier || "",
     scoringMode: state.scoringMode,
     weapon: state.weapon || "",
     useTargetGroups: state.useTargetGroups,
@@ -1428,6 +1487,17 @@ function restoreContestProgressState(contestInfo, initialScoring = null) {
   state.lieu = scoring.lieu || "";
   state.sessionDate = scoring.sessionDate || "";
   state.sessionTime = scoring.sessionTime || "";
+  state.contestIdentifier = scoring.contestIdentifier || "";
+  state.soloContestInfo = scoring.soloContestInfo && typeof scoring.soloContestInfo === "object"
+    ? {
+        id: scoring.soloContestInfo.id,
+        uuid: scoring.soloContestInfo.uuid || "",
+        name: scoring.soloContestInfo.name || "",
+        ruleset: scoring.soloContestInfo.ruleset || scoring.activeRuleset,
+        startDate: scoring.soloContestInfo.startDate || "",
+        endDate: scoring.soloContestInfo.endDate || "",
+      }
+    : null;
   state.scoringMode = normalizeScoringMode(scoring.scoringMode, scoring.activeRuleset);
   state.weapon = isWeaponAllowedForRuleset(scoring.weapon || "", scoring.activeRuleset)
     ? scoring.weapon
@@ -1516,6 +1586,9 @@ function restorePersistedState() {
   if (els.sessionTimeInput && typeof setup.sessionTime === "string") {
     els.sessionTimeInput.value = setup.sessionTime;
   }
+  if (els.contestIdentifierInput && typeof setup.contestIdentifier === "string") {
+    els.contestIdentifierInput.value = setup.contestIdentifier;
+  }
   if (typeof setup.useTargetGroups === "boolean") {
     const targetValue = setup.useTargetGroups ? "yes" : "no";
     const input = [...els.useTargetGroupsInputs].find((i) => i.value === targetValue);
@@ -1546,11 +1619,25 @@ function restorePersistedState() {
   state.lieu = saved.lieu || "";
   state.sessionDate = saved.sessionDate || "";
   state.sessionTime = saved.sessionTime || "";
+  state.contestIdentifier = saved.contestIdentifier || "";
+  state.soloContestInfo = saved.soloContestInfo && typeof saved.soloContestInfo === "object"
+    ? {
+        id: saved.soloContestInfo.id,
+        uuid: saved.soloContestInfo.uuid || "",
+        name: saved.soloContestInfo.name || "",
+        ruleset: saved.soloContestInfo.ruleset || saved.activeRuleset,
+        startDate: saved.soloContestInfo.startDate || "",
+        endDate: saved.soloContestInfo.endDate || "",
+      }
+    : null;
   if (els.sessionDateInput && saved.sessionDate) {
     els.sessionDateInput.value = saved.sessionDate;
   }
   if (els.sessionTimeInput && saved.sessionTime) {
     els.sessionTimeInput.value = saved.sessionTime;
+  }
+  if (els.contestIdentifierInput) {
+    els.contestIdentifierInput.value = state.contestIdentifier;
   }
   state.scoringMode = normalizeScoringMode(saved.scoringMode, saved.activeRuleset);
   state.weapon = isWeaponAllowedForRuleset(saved.weapon || "", saved.activeRuleset)
@@ -2145,10 +2232,7 @@ function registerScore(score) {
     const editingIndexSnapshot = isEditing ? state.editingVolleyIndex : null;
     const delay = isEditing ? 0 : LAST_SCORE_PREVIEW_MS;
     window.setTimeout(() => {
-      const unsortedRulesets = ["nature", "ar"];
-      const newShoot = unsortedRulesets.includes(state.activeRuleset)
-        ? [...state.currentshoot]
-        : [...state.currentshoot].sort((a, b) => b - a);
+      const newShoot = [...state.currentshoot];
       const selectedGroup = getSelectedTargetGroup();
       if (Number.isInteger(editingIndexSnapshot)) {
         const replaceIndex = Math.max(0, Math.min(editingIndexSnapshot, state.shoots.length - 1));
@@ -2163,6 +2247,10 @@ function registerScore(score) {
 
       // Save immediately when a full volley is validated.
       persistAppState();
+
+      if (state.soloContestInfo?.uuid) {
+        void syncSoloContestUserProgress();
+      }
 
       if (state.contestMode && state.contestInfo?.uuid) {
         const completedTargets = state.shoots.length;
@@ -2260,6 +2348,9 @@ async function deleteVolleyAt(index) {
   state.resultsPayload = null;
   state.completionArchived = false;
   refreshScoringView();
+  if (state.soloContestInfo?.uuid) {
+    void syncSoloContestUserProgress();
+  }
 }
 
 function stepBackOneArrow() {
@@ -2294,6 +2385,9 @@ function stepBackOneArrow() {
   state.resultsPayload = null;
   state.completionArchived = false;
   refreshScoringView();
+  if (state.soloContestInfo?.uuid) {
+    void syncSoloContestUserProgress();
+  }
 }
 
 function getSelectedScoringMode() {
@@ -2334,6 +2428,197 @@ function syncSessionDateTimeForSoloMode(forceCurrent = false) {
   }
 }
 
+function normalizeContestRuleset(value) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function extractContestIsoDate(value) {
+  if (typeof value !== "string") return "";
+  const match = value.match(/\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : "";
+}
+
+function isSessionDateWithinContestRange(sessionDate, contest) {
+  const sessionDay = extractContestIsoDate(sessionDate);
+  const startDay = extractContestIsoDate(contest?.start_date || contest?.startDate || "");
+  const endDay = extractContestIsoDate(contest?.end_date || contest?.endDate || "");
+  if (!sessionDay || !startDay || !endDay) {
+    return false;
+  }
+  return sessionDay >= startDay && sessionDay <= endDay;
+}
+
+function buildSoloContestUserDataSnapshot() {
+  const resultsPayload = buildResultsPayload();
+  return {
+    updatedAt: new Date().toISOString(),
+    volleys: Array.isArray(resultsPayload?.volleys) ? resultsPayload.volleys : [],
+  };
+}
+
+async function syncSoloContestUserProgress() {
+  if (!state.soloContestInfo?.uuid) return;
+  await upsertContestUserFromLocalProfile(
+    state.soloContestInfo.uuid,
+    state.weapon,
+    buildSoloContestUserDataSnapshot(),
+    state.soloContestInfo.ruleset || state.activeRuleset,
+  );
+}
+
+async function fetchSoloContestUserProgress(contestUuid) {
+  const uuid = typeof contestUuid === "string" ? contestUuid.trim() : "";
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
+  if (!uuid || !token) {
+    return { ok: true, found: false, entry: null };
+  }
+
+  try {
+    const response = await fetch(`/api/contest/users?contest_uuid=${encodeURIComponent(uuid)}`, {
+      method: "GET",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      showFlashInfo(translateErrorToFrench(payload?.error || "Failed to load contest user"));
+      return { ok: false, found: false, entry: null };
+    }
+    return {
+      ok: true,
+      found: Boolean(payload?.found && payload?.entry),
+      entry: payload?.entry || null,
+    };
+  } catch {
+    showFlashInfo("Impossible de récupérer l'historique du concours.");
+    return { ok: false, found: false, entry: null };
+  }
+}
+
+function restoreSoloContestUserProgress(entry) {
+  const payloadData = entry?.data && typeof entry.data === "object" && !Array.isArray(entry.data)
+    ? entry.data
+    : null;
+  if (!payloadData) {
+    return false;
+  }
+
+  const sourceVolleys = Array.isArray(payloadData.volleys)
+    ? payloadData.volleys
+    : Array.isArray(payloadData.shoots)
+      ? payloadData.shoots.map((shoot, index) => ({
+          arrows: shoot,
+          group: Array.isArray(payloadData.shootGroups) ? payloadData.shootGroups[index] || null : null,
+        }))
+      : [];
+
+  const restoredVolleys = sourceVolleys
+    .map((volley) => {
+      const arrows = Array.isArray(volley?.arrows)
+        ? volley.arrows
+        : Array.isArray(volley)
+          ? volley
+          : [];
+      return {
+        arrows: [...arrows],
+        group: typeof volley?.group === "string" ? volley.group : "",
+      };
+    })
+    .filter((volley) => volley.arrows.length === state.arrowsPerVolley)
+    .slice(0, state.targetCount);
+
+  if (!restoredVolleys.length) {
+    return false;
+  }
+
+  if (isWeaponAllowedForRuleset(entry?.weapon || "", state.activeRuleset)) {
+    state.weapon = entry.weapon;
+  }
+
+  state.shoots = restoredVolleys.map((volley) => [...volley.arrows]);
+  state.shootGroups = restoredVolleys.map((volley) => volley.group || "");
+  state.resultsPayload = state.shoots.length === state.targetCount ? buildResultsPayload() : null;
+  state.completionArchived = state.shoots.length === state.targetCount;
+  state.editingVolleyIndex = null;
+  state.lastEditedVolleyIndex = null;
+  state.progressionAxis = payloadData.progressionAxis || state.progressionAxis || "";
+  state.soloTimerVolleyIndex = null;
+  resetRoundBuffer();
+  syncTargetGroupSelect();
+  return true;
+}
+
+async function validateSoloContestIdentifierBeforeStart() {
+  state.soloContestInfo = null;
+
+  if (state.contestMode) {
+    return true;
+  }
+
+  const contestIdentifier = els.contestIdentifierInput ? els.contestIdentifierInput.value.trim() : "";
+  if (!contestIdentifier) {
+    return true;
+  }
+
+  if (!hasStoredAuthToken()) {
+    showFlashInfo("Connectez-vous pour rattacher cette session à un concours.");
+    openLoginModal();
+    return false;
+  }
+
+  const ruleset = els.rulesetSelect?.value || "";
+  const sessionDate = els.sessionDateInput ? els.sessionDateInput.value : "";
+
+  try {
+    const response = await fetch("/api/contest/connect", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        uuid: contestIdentifier,
+        ruleset,
+      }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      showFlashInfo(translateErrorToFrench(payload?.error || "Failed to verify contest"));
+      return false;
+    }
+
+    const contest = payload?.contest;
+    if (!payload?.exists || !contest) {
+      showFlashInfo("Aucun concours ne correspond à cet identifiant pour ce parcours.");
+      return false;
+    }
+
+    if (normalizeContestRuleset(contest.ruleset) !== normalizeContestRuleset(ruleset)) {
+      showFlashInfo("Le concours trouvé ne correspond pas au type de parcours sélectionné.");
+      return false;
+    }
+
+    if (!isSessionDateWithinContestRange(sessionDate, contest)) {
+      showFlashInfo("La date de session n'est pas comprise dans les dates du concours.");
+      return false;
+    }
+
+    state.soloContestInfo = {
+      id: contest.id,
+      uuid: contest.uuid || contestIdentifier,
+      name: contest.name || "Concours",
+      ruleset: contest.ruleset || ruleset,
+      startDate: contest.start_date || "",
+      endDate: contest.end_date || "",
+    };
+    return true;
+  } catch {
+    showFlashInfo("Impossible de vérifier le concours pour le moment.");
+    return false;
+  }
+}
+
 function updateWeaponSelectVisibility() {
   const scoringMode = getSelectedScoringMode();
   const weaponWrapper = document.getElementById("weapon-select-wrapper");
@@ -2367,6 +2652,12 @@ function getSelectedUseTargetGroups() {
 function getSelectedSoloSessionType() {
   const checked = [...els.soloSessionTypeInputs].find((input) => input.checked);
   return normalizeSoloSessionType(checked ? checked.value : SOLO_SESSION_TYPE_TRAINING);
+}
+
+function updateContestIdentifierVisibility() {
+  if (!els.contestIdentifierWrapper) return;
+  const shouldShow = getSelectedSoloSessionType() === SOLO_SESSION_TYPE_CONTEST;
+  els.contestIdentifierWrapper.classList.toggle("hidden", !shouldShow);
 }
 
 function getSelectedSoloTimerMode() {
@@ -2607,6 +2898,10 @@ function startScoring() {
   state.lieu = els.lieuInput ? els.lieuInput.value.trim() : "";
   state.sessionDate = els.sessionDateInput ? els.sessionDateInput.value : "";
   state.sessionTime = els.sessionTimeInput ? els.sessionTimeInput.value : "";
+  state.contestIdentifier = els.contestIdentifierInput ? els.contestIdentifierInput.value.trim() : "";
+  if (state.contestMode) {
+    state.soloContestInfo = null;
+  }
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = scoringMode;
   state.weapon = els.weaponSelect ? els.weaponSelect.value : "";
@@ -2641,6 +2936,47 @@ function startScoring() {
   closeHelpModal();
 
   refreshScoringView();
+}
+
+async function handleStartScoring() {
+  if (!state.contestMode) {
+    syncSessionDateTimeForSoloMode();
+  }
+
+  if (els.startBtn) {
+    els.startBtn.disabled = true;
+  }
+
+  try {
+    const canStart = await validateSoloContestIdentifierBeforeStart();
+    if (!canStart) {
+      return;
+    }
+
+    let existingContestUser = null;
+    if (state.soloContestInfo?.uuid) {
+      const contestUserLookup = await fetchSoloContestUserProgress(state.soloContestInfo.uuid);
+      if (!contestUserLookup.ok) {
+        return;
+      }
+      existingContestUser = contestUserLookup.found ? contestUserLookup.entry : null;
+    }
+
+    startScoring();
+
+    if (existingContestUser && restoreSoloContestUserProgress(existingContestUser)) {
+      refreshScoringView();
+      showFlashInfo("Historique concours restauré.");
+    }
+
+    if (state.soloContestInfo?.uuid) {
+      await syncSoloContestUserProgress();
+    }
+  } finally {
+    if (els.startBtn) {
+      els.startBtn.disabled = false;
+    }
+  }
 }
 
 function buildContestUserDataSnapshot() {
@@ -2820,6 +3156,7 @@ function buildResultsPayload() {
     lieu: state.lieu || "",
     sessionDate: state.sessionDate || "",
     sessionTime: state.sessionTime || "",
+    contestIdentifier: state.contestIdentifier || "",
     useTargetGroups: state.useTargetGroups,
     soloSessionType: state.soloSessionType,
     timerMode: state.soloTimerMode,
@@ -3009,17 +3346,17 @@ function getDistributionBarColor(count, totalArrows, isMiss) {
   return "#9b2226";
 }
 
-function renderScoreDistribution(allowedPoints, volleys) {
+function buildScoreDistributionRows(allowedPoints, scores) {
   const counts = new Map();
   allowedPoints.forEach((score) => counts.set(score, 0));
-  volleys.flatMap((volley) => volley.arrows || []).forEach((score) => {
+  scores.forEach((score) => {
     counts.set(score, (counts.get(score) || 0) + 1);
   });
 
   const orderedScores = [...allowedPoints].sort((a, b) => b - a);
   const totalArrows = orderedScores.reduce((sum, score) => sum + (counts.get(score) || 0), 0);
 
-  els.statsScoreDist.innerHTML = orderedScores
+  return orderedScores
     .map((score, index) => {
       const count = counts.get(score) || 0;
       const pct = totalArrows > 0 ? (count / totalArrows) * 100 : 0;
@@ -3036,6 +3373,34 @@ function renderScoreDistribution(allowedPoints, volleys) {
       `;
     })
     .join("");
+}
+
+function renderPerArrowDistribution(allowedPoints, volleys, arrowsPerVolley) {
+  if (!els.statsArrowDist) return;
+
+  const safeArrowsPerVolley = Number.isInteger(arrowsPerVolley) ? Math.max(1, arrowsPerVolley) : 0;
+  if (safeArrowsPerVolley <= 0 || !Array.isArray(volleys) || volleys.length === 0) {
+    els.statsArrowDist.innerHTML = '<div class="stats-arrow-dist-empty">Aucune donnée de flèche.</div>';
+    return;
+  }
+
+  const sections = Array.from({ length: safeArrowsPerVolley }, (_, arrowIndex) => {
+    const arrowScores = volleys
+      .map((volley) => (Array.isArray(volley.arrows) ? volley.arrows[arrowIndex] : null))
+      .filter((score) => score !== null && score !== undefined);
+
+    const rowsHtml = buildScoreDistributionRows(allowedPoints, arrowScores);
+    const arrowCountLabel = `${arrowScores.length} flèche${arrowScores.length > 1 ? "s" : ""}`;
+
+    return `
+      <article class="stats-arrow-dist-card">
+        <strong class="stats-arrow-dist-title">Flèche ${arrowIndex + 1}</strong>
+        <div class="stats-score-dist">${rowsHtml}</div>
+      </article>
+    `;
+  });
+
+  els.statsArrowDist.innerHTML = `<div class="stats-arrow-dist-grid">${sections.join("")}</div>`;
 }
 
 function switchStatsTab(tabName) {
@@ -3273,7 +3638,7 @@ function openStatsModalFromPayload(payload) {
     Array.isArray(payload.allowedPoints) && payload.allowedPoints.length
       ? payload.allowedPoints
       : [...new Set(volleys.flatMap((volley) => volley.arrows || []))].sort((a, b) => b - a);
-  renderScoreDistribution(allowedPoints, volleys);
+  renderPerArrowDistribution(allowedPoints, volleys, payload.arrowsPerVolley || state.arrowsPerVolley);
   renderGroupDistribution(payload);
 
   if (els.statsTabGroupsBtn) {
@@ -3341,6 +3706,7 @@ function translateErrorToFrench(message) {
     "email and password are required": "L'identifiant et le mot de passe sont requis.",
     "Invalid credentials": "Identifiants invalides.",
     "Login failed": "Connexion impossible.",
+    "Invalid or missing token": "Connexion requise.",
     "Missing bearer token": "Jeton d'authentification manquant.",
     "current_password and new_password are required": "Le mot de passe actuel et le nouveau mot de passe sont requis.",
     "new_password must be at least 8 chars and include upper, lower, number and symbol": "Le nouveau mot de passe doit contenir au moins 8 caractères avec majuscule, minuscule, chiffre et symbole.",
@@ -3348,7 +3714,9 @@ function translateErrorToFrench(message) {
     "Invalid token": "Jeton invalide.",
     "Password update failed": "La mise à jour du mot de passe a échoué.",
     "uuid and ruleset are required": "Le code concours et le type de parcours sont requis.",
+    "contest_uuid is required": "L'identifiant du concours est requis.",
     "Failed to verify contest": "Impossible de vérifier le concours.",
+    "Failed to load contest user": "Impossible de récupérer l'historique du concours.",
   };
 
   if (map[msg]) return map[msg];
@@ -3554,7 +3922,8 @@ async function handlePasswordSubmit(event) {
 function updateMultiContestModeAvailability() {
   const isLoggedIn = hasStoredAuthToken();
   if (els.homeContestBtn) {
-    els.homeContestBtn.disabled = !isLoggedIn;
+    els.homeContestBtn.classList.toggle("is-inactive", !isLoggedIn);
+    els.homeContestBtn.setAttribute("aria-disabled", isLoggedIn ? "false" : "true");
   }
 }
 
@@ -4512,6 +4881,7 @@ async function applyMultiModalMode(mode, { autoStartStoredContest = false } = {}
       duelBotMode = false;
       els.duelBotRow?.classList.remove("visible");
     }
+    syncDuelHandicapAvailability();
     return;
   }
 
@@ -4523,6 +4893,7 @@ async function applyMultiModalMode(mode, { autoStartStoredContest = false } = {}
     els.contestCodeContainer?.classList.add("hidden");
     els.contestWeaponContainer?.classList.add("hidden");
     els.duelBotRow?.classList.remove("visible");
+    syncDuelHandicapAvailability({ forceHide: true });
     return;
   }
 
@@ -4531,6 +4902,7 @@ async function applyMultiModalMode(mode, { autoStartStoredContest = false } = {}
   els.pelotonNamesContainer?.classList.add("hidden");
   els.targetCountFieldset?.classList.add("hidden");
   els.duelBotRow?.classList.remove("visible");
+  syncDuelHandicapAvailability({ forceHide: true });
   const hasStoredUuid = Boolean(getStoredContestUuid());
   if (hasStoredUuid) {
     els.contestCodeContainer?.classList.add("hidden");
@@ -4578,14 +4950,535 @@ async function openContestModal() {
     return;
   }
 
-  prepareMultiModal();
-  multiModalForcedMode = "contest";
-  if (els.multiModalTitleText) {
-    els.multiModalTitleText.textContent = "Concours";
+  closeStatsModal();
+  closeGeneralStatsModal();
+  closeTrainingModal();
+  closeTrainingHoldModal();
+  closeTrainingVolumeModal();
+  closeTrainingQuizShieldsModal();
+  closeHistoryModal();
+  closeConfigModal();
+  closeMultiModal();
+  closeDuelModal();
+  closePelotonModal();
+  closeContestScoresModal();
+  closeContestRankingModal();
+  closeContestStatsModal();
+
+  if (els.contestModalContent) {
+    els.contestModalContent.innerHTML = `
+      <div style="padding: 20px; text-align: center; color: #475569; font-weight: 600;">
+        Chargement du concours...
+      </div>
+    `;
   }
-  els.multiModeSelectWrapper?.classList.add("hidden");
-  els.multiModal?.classList.remove("hidden");
-  await applyMultiModalMode("contest", { autoStartStoredContest: true });
+  els.contestModal?.classList.remove("hidden");
+
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  try {
+    const response = await fetch("/api/contest/current", {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      if (els.contestModalContent) {
+        els.contestModalContent.innerHTML = `
+          <div style="padding: 20px; display: grid; gap: 12px;">
+            <p style="margin: 0; font-weight: 700; color: #9b2226;">Impossible de charger les informations du concours.</p>
+            <p style="margin: 0; color: #475569;">L'API a répondu avec une erreur. Vous pouvez fermer puis réessayer.</p>
+          </div>
+        `;
+      }
+      showFlashError("Erreur lors de la récupération des informations de concours.");
+      return;
+    }
+
+    const data = await response.json();
+
+    if (data.found && data.contest) {
+      // Display existing contest information
+      renderContestInfo(data.contest);
+    } else {
+      // Display contest creation form
+      renderContestCreationForm();
+    }
+
+  } catch (error) {
+    console.error("Error loading contest:", error);
+    if (els.contestModalContent) {
+      els.contestModalContent.innerHTML = `
+        <div style="padding: 20px; display: grid; gap: 12px;">
+          <p style="margin: 0; font-weight: 700; color: #9b2226;">Erreur réseau lors du chargement du concours.</p>
+          <p style="margin: 0; color: #475569;">Vérifiez la connexion ou réessayez dans un instant.</p>
+        </div>
+      `;
+    }
+    showFlashError("Erreur lors du chargement du concours.");
+  }
+}
+
+function renderContestInfo(contest) {
+  if (!els.contestModalContent) return;
+  if (els.contestModalTitleText) {
+    const contestRuleset = typeof contest.ruleset === "string" && contest.ruleset.trim() ? contest.ruleset.trim() : "-";
+    els.contestModalTitleText.textContent = `Parcours ${contestRuleset}`;
+  }
+
+  const formatContestDateTime = (value) => {
+    const rawValue = typeof value === "string" ? value.trim() : "";
+    if (!rawValue) {
+      return { date: "--/--/----", time: "--:--" };
+    }
+    const isoDateTime = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
+    if (isoDateTime) {
+      const [, yyyy, mm, dd, hh = "--", mi = "--"] = isoDateTime;
+      return { date: `${dd}/${mm}/${yyyy}`, time: `${hh}:${mi}` };
+    }
+    const parsedDate = new Date(rawValue);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return { date: rawValue, time: "--:--" };
+    }
+    return {
+      date: parsedDate.toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }),
+      time: parsedDate.toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+  };
+
+  const contestName = typeof contest.name === "string" && contest.name.trim() ? contest.name.trim() : "Concours";
+  const contestUuid = typeof contest.uuid === "string" && contest.uuid.trim() ? contest.uuid.trim() : "";
+  const startDateTime = formatContestDateTime(contest.startDate);
+  const endDateTime = formatContestDateTime(contest.endDate);
+  const qrCodeSrc = contestUuid
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(contestUuid)}`
+    : "";
+  state.contestScoresContest = contest && typeof contest === "object" ? { ...contest } : null;
+
+  const html = `
+    <div class="contest-info-panel">
+      <div class="contest-info-card">
+        <div class="contest-info-list">
+          <div class="contest-info-row">
+            <span>${escapeHtml(contestName)}</span>
+          </div>
+          <div class="contest-info-row">
+            <span>${startDateTime.date} - ${startDateTime.time}</span>
+          </div>
+          <div class="contest-info-row">
+            <span>${endDateTime.date} - ${endDateTime.time}</span>
+          </div>
+          <div class="contest-info-row">
+            <span>${contest.totalUsers}/${contest.maxUsers}</span>
+          </div>
+        </div>
+        ${qrCodeSrc ? `
+          <div class="contest-qr-block">
+            <img class="contest-qr-image" src="${qrCodeSrc}" alt="QR code du concours" loading="lazy" />
+            <div class="contest-qr-caption">${escapeHtml(contestUuid)}</div>
+          </div>
+        ` : ""}
+      </div>
+      <div class="contest-info-actions">
+        <button id="contest-scores-open-btn" class="btn btn-light contest-scores-btn" type="button">
+          <span>Scores</span>
+        </button>
+        <button id="contest-ranking-open-btn" class="btn btn-light contest-scores-btn" type="button">
+          <span>Classement</span>
+        </button>
+        <button id="contest-stats-open-btn" class="btn btn-light contest-scores-btn" type="button">
+          <span>Statistiques</span>
+        </button>
+      </div>
+    </div>
+  `;
+  els.contestModalContent.innerHTML = html;
+  document.getElementById("contest-scores-open-btn")?.addEventListener("click", openContestScoresModal);
+  document.getElementById("contest-ranking-open-btn")?.addEventListener("click", openContestRankingModal);
+  document.getElementById("contest-stats-open-btn")?.addEventListener("click", openContestStatsModal);
+}
+
+function buildContestParticipantsGridMarkup(contest) {
+  const participants = Array.isArray(contest?.participants) ? contest.participants : [];
+  const participantItems = participants.length
+    ? participants.map((participant) => {
+        const firstName = typeof participant?.first_name === "string" ? participant.first_name.trim() : "";
+        const lastName = typeof participant?.last_name === "string" ? participant.last_name.trim() : "";
+        const weapon = typeof participant?.weapon === "string" ? participant.weapon.trim() : "";
+        const targetNumber = Number.isFinite(participant?.target_number) ? Number(participant.target_number) : 0;
+        const totalScore = Number.isFinite(participant?.total_score) ? Number(participant.total_score) : 0;
+        const firstNameInitials = firstName
+          .split(/[\s-]+/)
+          .filter(Boolean)
+          .map((part) => part.charAt(0).toUpperCase())
+          .join("");
+        const archerName = [lastName.toUpperCase() || "-", firstNameInitials].filter(Boolean).join(" ");
+        const archerLabel = weapon && weapon !== "-" ? `${weapon} - ${archerName}` : archerName;
+        return `<div class="contest-participant-row" role="row">
+          <div class="contest-participant-cell" role="cell">${escapeHtml(archerLabel)}</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${targetNumber}</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${totalScore}</div>
+        </div>`;
+      }).join("")
+    : '<div class="contest-participant-empty">Aucun participant pour le moment.</div>';
+
+  return `
+    <div class="contest-participants-block">
+      <h4 class="contest-participants-title">Participants</h4>
+      <div class="contest-participants-grid" role="table" aria-label="Liste des participants au concours">
+        <div class="contest-participant-row contest-participant-row-head" role="row">
+          <div class="contest-participant-cell" role="columnheader">Archer</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Cible</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Score</div>
+        </div>
+        ${participantItems}
+      </div>
+    </div>
+  `;
+}
+
+function openContestScoresModal() {
+  if (!els.contestScoresModalContent) return;
+  const contest = state.contestScoresContest;
+  if (!contest) {
+    showFlashInfo("Aucun score concours à afficher.");
+    return;
+  }
+  els.contestScoresModalContent.innerHTML = buildContestParticipantsGridMarkup(contest);
+  els.contestScoresModal?.classList.remove("hidden");
+}
+
+function buildContestStatsMarkup(contest) {
+  const participants = Array.isArray(contest?.participants) ? contest.participants : [];
+  const participantCount = participants.length;
+  const totals = participants
+    .map((participant) => Number.isFinite(participant?.total_score) ? Number(participant.total_score) : 0);
+  const targets = participants
+    .map((participant) => Number.isFinite(participant?.target_number) ? Number(participant.target_number) : 0);
+  const cumulativeScore = totals.reduce((sum, value) => sum + value, 0);
+  const averageScore = participantCount > 0 ? cumulativeScore / participantCount : 0;
+  const averageTarget = participantCount > 0
+    ? targets.reduce((sum, value) => sum + value, 0) / participantCount
+    : 0;
+
+  let bestParticipantLabel = "-";
+  let bestScore = 0;
+  participants.forEach((participant) => {
+    const totalScore = Number.isFinite(participant?.total_score) ? Number(participant.total_score) : 0;
+    if (totalScore < bestScore) return;
+    bestScore = totalScore;
+    const firstName = typeof participant?.first_name === "string" ? participant.first_name.trim() : "";
+    const lastName = typeof participant?.last_name === "string" ? participant.last_name.trim() : "";
+    const initials = firstName
+      .split(/[\s-]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("");
+    const weapon = typeof participant?.weapon === "string" ? participant.weapon.trim() : "";
+    const name = [lastName.toUpperCase() || "-", initials].filter(Boolean).join(" ");
+    bestParticipantLabel = weapon && weapon !== "-" ? `${weapon} - ${name}` : name;
+  });
+
+  return `
+    <div class="stats-grid-2 contest-stats-grid">
+      <article>
+        <span>Archers</span>
+        <strong>${participantCount}</strong>
+      </article>
+      <article>
+        <span>Score moyen</span>
+        <strong>${averageScore.toFixed(1)}<span class="stats-unit">pts</span></strong>
+      </article>
+    </div>
+    <div class="stats-grid-2 stats-extra-row contest-stats-grid">
+      <article>
+        <span>Score cumulé</span>
+        <strong>${cumulativeScore}<span class="stats-unit">pts</span></strong>
+      </article>
+      <article>
+        <span>Cible moyenne</span>
+        <strong>${averageTarget.toFixed(1)}</strong>
+      </article>
+    </div>
+    <div class="stats-grid-2 stats-extra-row contest-stats-grid">
+      <article>
+        <span>Meilleur score</span>
+        <strong>${bestScore}<span class="stats-unit">pts</span></strong>
+        <small class="general-stats-meta">${escapeHtml(bestParticipantLabel)}</small>
+      </article>
+      <article>
+        <span>Quota rempli</span>
+        <strong>${contest?.totalUsers || 0}/${contest?.maxUsers || 0}</strong>
+      </article>
+    </div>
+  `;
+}
+
+function openContestStatsModal() {
+  if (!els.contestStatsModalContent) return;
+  const contest = state.contestScoresContest;
+  if (!contest) {
+    showFlashInfo("Aucune statistique concours à afficher.");
+    return;
+  }
+  els.contestStatsModalContent.innerHTML = buildContestStatsMarkup(contest);
+  els.contestStatsModal?.classList.remove("hidden");
+}
+
+function buildContestRankingMarkup(contest) {
+  const participants = Array.isArray(contest?.participants) ? [...contest.participants] : [];
+  const rankedParticipants = participants
+    .map((participant) => {
+      const firstName = typeof participant?.first_name === "string" ? participant.first_name.trim() : "";
+      const lastName = typeof participant?.last_name === "string" ? participant.last_name.trim() : "";
+      const weapon = typeof participant?.weapon === "string" ? participant.weapon.trim() : "";
+      const totalScore = Number.isFinite(participant?.total_score) ? Number(participant.total_score) : 0;
+      const targetNumber = Number.isFinite(participant?.target_number) ? Number(participant.target_number) : 0;
+      const initials = firstName
+        .split(/[\s-]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join("");
+      const archerName = [lastName.toUpperCase() || "-", initials].filter(Boolean).join(" ");
+      return {
+        archerLabel: weapon && weapon !== "-" ? `${weapon} - ${archerName}` : archerName,
+        totalScore,
+        targetNumber,
+      };
+    })
+    .sort((a, b) => {
+      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+      if (b.targetNumber !== a.targetNumber) return b.targetNumber - a.targetNumber;
+      return a.archerLabel.localeCompare(b.archerLabel, "fr");
+    });
+
+  const rows = rankedParticipants.length
+    ? rankedParticipants.map((participant, index) => `
+        <div class="contest-participant-row contest-ranking-row" role="row">
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${index + 1}</div>
+          <div class="contest-participant-cell" role="cell">${escapeHtml(participant.archerLabel)}</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${participant.targetNumber}</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="cell">${participant.totalScore}</div>
+        </div>
+      `).join("")
+    : '<div class="contest-participant-empty">Aucun classement disponible pour le moment.</div>';
+
+  return `
+    <div class="contest-participants-block">
+      <h4 class="contest-participants-title">Classement</h4>
+      <div class="contest-participants-grid" role="table" aria-label="Classement du concours">
+        <div class="contest-participant-row contest-participant-row-head contest-ranking-row" role="row">
+          <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">#</div>
+          <div class="contest-participant-cell" role="columnheader">Archer</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Cible</div>
+          <div class="contest-participant-cell contest-participant-cell-number" role="columnheader">Score</div>
+        </div>
+        ${rows}
+      </div>
+    </div>
+  `;
+}
+
+function openContestRankingModal() {
+  if (!els.contestRankingModalContent) return;
+  const contest = state.contestScoresContest;
+  if (!contest) {
+    showFlashInfo("Aucun classement concours à afficher.");
+    return;
+  }
+  els.contestRankingModalContent.innerHTML = buildContestRankingMarkup(contest);
+  els.contestRankingModal?.classList.remove("hidden");
+}
+
+function renderContestCreationForm() {
+  if (!els.contestModalContent) return;
+  if (els.contestModalTitleText) {
+    els.contestModalTitleText.textContent = "Concours";
+  }
+
+  const now = new Date();
+  const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
+  const defaultStart = now.toISOString().slice(0, 16);
+  const defaultEnd = inOneHour.toISOString().slice(0, 16);
+
+  const html = `
+    <div style="padding: 20px;">
+      <p>Aucun concours trouvé.</p>
+      <p>Créez votre concours pour démarrer une session.</p>
+      <div style="margin-top: 20px;">
+        <label for="contest-create-name" style="display: block; margin-bottom: 8px; font-weight: 500;">
+          Nom du concours
+        </label>
+        <input 
+          id="contest-create-name" 
+          type="text" 
+          placeholder="Entrez le nom du concours" 
+          maxlength="80" 
+          style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
+        />
+        <label for="contest-create-ruleset" style="display: block; margin-top: 12px; margin-bottom: 8px; font-weight: 500;">
+          Parcours
+        </label>
+        <select id="contest-create-ruleset" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+          <option value="nature">Nature</option>
+          <option value="campagne">Campagne</option>
+          <option value="3d">3D</option>
+          <option value="3d2">3D2</option>
+          <option value="3dh">3DH</option>
+          <option value="ar">AR</option>
+          <option value="field">Field</option>
+        </select>
+        <label for="contest-create-start" style="display: block; margin-top: 12px; margin-bottom: 8px; font-weight: 500;">
+          Date de début
+        </label>
+        <input 
+          id="contest-create-start" 
+          type="datetime-local" 
+          value="${defaultStart}"
+          style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
+        />
+        <label for="contest-create-end" style="display: block; margin-top: 12px; margin-bottom: 8px; font-weight: 500;">
+          Date de fin
+        </label>
+        <input 
+          id="contest-create-end" 
+          type="datetime-local" 
+          value="${defaultEnd}"
+          style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
+        />
+        <label for="contest-create-max-users" style="display: block; margin-top: 12px; margin-bottom: 8px; font-weight: 500;">
+          Nombre maximum de participants
+        </label>
+        <input 
+          id="contest-create-max-users" 
+          type="number" 
+          min="1"
+          max="500"
+          value="20"
+          style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
+        />
+        <button 
+          id="contest-create-btn" 
+          class="btn btn-primary" 
+          style="margin-top: 12px; width: 100%;"
+        >
+          Créer le concours
+        </button>
+      </div>
+    </div>
+  `;
+  els.contestModalContent.innerHTML = html;
+
+  const createBtn = document.getElementById("contest-create-btn");
+  const nameInput = document.getElementById("contest-create-name");
+  const rulesetInput = document.getElementById("contest-create-ruleset");
+  const startInput = document.getElementById("contest-create-start");
+  const endInput = document.getElementById("contest-create-end");
+  const maxUsersInput = document.getElementById("contest-create-max-users");
+
+  if (createBtn && nameInput && rulesetInput && startInput && endInput && maxUsersInput) {
+    createBtn.addEventListener("click", async () => {
+      const name = nameInput.value.trim();
+      const ruleset = rulesetInput.value.trim();
+      const startDate = startInput.value.trim();
+      const endDate = endInput.value.trim();
+      const maxUsers = Number.parseInt(maxUsersInput.value, 10);
+
+      if (!name) {
+        showFlashWarning("Veuillez entrer un nom de concours.");
+        return;
+      }
+      if (!startDate || !endDate) {
+        showFlashWarning("Veuillez renseigner les dates de début et de fin.");
+        return;
+      }
+      if (!Number.isInteger(maxUsers) || maxUsers <= 0) {
+        showFlashWarning("Le nombre de participants doit être un entier positif.");
+        return;
+      }
+
+      await createContest({
+        name,
+        ruleset,
+        start_date: startDate,
+        end_date: endDate,
+        max_users: maxUsers,
+      });
+    });
+  }
+}
+
+async function createContest(payload) {
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  try {
+    const response = await fetch("/api/contests/create", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => ({}));
+      if (response.status === 409 && errorPayload?.contest) {
+        renderContestInfo(errorPayload.contest);
+      }
+      showFlashError(errorPayload.error || "Erreur lors de la création du concours.");
+      return;
+    }
+
+    const data = await response.json();
+    if (data?.contest) {
+      renderContestInfo(data.contest);
+    }
+    showFlashSuccess("Concours créé avec succès.");
+  } catch (error) {
+    console.error("Error creating contest:", error);
+    showFlashError("Erreur lors de la création du concours.");
+  }
+}
+
+function closeContestModal() {
+  els.contestModal?.classList.add("hidden");
+  if (els.contestModalTitleText) {
+    els.contestModalTitleText.textContent = "Concours";
+  }
+  if (els.contestModalContent) {
+    els.contestModalContent.innerHTML = "";
+  }
+  closeContestScoresModal();
+  closeContestRankingModal();
+  closeContestStatsModal();
+  state.contestScoresContest = null;
+}
+
+function closeContestScoresModal() {
+  els.contestScoresModal?.classList.add("hidden");
+  if (els.contestScoresModalContent) {
+    els.contestScoresModalContent.innerHTML = "";
+  }
+}
+
+function closeContestStatsModal() {
+  els.contestStatsModal?.classList.add("hidden");
+  if (els.contestStatsModalContent) {
+    els.contestStatsModalContent.innerHTML = "";
+  }
+}
+
+function closeContestRankingModal() {
+  els.contestRankingModal?.classList.add("hidden");
+  if (els.contestRankingModalContent) {
+    els.contestRankingModalContent.innerHTML = "";
+  }
 }
 
 function closeMultiModal() {
@@ -4954,7 +5847,7 @@ function completeSoloBeepsTimer() {
   state.soloTimerVolleyIndex = state.shoots.length;
   soloBeepsTimerState = null;
   els.trainingHoldModal?.classList.add("hidden");
-  speakTrainingMessage("Terminé");
+  playShortDoubleBeepEndSequence();
   showFlashInfo("Timer Beeps terminé. Vous pouvez saisir la volée.");
   refreshScoringView({ scrollHistory: false, scrollCard: true });
 }
@@ -5720,6 +6613,45 @@ function getSelectedMultiTargetCount() {
   return parsed === 6 ? 6 : 4;
 }
 
+function isPaquitoSelectedAsDuelOpponent() {
+  const draftName = (els.duelNameP2?.value || "").trim().toLowerCase();
+  const stateName = (state.duel?.nameP2 || "").trim().toLowerCase();
+  return draftName === "paquito" || stateName === "paquito";
+}
+
+function getSelectedDuelHandicap() {
+  if (!els.duelHandicapSlider) return 0;
+  if (isPaquitoSelectedAsDuelOpponent()) return 0;
+  const value = Number.parseInt(els.duelHandicapSlider.value, 10);
+  return Number.isInteger(value) ? Math.min(50, Math.max(-50, value)) : 0;
+}
+
+function formatDuelHandicapLabel(handicap) {
+  const safeHandicap = Number.isInteger(handicap) ? Math.min(50, Math.max(-50, handicap)) : 0;
+  if (safeHandicap === 0) return "0%";
+  if (safeHandicap < 0) return `J1 +${Math.abs(safeHandicap)}%`;
+  return `J2 +${safeHandicap}%`;
+}
+
+function updateDuelHandicapUI() {
+  if (!els.duelHandicapSlider || !els.duelHandicapValue) return;
+  const handicap = getSelectedDuelHandicap();
+  els.duelHandicapSlider.value = String(handicap);
+  els.duelHandicapValue.textContent = formatDuelHandicapLabel(handicap);
+  setRangeProgress(els.duelHandicapSlider);
+}
+
+function syncDuelHandicapAvailability({ forceHide = false } = {}) {
+  if (!els.duelHandicapField || !els.duelHandicapSlider) return;
+  const blockedByPaquito = isPaquitoSelectedAsDuelOpponent();
+  if (blockedByPaquito) {
+    els.duelHandicapSlider.value = "0";
+  }
+  els.duelHandicapSlider.disabled = blockedByPaquito;
+  els.duelHandicapField.classList.toggle("hidden", forceHide || blockedByPaquito);
+  updateDuelHandicapUI();
+}
+
 function isMultiLudicModeEnabled() {
   if (getActiveMultiModalMode() === "duel") {
     return false;
@@ -5735,6 +6667,7 @@ function resetDuelStateFromMultiConfig() {
   const targetCount = mode === "peloton"
     ? getTargetCountForRuleset(ruleset)
     : getSelectedMultiTargetCount();
+  const handicap = mode === "duel" ? getSelectedDuelHandicap() : 0;
   const arrowsPerTarget = getArrowsPerVolley(ruleset, "individual");
   const allowedPoints = [...new Set(presets[ruleset] || [0])].sort((a, b) => b - a);
 
@@ -5742,6 +6675,7 @@ function resetDuelStateFromMultiConfig() {
     ruleset,
     mode,
     targetCount,
+    handicap,
     arrowsPerTarget,
     allowedPoints,
     currentTargetIndex: 0,
@@ -5768,6 +6702,22 @@ function getDuelTotal(scores) {
     }
   }
   return total;
+}
+
+function getDuelDisplayTotals(duelState = state.duel) {
+  const safeDuelState = duelState || state.duel || {};
+  const handicap = safeDuelState.nameP2?.trim().toLowerCase() === "paquito"
+    ? 0
+    : (Number.isInteger(safeDuelState.handicap)
+      ? Math.min(50, Math.max(-50, safeDuelState.handicap))
+      : 0);
+  const rawP1Total = getDuelTotal(safeDuelState.scoresP1 || []);
+  const rawP2Total = getDuelTotal(safeDuelState.scoresP2 || []);
+  const handicapPct = Math.abs(handicap) / 100;
+  return {
+    p1Total: handicap < 0 ? Math.round(rawP1Total * (1 + handicapPct)) : rawP1Total,
+    p2Total: handicap > 0 ? Math.round(rawP2Total * (1 + handicapPct)) : rawP2Total,
+  };
 }
 
 function renderDuelPad() {
@@ -6033,8 +6983,7 @@ function renderPelotonHistorySwiper(container, options = {}) {
 function renderDuelView() {
   const { currentTargetIndex, targetCount, activePlayer, scoresP1, scoresP2, completed, nameP1, nameP2, currentArrowIndex, arrowsPerTarget } = state.duel;
   const safeIndex = Math.max(0, Math.min(currentTargetIndex, targetCount - 1));
-  const p1Total = getDuelTotal(scoresP1);
-  const p2Total = getDuelTotal(scoresP2);
+  const { p1Total, p2Total } = getDuelDisplayTotals(state.duel);
 
   // Update player labels with names
   const displayP1 = nameP1 ? nameP1 : "Joueur 1";
@@ -7005,6 +7954,7 @@ function restart() {
   state.inputLocked = false;
   state.contestMode = false;
   state.contestInfo = null;
+  state.soloContestInfo = null;
   resetRoundBuffer();
   closeStatsModal();
   closeGeneralStatsModal();
@@ -7110,14 +8060,22 @@ if (els.sessionDateInput) {
 if (els.sessionTimeInput) {
   els.sessionTimeInput.addEventListener("change", persistAppState);
 }
+if (els.contestIdentifierInput) {
+  els.contestIdentifierInput.addEventListener("input", persistAppState);
+}
 els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
-els.soloSessionTypeInputs.forEach((input) => input.addEventListener("change", persistAppState));
+els.soloSessionTypeInputs.forEach((input) => input.addEventListener("change", () => {
+  updateContestIdentifierVisibility();
+  persistAppState();
+}));
 els.useTimerInputs.forEach((input) => input.addEventListener("change", () => {
   updateSoloBeepsSettingsVisibility();
   persistAppState();
 }));
 els.showScoresInputs.forEach((input) => input.addEventListener("change", persistAppState));
-els.startBtn.addEventListener("click", startScoring);
+els.startBtn.addEventListener("click", () => {
+  void handleStartScoring();
+});
 if (els.backSetupBtn) {
   els.backSetupBtn.addEventListener("click", restart);
 }
@@ -7198,10 +8156,10 @@ els.homeTrainingBtn.addEventListener("click", showSetupFromHome);
 if (els.homeTrainingTileBtn) {
   els.homeTrainingTileBtn.addEventListener("click", openTrainingModal);
 }
+els.homePelotonBtn.addEventListener("click", () => { openMultiModal(); });
 if (els.homeContestBtn) {
   els.homeContestBtn.addEventListener("click", () => { void openContestModal(); });
 }
-els.homePelotonBtn.addEventListener("click", () => { openMultiModal(); });
 els.homeHistoryBtn.addEventListener("click", () => { openHistoryModal(); });
 els.homeStatsBtn.addEventListener("click", () => { openGeneralStatsModal(); });
 els.homeConfigBtn.addEventListener("click", () => { openConfigModal(); });
@@ -7400,6 +8358,30 @@ if (els.trainingModalOverlay) {
 if (els.trainingCloseBtn) {
   els.trainingCloseBtn.addEventListener("click", closeTrainingModal);
 }
+if (els.contestModalOverlay) {
+  els.contestModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.contestCloseBtn) {
+  els.contestCloseBtn.addEventListener("click", closeContestModal);
+}
+if (els.contestScoresModalOverlay) {
+  els.contestScoresModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.contestScoresCloseBtn) {
+  els.contestScoresCloseBtn.addEventListener("click", closeContestScoresModal);
+}
+if (els.contestRankingModalOverlay) {
+  els.contestRankingModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.contestRankingCloseBtn) {
+  els.contestRankingCloseBtn.addEventListener("click", closeContestRankingModal);
+}
+if (els.contestStatsModalOverlay) {
+  els.contestStatsModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.contestStatsCloseBtn) {
+  els.contestStatsCloseBtn.addEventListener("click", closeContestStatsModal);
+}
 if (els.trainingOptionSelect) {
   els.trainingOptionSelect.addEventListener("change", syncTrainingOptionForm);
 }
@@ -7525,12 +8507,18 @@ if (els.duelNameP2) {
       clearDuelBotShotTimer();
       els.duelBotRow?.classList.remove("visible");
     }
+    syncDuelHandicapAvailability();
   });
 }
 
 if (els.duelBotLevelSlider) {
   els.duelBotLevelSlider.addEventListener("input", updateDuelBotLevelUI);
   updateDuelBotLevelUI();
+}
+
+if (els.duelHandicapSlider) {
+  els.duelHandicapSlider.addEventListener("input", updateDuelHandicapUI);
+  updateDuelHandicapUI();
 }
 
 if (els.duelModalOverlay) {
@@ -7705,6 +8693,7 @@ if (!restorePersistedState()) {
   updateSuccessZoneSlider();
   persistAppState();
 }
+updateContestIdentifierVisibility();
 syncSessionDateTimeForSoloMode();
 setRangeProgress(els.successZoneInput, els.successZoneInput.style.getPropertyValue("--zone-color").trim());
 setRangeProgress(els.configFullTargetTeam);
@@ -7752,8 +8741,23 @@ if (window.visualViewport) {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
+    const hostname = window.location.hostname;
+    const isLocalDevHost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "0.0.0.0";
+
+    if (isLocalDevHost) {
+      navigator.serviceWorker.getRegistrations()
+        .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+        .catch(() => {
+          // Ignore cleanup failure in local development.
+        });
+      return;
+    }
+
     navigator.serviceWorker
-      .register(`./service-worker.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
+      .register(`/service-worker.js?v=${encodeURIComponent(APP_VERSION)}`, {
+        scope: "/",
+        updateViaCache: "none",
+      })
       .then((registration) => {
         registration.update();
         navigator.serviceWorker.addEventListener("controllerchange", () => {
@@ -7761,7 +8765,7 @@ if ("serviceWorker" in navigator) {
         });
       })
       .catch(() => {
-      // Ignore registration failure: app remains usable online.
-    });
+        // Ignore registration failure: app remains usable online.
+      });
   });
 }

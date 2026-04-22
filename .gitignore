@@ -1,4 +1,4 @@
 .env.local
 docker-compose.override.yml
 wrangler.local.toml
-.wrangler/*
+.wrangler/

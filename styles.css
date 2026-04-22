@@ -568,6 +568,7 @@ select {
   background: #fff;
   -webkit-appearance: none;
   appearance: none;
+  font-weight: 400;
 }
 
 input[type="checkbox"],
@@ -1796,7 +1797,7 @@ input[type="range"]:focus-visible {
 .general-stats-filter-row {
   margin-bottom: 8px;
   display: grid;
-  gap: 10px;
+  gap: 16px;
 }
 
 .general-stats-filter-row label {
@@ -1807,6 +1808,9 @@ input[type="range"]:focus-visible {
   border: none;
   padding: 0;
   margin: 0;
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
 }
 
 .duel-names-row {
@@ -1897,6 +1901,190 @@ input[type="range"]:focus-visible {
 #training-hold-time-form {
   display: grid;
   gap: 12px;
+}
+
+#contest-modal .modal-body {
+  padding: 14px;
+}
+
+#contest-modal .modal-card {
+  width: min(760px, 100%);
+}
+
+#contest-scores-modal .modal-card {
+  width: min(760px, 100%);
+}
+
+#contest-stats-modal .modal-card {
+  width: min(760px, 100%);
+}
+
+#contest-ranking-modal .modal-card {
+  width: min(760px, 100%);
+}
+
+.contest-info-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.contest-info-card {
+  padding: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+}
+
+.contest-info-list {
+  display: grid;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.contest-info-row {
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2a24;
+}
+
+.contest-info-row span {
+  min-width: 0;
+}
+
+#contest-modal .modal-head h3 {
+  text-transform: none;
+}
+
+.contest-qr-block {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  flex: 0 0 140px;
+  align-self: start;
+}
+
+.contest-qr-image {
+  width: 140px;
+  height: 140px;
+  display: block;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.contest-qr-caption {
+  max-width: 100%;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #536357;
+  word-break: break-all;
+}
+
+.contest-info-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.contest-scores-btn {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 10px;
+  font-weight: 700;
+  font-size: 0.86rem;
+  background: var(--light-blue);
+  border: 1px solid #1558c0;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.contest-participants-block {
+  padding-top: 2px;
+}
+
+.contest-participants-title {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--dark-blue);
+}
+
+.contest-participants-grid {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.contest-participant-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.86fr) 52px 58px;
+  align-items: center;
+}
+
+.contest-participant-row + .contest-participant-row {
+  border-top: 1px solid var(--line);
+}
+
+.contest-participant-row-head {
+  background: #dbe8f8;
+  color: var(--dark-blue);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.contest-participant-row:not(.contest-participant-row-head):nth-child(even) {
+  background: #f7f9fb;
+}
+
+.contest-participant-row:not(.contest-participant-row-head):nth-child(odd) {
+  background: #e9eef4;
+}
+
+.contest-participant-cell {
+  padding: 7px 8px;
+  min-width: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1f2a24;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contest-participant-cell-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.contest-participant-empty {
+  padding: 12px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f7f9fb;
+  color: #536357;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.contest-stats-grid article small {
+  display: block;
+  margin-top: 6px;
+}
+
+.contest-ranking-row {
+  grid-template-columns: 42px minmax(0, 1fr) 52px 58px;
 }
 
 #training-volume-form {
@@ -2198,6 +2386,51 @@ input[type="range"]:focus-visible {
 
 #multi-modal .multi-target-fieldset {
   margin-top: 6px;
+}
+
+#multi-modal .duel-handicap-field {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+#multi-modal .duel-handicap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#multi-modal .duel-handicap-value {
+  min-width: 58px;
+  text-align: right;
+}
+
+#multi-modal .duel-handicap-slider-row {
+  display: block;
+}
+
+#multi-modal #duel-handicap-slider {
+  --accent: #6b7280;
+  --range-fill-color: #9ca3af;
+  accent-color: #6b7280;
+}
+
+#multi-modal .duel-handicap-hint {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  color: #6b7280;
+  font-size: 0.82rem;
+}
+
+#multi-modal .duel-handicap-hint span:nth-child(2) {
+  text-align: center;
+}
+
+#multi-modal .duel-handicap-hint span:last-child {
+  text-align: right;
 }
 
 #multi-modal .start-action {
@@ -2659,6 +2892,10 @@ input[type="range"]:focus-visible {
   width: min(460px, 100%);
 }
 
+.contest-modal-card {
+  width: min(560px, 100%);
+}
+
 .login-form {
   display: grid;
   gap: 12px;
@@ -3080,6 +3317,36 @@ input[type="range"]:focus-visible {
 
 .stats-dist-card {
   text-align: center;
+}
+
+.stats-arrow-dist {
+  margin-top: 8px;
+}
+
+.stats-arrow-dist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.stats-arrow-dist-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  background: #fff;
+}
+
+.stats-arrow-dist-title {
+  font-size: 0.95rem;
+}
+
+.stats-arrow-dist-empty {
+  text-align: center;
+  color: #888;
+  padding: 12px;
 }
 
 .stats-score-dist {
@@ -3664,8 +3931,16 @@ input[type="range"]:focus-visible {
   position: relative;
   z-index: 1;
 }
-#home-contest-btn:disabled::before {
+#home-contest-btn.is-inactive::before {
   filter: grayscale(1);
+}
+#home-contest-btn.is-inactive {
+  opacity: 0.82;
+}
+#home-contest-btn.is-inactive .home-tile-label {
+  background-color: #8f8f8f;
+  border-color: #8f8f8f;
+  box-shadow: none;
 }
 #home-history-btn{
   background-image: url('images/history.png');
