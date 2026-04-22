@@ -2388,6 +2388,51 @@ input[type="range"]:focus-visible {
   margin-top: 6px;
 }
 
+#multi-modal .duel-handicap-field {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+#multi-modal .duel-handicap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#multi-modal .duel-handicap-value {
+  min-width: 58px;
+  text-align: right;
+}
+
+#multi-modal .duel-handicap-slider-row {
+  display: block;
+}
+
+#multi-modal #duel-handicap-slider {
+  --accent: #6b7280;
+  --range-fill-color: #9ca3af;
+  accent-color: #6b7280;
+}
+
+#multi-modal .duel-handicap-hint {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  color: #6b7280;
+  font-size: 0.82rem;
+}
+
+#multi-modal .duel-handicap-hint span:nth-child(2) {
+  text-align: center;
+}
+
+#multi-modal .duel-handicap-hint span:last-child {
+  text-align: right;
+}
+
 #multi-modal .start-action {
   margin-top: 12px;
 }

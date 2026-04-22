@@ -84,6 +84,7 @@ const state = {
     ruleset: "3d",
     mode: "duel",
     targetCount: 4,
+    handicap: 0,
     arrowsPerTarget: 3,
     allowedPoints: [20, 15, 10, 0],
     currentTargetIndex: 0,
@@ -294,6 +295,9 @@ const els = {
   multiContestWeaponSelect: document.getElementById("multi-contest-weapon-select"),
   multiStartBtn: document.getElementById("multi-start-btn"),
   multiTargetCountInputs: document.querySelectorAll('input[name="multi-target-count"]'),
+  duelHandicapField: document.getElementById("duel-handicap-field"),
+  duelHandicapSlider: document.getElementById("duel-handicap-slider"),
+  duelHandicapValue: document.getElementById("duel-handicap-value"),
   contestModal: document.getElementById("contest-modal"),
   contestModalOverlay: document.getElementById("contest-modal-overlay"),
   contestCloseBtn: document.getElementById("contest-close-btn"),
@@ -4852,6 +4856,7 @@ async function applyMultiModalMode(mode, { autoStartStoredContest = false } = {}
       duelBotMode = false;
       els.duelBotRow?.classList.remove("visible");
     }
+    syncDuelHandicapAvailability();
     return;
   }
 
@@ -4863,6 +4868,7 @@ async function applyMultiModalMode(mode, { autoStartStoredContest = false } = {}
     els.contestCodeContainer?.classList.add("hidden");
     els.contestWeaponContainer?.classList.add("hidden");
     els.duelBotRow?.classList.remove("visible");
+    syncDuelHandicapAvailability({ forceHide: true });
     return;
   }
 
@@ -4871,6 +4877,7 @@ async function applyMultiModalMode(mode, { autoStartStoredContest = false } = {}
   els.pelotonNamesContainer?.classList.add("hidden");
   els.targetCountFieldset?.classList.add("hidden");
   els.duelBotRow?.classList.remove("visible");
+  syncDuelHandicapAvailability({ forceHide: true });
   const hasStoredUuid = Boolean(getStoredContestUuid());
   if (hasStoredUuid) {
     els.contestCodeContainer?.classList.add("hidden");
@@ -6581,6 +6588,45 @@ function getSelectedMultiTargetCount() {
   return parsed === 6 ? 6 : 4;
 }
 
+function isPaquitoSelectedAsDuelOpponent() {
+  const draftName = (els.duelNameP2?.value || "").trim().toLowerCase();
+  const stateName = (state.duel?.nameP2 || "").trim().toLowerCase();
+  return draftName === "paquito" || stateName === "paquito";
+}
+
+function getSelectedDuelHandicap() {
+  if (!els.duelHandicapSlider) return 0;
+  if (isPaquitoSelectedAsDuelOpponent()) return 0;
+  const value = Number.parseInt(els.duelHandicapSlider.value, 10);
+  return Number.isInteger(value) ? Math.min(50, Math.max(-50, value)) : 0;
+}
+
+function formatDuelHandicapLabel(handicap) {
+  const safeHandicap = Number.isInteger(handicap) ? Math.min(50, Math.max(-50, handicap)) : 0;
+  if (safeHandicap === 0) return "0%";
+  if (safeHandicap < 0) return `J1 +${Math.abs(safeHandicap)}%`;
+  return `J2 +${safeHandicap}%`;
+}
+
+function updateDuelHandicapUI() {
+  if (!els.duelHandicapSlider || !els.duelHandicapValue) return;
+  const handicap = getSelectedDuelHandicap();
+  els.duelHandicapSlider.value = String(handicap);
+  els.duelHandicapValue.textContent = formatDuelHandicapLabel(handicap);
+  setRangeProgress(els.duelHandicapSlider);
+}
+
+function syncDuelHandicapAvailability({ forceHide = false } = {}) {
+  if (!els.duelHandicapField || !els.duelHandicapSlider) return;
+  const blockedByPaquito = isPaquitoSelectedAsDuelOpponent();
+  if (blockedByPaquito) {
+    els.duelHandicapSlider.value = "0";
+  }
+  els.duelHandicapSlider.disabled = blockedByPaquito;
+  els.duelHandicapField.classList.toggle("hidden", forceHide || blockedByPaquito);
+  updateDuelHandicapUI();
+}
+
 function isMultiLudicModeEnabled() {
   if (getActiveMultiModalMode() === "duel") {
     return false;
@@ -6596,6 +6642,7 @@ function resetDuelStateFromMultiConfig() {
   const targetCount = mode === "peloton"
     ? getTargetCountForRuleset(ruleset)
     : getSelectedMultiTargetCount();
+  const handicap = mode === "duel" ? getSelectedDuelHandicap() : 0;
   const arrowsPerTarget = getArrowsPerVolley(ruleset, "individual");
   const allowedPoints = [...new Set(presets[ruleset] || [0])].sort((a, b) => b - a);
 
@@ -6603,6 +6650,7 @@ function resetDuelStateFromMultiConfig() {
     ruleset,
     mode,
     targetCount,
+    handicap,
     arrowsPerTarget,
     allowedPoints,
     currentTargetIndex: 0,
@@ -6629,6 +6677,22 @@ function getDuelTotal(scores) {
     }
   }
   return total;
+}
+
+function getDuelDisplayTotals(duelState = state.duel) {
+  const safeDuelState = duelState || state.duel || {};
+  const handicap = safeDuelState.nameP2?.trim().toLowerCase() === "paquito"
+    ? 0
+    : (Number.isInteger(safeDuelState.handicap)
+      ? Math.min(50, Math.max(-50, safeDuelState.handicap))
+      : 0);
+  const rawP1Total = getDuelTotal(safeDuelState.scoresP1 || []);
+  const rawP2Total = getDuelTotal(safeDuelState.scoresP2 || []);
+  const handicapPct = Math.abs(handicap) / 100;
+  return {
+    p1Total: handicap < 0 ? Math.round(rawP1Total * (1 + handicapPct)) : rawP1Total,
+    p2Total: handicap > 0 ? Math.round(rawP2Total * (1 + handicapPct)) : rawP2Total,
+  };
 }
 
 function renderDuelPad() {
@@ -6894,8 +6958,7 @@ function renderPelotonHistorySwiper(container, options = {}) {
 function renderDuelView() {
   const { currentTargetIndex, targetCount, activePlayer, scoresP1, scoresP2, completed, nameP1, nameP2, currentArrowIndex, arrowsPerTarget } = state.duel;
   const safeIndex = Math.max(0, Math.min(currentTargetIndex, targetCount - 1));
-  const p1Total = getDuelTotal(scoresP1);
-  const p2Total = getDuelTotal(scoresP2);
+  const { p1Total, p2Total } = getDuelDisplayTotals(state.duel);
 
   // Update player labels with names
   const displayP1 = nameP1 ? nameP1 : "Joueur 1";
@@ -8419,12 +8482,18 @@ if (els.duelNameP2) {
       clearDuelBotShotTimer();
       els.duelBotRow?.classList.remove("visible");
     }
+    syncDuelHandicapAvailability();
   });
 }
 
 if (els.duelBotLevelSlider) {
   els.duelBotLevelSlider.addEventListener("input", updateDuelBotLevelUI);
   updateDuelBotLevelUI();
+}
+
+if (els.duelHandicapSlider) {
+  els.duelHandicapSlider.addEventListener("input", updateDuelHandicapUI);
+  updateDuelHandicapUI();
 }
 
 if (els.duelModalOverlay) {

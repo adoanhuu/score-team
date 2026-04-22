@@ -696,6 +696,20 @@
                 <span>6 cibles</span>
               </label>
             </fieldset>
+            <label id="duel-handicap-field" class="duel-handicap-field" for="duel-handicap-slider">
+              <div class="duel-handicap-head">
+                <span class="label-inline">Handicap</span>
+                <strong id="duel-handicap-value" class="duel-handicap-value">0%</strong>
+              </div>
+              <div class="duel-handicap-slider-row">
+                <input id="duel-handicap-slider" type="range" min="-50" max="50" step="5" value="0" aria-describedby="duel-handicap-hint" />
+              </div>
+              <div id="duel-handicap-hint" class="duel-handicap-hint" aria-hidden="true">
+                <span>Archer 1</span>
+                <span>Neutre</span>
+                <span>Archer 2</span>
+              </div>
+            </label>
           </div>
           <div class="start-action">
             <button id="multi-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer mode multi">
