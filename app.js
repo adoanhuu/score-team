@@ -287,6 +287,9 @@ const els = {
   multiRulesetSelect: document.getElementById("multi-ruleset-select"),
   rulesetLabel: document.getElementById("ruleset-label"),
   multiModeSelect: document.getElementById("multi-mode-select"),
+  multiModeOptionContest: document.getElementById("multi-mode-option-contest"),
+  contestCodeContainer: document.getElementById("contest-code-container"),
+  contestCodeInput: document.getElementById("contest-code-input"),
   multiLudicModeContainer: document.getElementById("multi-ludic-mode-container"),
   multiLudicModeInputs: document.querySelectorAll('input[name="multi-ludic-mode"]'),
   contestCodeContainer: document.getElementById("contest-code-container"),
@@ -2486,6 +2489,9 @@ async function fetchSoloContestUserProgress(contestUuid) {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
+      if (handleAuthFailureMessage(payload?.error)) {
+        return { ok: false, found: false, entry: null };
+      }
       showFlashInfo(translateErrorToFrench(payload?.error || "Failed to load contest user"));
       return { ok: false, found: false, entry: null };
     }
@@ -3045,7 +3051,7 @@ async function upsertContestUserFromLocalProfile(contestUuid, weapon, data = nul
     : (localStorageScoring || memoryData || undefined);
 
   try {
-    await fetch("/api/contest/users", {
+    const response = await fetch("/api/contest/users", {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -3059,6 +3065,10 @@ async function upsertContestUserFromLocalProfile(contestUuid, weapon, data = nul
         data: payloadData,
       }),
     });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      handleAuthFailureMessage(payload?.error, { openLogin: false });
+    }
   } catch {
     // Keep contest flow resilient if contest-user sync fails.
   }
@@ -3766,6 +3776,37 @@ function clearStoredAuth() {
   }
 }
 
+function isAuthErrorMessage(message) {
+  const normalized = typeof message === "string" ? message.trim().toLowerCase() : "";
+  return (
+    normalized === "invalid or missing token"
+    || normalized === "missing bearer token"
+    || normalized === "invalid token"
+  );
+}
+
+function expireStoredSession(message = "Session expirée. Reconnectez-vous.", { openLogin = true } = {}) {
+  clearStoredAuth();
+  updateHomeLoginTile();
+  updateHomeHeader();
+  updateConfigActionButtons();
+
+  if (message) {
+    showFlashInfo(message);
+  }
+  if (openLogin) {
+    openLoginModal();
+  }
+}
+
+function handleAuthFailureMessage(message, options) {
+  if (!isAuthErrorMessage(message)) {
+    return false;
+  }
+  expireStoredSession("Session expirée. Reconnectez-vous.", options);
+  return true;
+}
+
 function updateHomeLoginTile() {
   if (!els.homeLoginBtn) return;
   const labelText = els.homeLoginBtn.querySelector(".home-tile-label span:last-child");
@@ -3776,6 +3817,23 @@ function updateHomeLoginTile() {
     labelText.textContent = isLoggedIn ? "Déconnexion" : "Connexion";
   }
   updateMultiContestModeAvailability();
+}
+
+function updateMultiContestModeAvailability() {
+  const isLoggedIn = hasStoredAuthToken();
+
+  if (els.multiModeOptionContest) {
+    els.multiModeOptionContest.hidden = !isLoggedIn;
+    els.multiModeOptionContest.disabled = !isLoggedIn;
+    if (!isLoggedIn && els.multiModeSelect?.value === "contest") {
+      els.multiModeSelect.value = "duel";
+    }
+  }
+
+  if (els.homeContestBtn) {
+    els.homeContestBtn.classList.toggle("is-inactive", !isLoggedIn);
+    els.homeContestBtn.setAttribute("aria-disabled", isLoggedIn ? "false" : "true");
+  }
 }
 
 function updateHomeHeader() {
@@ -3904,6 +3962,10 @@ async function handlePasswordSubmit(event) {
     }
 
     if (!response.ok) {
+      if (handleAuthFailureMessage(payload?.error)) {
+        closePasswordModal();
+        return;
+      }
       const message = payload?.error ? translateErrorToFrench(payload.error) : "Impossible de modifier le mot de passe.";
       setPasswordFeedback(message);
       return;
@@ -3920,14 +3982,6 @@ async function handlePasswordSubmit(event) {
     if (els.passwordSubmitBtn) {
       els.passwordSubmitBtn.disabled = false;
     }
-  }
-}
-
-function updateMultiContestModeAvailability() {
-  const isLoggedIn = hasStoredAuthToken();
-  if (els.homeContestBtn) {
-    els.homeContestBtn.classList.toggle("is-inactive", !isLoggedIn);
-    els.homeContestBtn.setAttribute("aria-disabled", isLoggedIn ? "false" : "true");
   }
 }
 
@@ -3957,14 +4011,24 @@ async function saveConfigToServer() {
         body: JSON.stringify({ entries }),
       }),
     ]);
+    const configErr = !configRes.ok ? await configRes.json().catch(() => ({})) : null;
+    const sessionsErr = !sessionsRes.ok ? await sessionsRes.json().catch(() => ({})) : null;
+    if (
+      handleAuthFailureMessage(configErr?.error)
+      || handleAuthFailureMessage(sessionsErr?.error)
+    ) {
+      return;
+    }
     if (configRes.ok && sessionsRes.ok) {
       showFlashInfo(`Configuration et ${entries.length} parcours sauvegardé(s).`);
     } else if (configRes.ok) {
-      const errData = await sessionsRes.json().catch(() => ({}));
-      const errorMessage = errData?.error ? translateErrorToFrench(errData.error) : sessionsRes.status;
+      const errorMessage = sessionsErr?.error ? translateErrorToFrench(sessionsErr.error) : sessionsRes.status;
       showFlashInfo(`Échec de la sauvegarde des parcours : ${errorMessage}.`);
     } else if (sessionsRes.ok) {
-      showFlashInfo("Échec de la sauvegarde de la configuration.");
+      const errorMessage = configErr?.error
+        ? translateErrorToFrench(configErr.error)
+        : "Échec de la sauvegarde de la configuration.";
+      showFlashInfo(errorMessage);
     } else {
       showFlashInfo("Échec de la sauvegarde.");
     }
@@ -3989,6 +4053,14 @@ async function restoreConfigFromServer() {
       fetch("/api/users/configuration", { headers: { "authorization": `Bearer ${token}` } }),
       fetch("/api/users/sessions", { headers: { "authorization": `Bearer ${token}` } }),
     ]);
+    const configErr = !configRes.ok ? await configRes.json().catch(() => ({})) : null;
+    const sessionsErr = !sessionsRes.ok ? await sessionsRes.json().catch(() => ({})) : null;
+    if (
+      handleAuthFailureMessage(configErr?.error)
+      || handleAuthFailureMessage(sessionsErr?.error)
+    ) {
+      return;
+    }
     if (!configRes.ok && !sessionsRes.ok) {
       showFlashInfo("Échec de la restauration.");
       return;
@@ -4867,6 +4939,16 @@ function prepareMultiModal() {
     }
     syncMultiContestWeaponSelectOptions(getStoredContestWeapon());
   }
+  if (els.multiModeSelect) {
+    const firstAvailableModeOption = Array.from(els.multiModeSelect.options).find(
+      (option) => option.value && !option.disabled && !option.hidden,
+    );
+    if (firstAvailableModeOption) {
+      els.multiModeSelect.value = firstAvailableModeOption.value;
+    }
+  }
+  // Initialiser l'affichage des éléments selon le mode
+  const mode = els.multiModeSelect?.value || "duel";
 }
 
 async function applyMultiModalMode(mode, { autoStartStoredContest = false } = {}) {
@@ -4899,6 +4981,16 @@ async function applyMultiModalMode(mode, { autoStartStoredContest = false } = {}
     els.duelBotRow?.classList.remove("visible");
     syncDuelHandicapAvailability({ forceHide: true });
     return;
+  } else if (mode === "contest") {
+    els.duelNamesContainer?.classList.add("hidden");
+    els.pelotonNamesContainer?.classList.add("hidden");
+    els.targetCountFieldset?.classList.add("hidden");
+    const hasStoredUuid = Boolean(getStoredContestUuid());
+    if (hasStoredUuid) {
+      els.contestCodeContainer?.classList.add("hidden");
+    } else {
+      els.contestCodeContainer?.classList.remove("hidden");
+    }
   }
 
   els.multiLudicModeContainer?.classList.add("hidden");
@@ -4986,15 +5078,20 @@ async function openContestModal() {
     });
 
     if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      if (handleAuthFailureMessage(payload?.error)) {
+        closeContestModal();
+        return;
+      }
       if (els.contestModalContent) {
         els.contestModalContent.innerHTML = `
           <div style="padding: 20px; display: grid; gap: 12px;">
             <p style="margin: 0; font-weight: 700; color: #9b2226;">Impossible de charger les informations du concours.</p>
-            <p style="margin: 0; color: #475569;">L'API a répondu avec une erreur. Vous pouvez fermer puis réessayer.</p>
+            <p style="margin: 0; color: #475569;">${escapeHtml(translateErrorToFrench(payload?.error || "L'API a répondu avec une erreur."))}</p>
           </div>
         `;
       }
-      showFlashError("Erreur lors de la récupération des informations de concours.");
+      showFlashError(translateErrorToFrench(payload?.error || "Erreur lors de la récupération des informations de concours."));
       return;
     }
 
@@ -5432,10 +5529,14 @@ async function createContest(payload) {
 
     if (!response.ok) {
       const errorPayload = await response.json().catch(() => ({}));
+      if (handleAuthFailureMessage(errorPayload?.error)) {
+        closeContestModal();
+        return;
+      }
       if (response.status === 409 && errorPayload?.contest) {
         renderContestInfo(errorPayload.contest);
       }
-      showFlashError(errorPayload.error || "Erreur lors de la création du concours.");
+      showFlashError(translateErrorToFrench(errorPayload?.error || "Erreur lors de la création du concours."));
       return;
     }
 
@@ -6896,11 +6997,11 @@ function renderPelotonHistorySwiper(container, options = {}) {
     const pairLabel = archerPair.map((archer) => archer.name).join(" / ");
     const pairContent = archerPair.map((archer) => {
       const archerState = state.pelotonByArcher?.[archer.index];
+      const total = archerState ? getDuelTotal(archerState.scores || []) : 0;
 
       return `
         <article class="peloton-history-archer-card">
           <header class="peloton-history-slide-head">
-      const total = archerState ? getDuelTotal(archerState.scores || []) : 0;
             <strong class="peloton-history-slide-name">${archer.name}</strong>
             <span class="peloton-history-slide-total">${total}<span class="stats-unit">pts</span></span>
           </header>
@@ -8257,6 +8358,29 @@ if (els.multiModeSelect) {
     }
     if (els.duelNamesError) {
       els.duelNamesError.classList.add("hidden");
+    }
+    if (mode === "duel") {
+      els.duelNamesContainer?.classList.remove("hidden");
+      els.pelotonNamesContainer?.classList.add("hidden");
+      els.targetCountFieldset?.classList.remove("hidden");
+      els.contestCodeContainer?.classList.add("hidden");
+    } else if (mode === "peloton") {
+      els.duelNamesContainer?.classList.add("hidden");
+      els.pelotonNamesContainer?.classList.remove("hidden");
+      els.targetCountFieldset?.classList.add("hidden");
+      els.contestCodeContainer?.classList.add("hidden");
+    } else if (mode === "contest") {
+      els.duelNamesContainer?.classList.add("hidden");
+      els.pelotonNamesContainer?.classList.add("hidden");
+      els.targetCountFieldset?.classList.add("hidden");
+      const hasStoredUuid = Boolean(getStoredContestUuid());
+      if (hasStoredUuid) {
+        els.contestCodeContainer?.classList.add("hidden");
+        await startContestFromStoredUuidIfAvailable();
+      } else {
+        els.contestCodeContainer?.classList.remove("hidden");
+        els.contestCodeInput?.focus();
+      }
     }
     await applyMultiModalMode(mode);
   });
