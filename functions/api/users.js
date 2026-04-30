@@ -3,8 +3,29 @@ import {
   hashPassword,
   isValidEmail,
   jsonResponse,
+  parseBearerToken,
   validatePasswordStrength,
 } from "../_lib/auth.js";
+
+async function getAuthenticatedUser(request, env) {
+  const token = parseBearerToken(request.headers.get("authorization") || "");
+  if (!token) return null;
+
+  return env.DB.prepare(
+    "SELECT id, first_name, last_name, email, created_at FROM users WHERE token = ? LIMIT 1"
+  )
+    .bind(token)
+    .first();
+}
+
+export async function onRequestGet({ request, env }) {
+  const user = await getAuthenticatedUser(request, env);
+  if (!user) {
+    return jsonResponse(401, { error: "Invalid or missing token" });
+  }
+
+  return jsonResponse(200, { user });
+}
 
 export async function onRequestPost({ request, env }) {
   let payload;
@@ -27,7 +48,7 @@ export async function onRequestPost({ request, env }) {
   const passwordPlain = usingProvidedPassword ? requestedPassword : generatePassword();
   if (usingProvidedPassword && !validatePasswordStrength(passwordPlain)) {
     return jsonResponse(400, {
-      error: "password must be at least 12 chars and include upper, lower, number and symbol",
+      error: "Le mot de passe doit faire au moins 8 caractères et inclure des majuscules, des minuscules, des chiffres et des symboles",
     });
   }
   const passwordHash = await hashPassword(passwordPlain);

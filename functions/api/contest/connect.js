@@ -4,14 +4,48 @@ function normalizeParam(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeContestCode(value) {
+  return normalizeParam(value).replace(/[-\s]/g, "");
+}
+
 async function findContest(env, uuid, ruleset) {
-  const row = await env.DB.prepare(
-    "SELECT id, uuid, name, ruleset, start_date, end_date FROM contests WHERE uuid = ? AND ruleset = ? LIMIT 1"
+  const normalizedUuid = normalizeContestCode(uuid);
+  const parsedId = Number.parseInt(String(uuid), 10);
+  const maybeId = Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null;
+
+  // First pass: strict on ruleset, flexible on contest code formatting.
+  const strictRow = await env.DB.prepare(
+    `SELECT id, uuid, name, ruleset, start_date, end_date
+     FROM contests
+     WHERE (
+       lower(trim(uuid)) = lower(trim(?))
+       OR lower(replace(replace(trim(uuid), '-', ''), ' ', '')) = lower(?)
+       OR (? IS NOT NULL AND id = ?)
+     )
+       AND lower(trim(ruleset)) = lower(trim(?))
+     LIMIT 1`
   )
-    .bind(uuid, ruleset)
+    .bind(uuid, normalizedUuid, maybeId, maybeId, ruleset)
     .first();
 
-  return row || null;
+  if (strictRow) {
+    return strictRow;
+  }
+
+  // Fallback: if code matches but ruleset differs, still return the contest.
+  const fallbackRow = await env.DB.prepare(
+    `SELECT id, uuid, name, ruleset, start_date, end_date
+     FROM contests
+     WHERE
+       lower(trim(uuid)) = lower(trim(?))
+       OR lower(replace(replace(trim(uuid), '-', ''), ' ', '')) = lower(?)
+       OR (? IS NOT NULL AND id = ?)
+     LIMIT 1`
+  )
+    .bind(uuid, normalizedUuid, maybeId, maybeId)
+    .first();
+
+  return fallbackRow || null;
 }
 
 export async function onRequestGet({ request, env }) {

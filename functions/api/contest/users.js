@@ -18,10 +18,68 @@ async function getAuthenticatedUser(request, env) {
 }
 
 async function contestExists(env, contestUuid) {
-  const row = await env.DB.prepare("SELECT uuid FROM contests WHERE uuid = ? LIMIT 1")
+  const row = await env.DB.prepare("SELECT uuid FROM contests WHERE lower(uuid) = lower(?) LIMIT 1")
     .bind(contestUuid)
     .first();
   return Boolean(row?.uuid);
+}
+
+async function getContestUser(env, contestUuid, userId) {
+  const row = await env.DB.prepare(
+    `SELECT contest_uuid, user_id, first_name, last_name, weapon, data
+     FROM contests_users
+     WHERE lower(contest_uuid) = lower(?) AND user_id = ?
+     LIMIT 1`
+  )
+    .bind(contestUuid, userId)
+    .first();
+
+  if (!row) {
+    return null;
+  }
+
+  let parsedData = {};
+  try {
+    parsedData = row.data ? JSON.parse(row.data) : {};
+  } catch {
+    parsedData = {};
+  }
+
+  return {
+    contest_uuid: row.contest_uuid,
+    user_id: row.user_id,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    weapon: row.weapon,
+    data: parsedData && typeof parsedData === "object" && !Array.isArray(parsedData) ? parsedData : {},
+  };
+}
+
+export async function onRequestGet({ request, env }) {
+  const user = await getAuthenticatedUser(request, env);
+  if (!user) {
+    return jsonResponse(401, { error: "Invalid or missing token" });
+  }
+
+  const url = new URL(request.url);
+  const contestUuid = normalizeParam(url.searchParams.get("contest_uuid"));
+  if (!contestUuid) {
+    return jsonResponse(400, { error: "contest_uuid is required" });
+  }
+
+  try {
+    const entry = await getContestUser(env, contestUuid, user.id);
+    if (!entry) {
+      return jsonResponse(200, { found: false });
+    }
+
+    return jsonResponse(200, {
+      found: true,
+      entry,
+    });
+  } catch {
+    return jsonResponse(500, { error: "Failed to load contest user" });
+  }
 }
 
 export async function onRequestPost({ request, env }) {

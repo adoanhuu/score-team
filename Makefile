@@ -228,7 +228,7 @@ select-contests:
 		echo "Local D1 database not found. Run 'make db-migrate-local' first."; \
 		exit 1; \
 	fi; \
-	sqlite3 -header -column "$$db_path" "SELECT id, uuid, name, start_date, end_date, max_users, ruleset, created_at FROM contests ORDER BY start_date DESC;"
+	sqlite3 -header -column "$$db_path" "SELECT id, uuid, name, start_date, end_date, max_users, ruleset, owner_id, created_at FROM contests ORDER BY start_date DESC;"
 
 select-contest:
 	@if [ -z "$(UUID)" ]; then \
@@ -241,11 +241,11 @@ select-contest:
 		exit 1; \
 	fi; \
 	uuid_escaped="$$(printf '%s' "$(UUID)" | sed "s/'/''/g")"; \
-	sqlite3 -header -column "$$db_path" "SELECT id, uuid, name, start_date, end_date, max_users, ruleset, created_at FROM contests WHERE uuid = '$$uuid_escaped';"
+	sqlite3 -header -column "$$db_path" "SELECT id, uuid, name, start_date, end_date, max_users, ruleset, owner_id, created_at FROM contests WHERE uuid = '$$uuid_escaped';"
 
 insert-contest:
-	@if [ -z "$(NAME)" ] || [ -z "$(START_DATE)" ] || [ -z "$(END_DATE)" ] || [ -z "$(MAX_USERS)" ] || [ -z "$(RULESET)" ]; then \
-		echo "Usage: make insert-contest NAME=... START_DATE=YYYY-MM-DD END_DATE=YYYY-MM-DD MAX_USERS=... RULESET=..."; \
+	@if [ -z "$(NAME)" ] || [ -z "$(START_DATE)" ] || [ -z "$(END_DATE)" ] || [ -z "$(MAX_USERS)" ] || [ -z "$(RULESET)" ] || [ -z "$(OWNER_ID)" ]; then \
+		echo "Usage: make insert-contest NAME=... START_DATE=YYYY-MM-DD END_DATE=YYYY-MM-DD MAX_USERS=... RULESET=... OWNER_ID=..."; \
 		exit 1; \
 	fi
 	@db_path="$$(find .wrangler/state/v3/d1/miniflare-D1DatabaseObject -name '*.sqlite' | head -n 1)"; \
@@ -256,8 +256,8 @@ insert-contest:
 	contest_uuid="$$(node -e "process.stdout.write(require('crypto').randomUUID())")"; \
 	name_escaped="$$(printf '%s' "$(NAME)" | sed "s/'/''/g")"; \
 	ruleset_escaped="$$(printf '%s' "$(RULESET)" | sed "s/'/''/g")"; \
-	sqlite3 "$$db_path" "INSERT INTO contests (uuid, name, start_date, end_date, max_users, ruleset) VALUES ('$$contest_uuid', '$$name_escaped', '$(START_DATE)', '$(END_DATE)', $(MAX_USERS), '$$ruleset_escaped');"; \
-	sqlite3 -header -column "$$db_path" "SELECT id, uuid, name, start_date, end_date, max_users, ruleset FROM contests WHERE uuid = '$$contest_uuid';"
+	sqlite3 "$$db_path" "INSERT INTO contests (uuid, name, start_date, end_date, max_users, ruleset, owner_id) VALUES ('$$contest_uuid', '$$name_escaped', '$(START_DATE)', '$(END_DATE)', $(MAX_USERS), '$$ruleset_escaped', $(OWNER_ID));"; \
+	sqlite3 -header -column "$$db_path" "SELECT id, uuid, name, start_date, end_date, max_users, ruleset, owner_id FROM contests WHERE uuid = '$$contest_uuid';"
 
 delete-contest:
 	@if [ -z "$(ID)" ]; then \
@@ -273,7 +273,7 @@ delete-contest:
 	echo "Deleted contest $(ID) if it existed."
 
 remote-select-contests:
-	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "SELECT id, uuid, name, start_date, end_date, max_users, ruleset, created_at FROM contests ORDER BY start_date DESC;"
+	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "SELECT id, uuid, name, start_date, end_date, max_users, ruleset, owner_id, created_at FROM contests ORDER BY start_date DESC;"
 
 remote-select-contest:
 	@if [ -z "$(UUID)" ]; then \
@@ -281,11 +281,11 @@ remote-select-contest:
 		exit 1; \
 	fi
 	@uuid_escaped="$$(printf '%s' "$(UUID)" | sed "s/'/''/g")"; \
-	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "SELECT id, uuid, name, start_date, end_date, max_users, ruleset, created_at FROM contests WHERE uuid = '$$uuid_escaped';"
+	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "SELECT id, uuid, name, start_date, end_date, max_users, ruleset, owner_id, created_at FROM contests WHERE uuid = '$$uuid_escaped';"
 
 remote-insert-contest:
-	@if [ -z "$(NAME)" ] || [ -z "$(START_DATE)" ] || [ -z "$(END_DATE)" ] || [ -z "$(MAX_USERS)" ] || [ -z "$(RULESET)" ]; then \
-		echo "Usage: make remote-insert-contest NAME=... START_DATE='YYYY-MM-DD HH:MM' END_DATE='YYYY-MM-DD HH:MM' MAX_USERS=... RULESET=[nature|campagne|3d|3d2|3dh|ar|field]... [REMOTE_WRANGLER_CONFIG=wrangler.local.toml] [REMOTE_D1_DATABASE=score-team]"; \
+	@if [ -z "$(NAME)" ] || [ -z "$(START_DATE)" ] || [ -z "$(END_DATE)" ] || [ -z "$(MAX_USERS)" ] || [ -z "$(RULESET)" ] || [ -z "$(OWNER_ID)" ]; then \
+		echo "Usage: make remote-insert-contest NAME=... START_DATE='YYYY-MM-DD HH:MM' END_DATE='YYYY-MM-DD HH:MM' MAX_USERS=... RULESET=[nature|campagne|3d|3d2|3dh|ar|field] OWNER_ID=... [REMOTE_WRANGLER_CONFIG=wrangler.local.toml] [REMOTE_D1_DATABASE=score-team]"; \
 		exit 1; \
 	fi
 	@case "$(RULESET)" in \
@@ -294,7 +294,7 @@ remote-insert-contest:
 	esac
 	@contest_uuid="$$(node -e "process.stdout.write(require('crypto').randomUUID())")";\
 	name_escaped="$$(printf '%s' "$(NAME)" | sed "s/'/''/g")"; \
-	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "INSERT INTO contests (uuid, name, start_date, end_date, max_users, ruleset) VALUES ('$$contest_uuid', '$$name_escaped', '$(START_DATE)', '$(END_DATE)', $(MAX_USERS), '$(RULESET)'); SELECT id, uuid, name, start_date, end_date, max_users, ruleset FROM contests WHERE uuid = '$$contest_uuid';"
+	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --command "INSERT INTO contests (uuid, name, start_date, end_date, max_users, ruleset, owner_id) VALUES ('$$contest_uuid', '$$name_escaped', '$(START_DATE)', '$(END_DATE)', $(MAX_USERS), '$(RULESET)', $(OWNER_ID)); SELECT id, uuid, name, start_date, end_date, max_users, ruleset, owner_id FROM contests WHERE uuid = '$$contest_uuid';"
 
 remote-delete-contest:
 	@if [ -z "$(ID)" ]; then \

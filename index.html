@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#2d6a4f" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Archery Team Score" />
-    <title>Archery Team Score</title>
+    <meta name="apple-mobile-web-app-title" content="Capi Scoring" />
+    <title>Capi Scoring</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.png" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-maskable-192.png" />
@@ -17,10 +17,17 @@
     <section id="home-screen" class="home-screen" role="main" aria-label="Accueil">
       <header class="home-header">
         <div class="home-header-wrapper">
-        <img src="icons/icon.png" alt="Archery Team Score" class="home-logo" />
+        <img src="icons/icon.png" alt="Capi Scoring" class="home-logo" />
         <div class="home-header-text">
-          <h1 class="home-title">Archery Team Score</h1>
-          <p class="home-subtitle">Gestion des scores de tir à l'arc</p>
+          <h1 id="home-title" class="home-title">Capi Scoring</h1>
+          <div class="home-subtitle-row">
+            <p id="home-subtitle" class="home-subtitle"></p>
+            <button id="home-user-password-btn" class="btn btn-light btn-icon home-user-password-btn hidden" type="button" aria-label="Modifier le mot de passe" title="Modifier le mot de passe">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.31 0-6 1.8-6 4v2h12v-2c0-2.2-2.69-4-6-4Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
         </div>
         </div>
       </header>
@@ -44,8 +51,16 @@
           </span>
         </button>
 
-        <button class="home-tile" id="home-training-disabled-btn" aria-label="Entraînement indisponible" aria-disabled="true" disabled>
-          <span class="home-tile-badge">Bientot</span>
+        <button class="home-tile" id="home-contest-btn" aria-label="Concours">
+          <span class="home-tile-label">
+            <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path fill="currentColor" fill-rule="evenodd" d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 0 0-.584.859 6.753 6.753 0 0 0 6.138 5.6 6.73 6.73 0 0 0 2.743 1.346A6.707 6.707 0 0 1 9.279 15H8.54c-1.036 0-1.875.84-1.875 1.875V19.5h-.75a2.25 2.25 0 0 0-2.25 2.25c0 .414.336.75.75.75h15a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-2.25-2.25h-.75v-2.625c0-1.036-.84-1.875-1.875-1.875h-.739a6.706 6.706 0 0 1-1.112-3.173 6.73 6.73 0 0 0 2.743-1.347 6.753 6.753 0 0 0 6.139-5.6.75.75 0 0 0-.585-.858 47.077 47.077 0 0 0-3.07-.543V2.62a.75.75 0 0 0-.658-.744 49.22 49.22 0 0 0-6.093-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 0 0-.657.744Zm0 2.629c0 1.196.312 2.32.857 3.294A5.266 5.266 0 0 1 3.16 5.337a45.6 45.6 0 0 1 2.006-.343v.256Zm13.5 0v-.256c.674.1 1.343.214 2.006.343a5.265 5.265 0 0 1-2.863 3.207 6.72 6.72 0 0 0 .857-3.294Z" clip-rule="evenodd" />
+            </svg>
+            <span>Concours</span>
+          </span>
+        </button>
+
+        <button class="home-tile" id="home-training-tile-btn" aria-label="Entraînement">
           <span class="home-tile-label">
             <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M2 8h2v8H2V8Zm3-2h3v12H5V6Zm3 4h8v4H8v-4Zm8-4h3v12h-3V6Zm4 2h2v8h-2V8Z" fill="currentColor"/>
@@ -90,15 +105,6 @@
           </span>
         </button>
 
-        <button class="home-tile" id="home-help-btn" aria-label="Aide">
-          <span class="home-tile-label">
-            <svg class="home-tile-label-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M11 18h2v2h-2v-2Zm1-16a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm0-14a4 4 0 0 0-4 4h2a2 2 0 1 1 2.8 1.84c-1.2.54-1.8 1.35-1.8 2.66V16h2v-1.5c0-.58.22-.9 1.05-1.28A4 4 0 0 0 12 6Z" fill="currentColor"/>
-            </svg>
-            <span>Aide</span>
-          </span>
-        </button>
-
       </nav>
     </section>
 
@@ -111,7 +117,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M12 12c2.76 0 5-2.24 5-5S14.76 2 12 2 7 4.24 7 7s2.24 5 5 5Zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5Z" fill="currentColor"/>
             </svg>
-            <span>Mode solo</span>
+            <span>Mode Solo</span>
           </h2>
           <div class="setup-head-actions">
             <button id="setup-close-btn" class="btn btn-light btn-icon home-btn" aria-label="Fermer">
@@ -149,20 +155,35 @@
                 <input id="session-time-input" type="time" />
               </label>
             </div>
+            <div class="solo-session-type-inline yes-no-fieldset">
+              <span class="label-inline">Type de session</span>
+              <div class="yes-no-switch session-type-switch" role="radiogroup" aria-label="Type de session solo">
+                <label class="switch-option">
+                  <input type="radio" name="solo-session-type" value="training" checked />
+                  <span>Entraînement</span>
+                </label>
+                <label class="switch-option">
+                  <input type="radio" name="solo-session-type" value="contest" />
+                  <span>Concours</span>
+                </label>
+              </div>
+            </div>
             <fieldset class="mode-fieldset">
-              <legend>Mode de saisie</legend>
-              <label class="mode-option">
-                <input type="radio" name="scoring-mode" value="team" checked />
-                <span>Équipe</span>
-              </label>
-              <label class="mode-option">
-                <input type="radio" name="scoring-mode" value="individual" />
-                <span>Mode solo</span>
-              </label>
-              <label class="mode-option">
-                <input type="radio" name="scoring-mode" value="mixed" />
-                <span>Mixte</span>
-              </label>
+              <legend class="label-inline">Mode de saisie</legend>
+              <div class="yes-no-switch mode-switch" role="radiogroup" aria-label="Mode de saisie">
+                <label class="mode-option switch-option">
+                  <input type="radio" name="scoring-mode" value="individual" checked />
+                  <span>Individuel</span>
+                </label>
+                <label class="mode-option switch-option">
+                  <input type="radio" name="scoring-mode" value="team" />
+                  <span>Équipe</span>
+                </label>
+                <label class="mode-option switch-option">
+                  <input type="radio" name="scoring-mode" value="mixed" />
+                  <span>Mixte</span>
+                </label>
+              </div>
             </fieldset>
             <label id="weapon-select-wrapper">
               <span class="label-inline">Type d'arme</span>
@@ -177,41 +198,87 @@
             </label>
           </div>
         </div>
-        <label>
-          Zone de réussite (pts / volée)
-          <div class="slider-row">
-            <input id="success-zone-input" type="range" min="1" max="120" step="1" value="1" />
-            <strong id="success-zone-value">1</strong>
+        <details id="solo-options-panel" class="solo-options-panel">
+          <summary>Plus d'options</summary>
+          <div class="solo-options-panel-body">
+            <label>
+              Zone de réussite (pts / volée)
+              <div class="slider-row">
+                <input id="success-zone-input" type="range" min="1" max="120" step="1" value="1" />
+                <strong id="success-zone-value">1</strong>
+              </div>
+            </label>
+            <label id="contest-identifier-wrapper" class="hidden">
+              <span class="label-inline">Identifiant concours</span>
+              <input id="contest-identifier-input" type="text" placeholder="UUID ou code concours" autocomplete="off" maxlength="40" />
+            </label>
+            <label>
+              Lieu
+              <input id="lieu-input" type="text" placeholder="Ex : Forêt de Rambouillet" autocomplete="off" maxlength="30" />
+            </label>
+            <div class="setup-options-row">
+              <fieldset class="use-target-groups-fieldset yes-no-fieldset">
+                <legend>Catégories de cibles</legend>
+                <div class="yes-no-switch" role="radiogroup" aria-label="Catégories de cibles">
+                  <label class="switch-option">
+                    <input type="radio" name="use-target-groups" value="yes" checked />
+                    <span>Oui</span>
+                  </label>
+                  <label class="switch-option">
+                    <input type="radio" name="use-target-groups" value="no" />
+                    <span>Non</span>
+                  </label>
+                </div>
+              </fieldset>
+              <fieldset class="show-scores-fieldset yes-no-fieldset">
+                <legend>Afficher des scores</legend>
+                <div class="yes-no-switch" role="radiogroup" aria-label="Afficher des scores">
+                  <label class="switch-option">
+                    <input type="radio" name="show-scores" value="yes" checked />
+                    <span>Oui</span>
+                  </label>
+                  <label class="switch-option">
+                    <input type="radio" name="show-scores" value="no" />
+                    <span>Non</span>
+                  </label>
+                </div>
+              </fieldset>
+              <fieldset class="use-timer-fieldset yes-no-fieldset">
+                <legend>Timer</legend>
+                <div class="yes-no-switch timer-mode-switch" role="radiogroup" aria-label="Mode de timer">
+                  <label class="switch-option">
+                    <input type="radio" name="use-timer" value="none" />
+                    <span>Aucun</span>
+                  </label>
+                  <label class="switch-option">
+                    <input type="radio" name="use-timer" value="beeps" />
+                    <span>Beeps</span>
+                  </label>
+                  <label class="switch-option">
+                    <input type="radio" name="use-timer" value="hold" checked />
+                    <span>Tps tenue</span>
+                  </label>
+                </div>
+              </fieldset>
+            </div>
+            <div id="solo-beeps-settings" class="solo-beeps-settings hidden">
+              <label for="solo-beeps-preparation-input">
+                <span class="label-inline">Temps de préparation <span class="label-optional">max 15s</span></span>
+                <div class="slider-row">
+                  <input id="solo-beeps-preparation-input" type="range" min="0" max="15" step="1" value="5" />
+                  <strong id="solo-beeps-preparation-value">5s</strong>
+                </div>
+              </label>
+              <label for="solo-beeps-tiring-input">
+                <span class="label-inline">Temps de tir <span id="solo-beeps-tiring-hint" class="label-optional">max 45s</span></span>
+                <div class="slider-row">
+                  <input id="solo-beeps-tiring-input" type="range" min="5" max="45" step="1" value="40" />
+                  <strong id="solo-beeps-tiring-value">40s</strong>
+                </div>
+              </label>
+            </div>
           </div>
-        </label>
-        <label>
-          Lieu
-          <input id="lieu-input" type="text" placeholder="Ex : Forêt de Rambouillet" autocomplete="off" maxlength="30" />
-        </label>
-        <div class="setup-options-row">
-          <fieldset class="use-target-groups-fieldset">
-            <legend>Catégories de cibles</legend>
-            <label class="checkbox-label">
-              <input type="radio" name="use-target-groups" value="yes" checked />
-              <span>Oui</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="radio" name="use-target-groups" value="no" />
-              <span>Non</span>
-            </label>
-          </fieldset>
-          <fieldset class="show-scores-fieldset">
-            <legend>Afficher des scores</legend>
-            <label class="checkbox-label">
-              <input type="radio" name="show-scores" value="yes" checked />
-              <span>Oui</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="radio" name="show-scores" value="no" />
-              <span>Non</span>
-            </label>
-          </fieldset>
-        </div>
+        </details>
         <div class="start-action">
           <button id="start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer la saisie">
             Démarrer
@@ -297,10 +364,8 @@
               <path d="M4 20h16v2H4v-2Zm1-2V9h3v9H5Zm5 0V5h3v13h-3Zm5 0v-7h3v7h-3Z" fill="currentColor" />
             </svg>
           </button>
-          <button id="results-close-btn" class="btn btn-light btn-icon home-btn" aria-label="Fermer">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
-            </svg>
+          <button id="results-close-btn" class="btn btn-light" aria-label="Fermer">
+            Fermer
           </button>
         </div>
       </section>
@@ -390,15 +455,15 @@
           </div>
           <div id="stats-tab-groups" class="stats-tab-panel hidden">
             <div class="stats-grid-1">
+              <article class="stats-dist-card">
+                <span>Répartition par flèche</span>
+                <div id="stats-arrow-dist" class="stats-arrow-dist"></div>
+              </article>
+            </div>
+            <div class="stats-grid-1">
               <article id="stats-group-dist-card" class="stats-dist-card">
                 <span>Répartition par catégorie</span>
                 <div id="stats-group-dist" class="stats-group-dist"></div>
-              </article>
-            </div>
-            <div class="stats-grid-1 stats-dist-row">
-              <article class="stats-dist-card">
-                <span>Répartition par score</span>
-                <div id="stats-score-dist" class="stats-score-dist"></div>
               </article>
             </div>
           </div>
@@ -459,6 +524,23 @@
                 <option value="all">Toutes les armes</option>
               </select>
             </label>
+            <div class="general-stats-session-type-fieldset yes-no-fieldset" role="group" aria-label="Type de session">
+              <span class="label-inline">Type de session</span>
+              <div class="yes-no-switch general-stats-session-type-switch" role="radiogroup" aria-label="Type de session">
+                <label class="switch-option">
+                  <input type="radio" name="general-stats-session-type" value="all" checked />
+                  <span>Toutes</span>
+                </label>
+                <label class="switch-option">
+                  <input type="radio" name="general-stats-session-type" value="training" />
+                  <span>Entraînement</span>
+                </label>
+                <label class="switch-option">
+                  <input type="radio" name="general-stats-session-type" value="contest" />
+                  <span>Concours</span>
+                </label>
+              </div>
+            </div>
           </div>
 
           <div id="general-stats-evolution-row" class="stats-grid-3 stats-evolution-row general-stats-evolution-row">
@@ -512,13 +594,13 @@
 
       <section id="multi-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="multi-modal-title">
         <div class="modal-overlay" id="multi-modal-overlay"></div>
-        <div class="modal-card">
+        <div class="modal-card" id="multi-modal-card">
           <div class="modal-head">
             <h3 id="multi-modal-title" class="modal-title-with-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5ZM8 13c-2.67 0-8 1.34-8 4v2h7v-2.5c0-.95.37-1.81 1.05-2.56-.02-.3-.03-.6-.05-.94Z" fill="currentColor" />
               </svg>
-              <span>Mode Multi</span>
+              <span id="multi-modal-title-text">Mode Multi</span>
             </h3>
             <button id="multi-close-btn" class="btn btn-light btn-icon" aria-label="Fermer mode multi">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -527,7 +609,7 @@
             </button>
           </div>
           <div class="general-stats-filter-row">
-            <label for="multi-mode-select">
+            <label id="multi-mode-select-wrapper" for="multi-mode-select">
               <span class="label-inline">Mode</span>
               <select id="multi-mode-select">
                 <option value="peloton">Peloton</option>
@@ -551,9 +633,37 @@
                 </optgroup>
               </select>
             </label>
+            <div id="multi-ludic-mode-container" class="show-scores-fieldset yes-no-fieldset" role="group" aria-label="Mode ludique">
+              <span class="switch-field-title">Mode ludique</span>
+              <div class="yes-no-switch" role="radiogroup" aria-label="Mode ludique">
+                <label class="switch-option">
+                  <input type="radio" name="multi-ludic-mode" value="yes" />
+                  <span>Oui</span>
+                </label>
+                <label class="switch-option">
+                  <input type="radio" name="multi-ludic-mode" value="no" checked />
+                  <span>Non</span>
+                </label>
+              </div>
+            </div>
           <div id="duel-names-container" class="duel-names-row">
             <input id="duel-name-p1" type="text" placeholder="Nom archer 1" maxlength="10" autocomplete="off" required />
             <input id="duel-name-p2" type="text" placeholder="Nom archer 2" maxlength="10" autocomplete="off" required />
+          </div>
+          <div id="duel-bot-row" aria-live="polite">
+            <div id="duel-bot-slider-wrap">
+              <div id="duel-bot-main">
+                <div id="duel-bot-left">
+                  <div id="duel-bot-badge">
+                    <img src="icons/icon.png" alt="Bot" class="duel-bot-icon" />
+                  </div>
+                </div>
+                <div id="duel-bot-right">
+                  <input id="duel-bot-level-slider" type="range" min="1" max="20" step="1" value="3" aria-label="Niveau de tir de Paquito" />
+                  <div id="duel-bot-headline">Mode Bot activé : Avancé</div>
+                </div>
+              </div>
+            </div>
           </div>
            <div id="duel-names-error" class="duel-names-error hidden" role="alert">
              Veuillez renseigner les 2 noms d'archers
@@ -569,6 +679,10 @@
           <div id="peloton-names-error" class="peloton-names-error hidden" role="alert">
             Veuillez renseigner au moins un nom d'archer
           </div>
+          <label id="contest-weapon-container" class="hidden" for="multi-contest-weapon-select">
+            <span class="label-inline">Type d'arme</span>
+            <select id="multi-contest-weapon-select"></select>
+          </label>
           <div id="contest-code-container" class="duel-names-row hidden">
             <input id="contest-code-input" type="text" placeholder="Code concours" maxlength="40" autocomplete="off" />
           </div>
@@ -583,6 +697,20 @@
                 <span>6 cibles</span>
               </label>
             </fieldset>
+            <label id="duel-handicap-field" class="duel-handicap-field" for="duel-handicap-slider">
+              <div class="duel-handicap-head">
+                <span class="label-inline">Handicap</span>
+                <strong id="duel-handicap-value" class="duel-handicap-value">0%</strong>
+              </div>
+              <div class="duel-handicap-slider-row">
+                <input id="duel-handicap-slider" type="range" min="-50" max="50" step="5" value="0" aria-describedby="duel-handicap-hint" />
+              </div>
+              <div id="duel-handicap-hint" class="duel-handicap-hint" aria-hidden="true">
+                <span>Archer 1</span>
+                <span>Neutre</span>
+                <span>Archer 2</span>
+              </div>
+            </label>
           </div>
           <div class="start-action">
             <button id="multi-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer mode multi">
@@ -591,6 +719,425 @@
                 <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
               </svg>
             </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="contest-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="contest-modal-title">
+        <div class="modal-overlay" id="contest-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="contest-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path fill="currentColor" fill-rule="evenodd" d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 0 0-.584.859 6.753 6.753 0 0 0 6.138 5.6 6.73 6.73 0 0 0 2.743 1.346A6.707 6.707 0 0 1 9.279 15H8.54c-1.036 0-1.875.84-1.875 1.875V19.5h-.75a2.25 2.25 0 0 0-2.25 2.25c0 .414.336.75.75.75h15a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-2.25-2.25h-.75v-2.625c0-1.036-.84-1.875-1.875-1.875h-.739a6.706 6.706 0 0 1-1.112-3.173 6.73 6.73 0 0 0 2.743-1.347 6.753 6.753 0 0 0 6.139-5.6.75.75 0 0 0-.585-.858 47.077 47.077 0 0 0-3.07-.543V2.62a.75.75 0 0 0-.658-.744 49.22 49.22 0 0 0-6.093-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 0 0-.657.744Zm0 2.629c0 1.196.312 2.32.857 3.294A5.266 5.266 0 0 1 3.16 5.337a45.6 45.6 0 0 1 2.006-.343v.256Zm13.5 0v-.256c.674.1 1.343.214 2.006.343a5.265 5.265 0 0 1-2.863 3.207 6.72 6.72 0 0 0 .857-3.294Z" clip-rule="evenodd" />
+              </svg>
+              <span>Concours</span>
+            </h3>
+            <button id="contest-close-btn" class="btn btn-light btn-icon" aria-label="Fermer concours">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div id="contest-modal-content" class="modal-body"></div>
+        </div>
+      </section>
+
+      <section id="contest-scores-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="contest-scores-modal-title">
+        <div class="modal-overlay" id="contest-scores-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="contest-scores-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2a10 10 0 1 0 10 10A10.012 10.012 0 0 0 12 2Zm0 17a7 7 0 1 1 7-7 7.008 7.008 0 0 1-7 7Zm0-11a4 4 0 1 0 4 4 4 4 0 0 0-4-4Zm0 5.5a1.5 1.5 0 1 1 1.5-1.5 1.502 1.502 0 0 1-1.5 1.5Z" fill="currentColor" />
+              </svg>
+              <span>Scores</span>
+            </h3>
+            <button id="contest-scores-close-btn" class="btn btn-light btn-icon" aria-label="Fermer scores concours">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div id="contest-scores-modal-content" class="modal-body"></div>
+        </div>
+      </section>
+
+      <section id="contest-stats-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="contest-stats-modal-title">
+        <div class="modal-overlay" id="contest-stats-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="contest-stats-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 19h16v2H4v-2Zm1-2V9h3v8H5Zm5 0V5h3v12h-3Zm5 0v-6h3v6h-3Z" fill="currentColor"/>
+              </svg>
+              <span>Statistiques</span>
+            </h3>
+            <button id="contest-stats-close-btn" class="btn btn-light btn-icon" aria-label="Fermer statistiques concours">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div id="contest-stats-modal-content" class="modal-body"></div>
+        </div>
+      </section>
+
+      <section id="contest-ranking-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="contest-ranking-modal-title">
+        <div class="modal-overlay" id="contest-ranking-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="contest-ranking-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M3 20h18v2H3Zm1-8h5v6H4Zm6-4h5v10h-5Zm6 2h4v8h-4Z" fill="currentColor"/>
+              </svg>
+              <span>Classement</span>
+            </h3>
+            <button id="contest-ranking-close-btn" class="btn btn-light btn-icon" aria-label="Fermer classement concours">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <div id="contest-ranking-modal-content" class="modal-body"></div>
+        </div>
+      </section>
+
+      <section id="training-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="training-modal-title">
+        <div class="modal-overlay" id="training-modal-overlay"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3 id="training-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M2 8h2v8H2V8Zm3-2h3v12H5V6Zm3 4h8v4H8v-4Zm8-4h3v12h-3V6Zm4 2h2v8h-2V8Z" fill="currentColor" />
+              </svg>
+              <span>Entraînement</span>
+            </h3>
+            <button id="training-close-btn" class="btn btn-light btn-icon" aria-label="Fermer entraînement">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="general-stats-filter-row" id="training-options-container">
+            <label for="training-option-select">
+              <span class="label-inline">Exercice</span>
+              <select id="training-option-select">
+                <option value="hold-time" selected>Temps de tenue</option>
+                <option value="volume-arrows">Volume de flèches</option>
+                <option value="quiz-shields">Quiz blasons</option>
+              </select>
+            </label>
+
+            <div id="training-hold-time-form" class="hidden">
+              <label for="training-series-input">
+                <span class="label-inline">Nombre de séries</span>
+                <div class="slider-row">
+                  <input id="training-series-input" type="range" min="3" max="6" step="1" value="3" />
+                  <strong id="training-series-value">3</strong>
+                </div>
+              </label>
+
+              <label for="training-repetitions-input">
+                <span class="label-inline">Nombre de répétitions</span>
+                <div class="slider-row">
+                  <input id="training-repetitions-input" type="range" min="3" max="6" step="1" value="3" />
+                  <strong id="training-repetitions-value">3</strong>
+                </div>
+              </label>
+
+              <label for="training-hold-seconds-input">
+                <span class="label-inline">Temps de tenue en secondes</span>
+                <div class="slider-row">
+                  <input id="training-hold-seconds-input" type="range" min="2" max="12" step="1" value="4" />
+                  <strong id="training-hold-seconds-value">4s</strong>
+                </div>
+              </label>
+
+              <label for="training-rest-seconds-input">
+                <span class="label-inline">Temps de repos en secondes</span>
+                <div class="slider-row">
+                  <input id="training-rest-seconds-input" type="range" min="5" max="30" step="1" value="5" />
+                  <strong id="training-rest-seconds-value">5s</strong>
+                </div>
+              </label>
+
+              <div class="start-action">
+                <button id="training-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer entraînement temps de tenue">
+                  Démarrer
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="training-volume-form" class="hidden">
+              <label for="training-volume-series-input">
+                <span class="label-inline">Nombre de séries</span>
+                <div class="slider-row">
+                  <input id="training-volume-series-input" type="range" min="1" max="10" step="1" value="3" />
+                  <strong id="training-volume-series-value">3</strong>
+                </div>
+              </label>
+
+              <label for="training-volume-volleys-input">
+                <span class="label-inline">Nombre de volées par série</span>
+                <div class="slider-row">
+                  <input id="training-volume-volleys-input" type="range" min="1" max="6" step="1" value="3" />
+                  <strong id="training-volume-volleys-value">3</strong>
+                </div>
+              </label>
+
+              <label for="training-volume-arrows-input">
+                <span class="label-inline">Nombre de flèches par volée</span>
+                <div class="slider-row">
+                  <input id="training-volume-arrows-input" type="range" min="1" max="12" step="1" value="6" />
+                  <strong id="training-volume-arrows-value">6</strong>
+                </div>
+              </label>
+
+              <div class="training-volume-total" aria-live="polite">
+                <div class="training-volume-counter" aria-label="Compteur total de flèches à tirer">
+                  <span id="training-volume-total-hundreds" class="training-volume-digit">0</span>
+                  <span id="training-volume-total-tens" class="training-volume-digit">5</span>
+                  <span id="training-volume-total-units" class="training-volume-digit">4</span>
+                </div>
+              </div>
+
+              <div class="start-action">
+                <button id="training-volume-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer entraînement volume de flèches">
+                  Démarrer
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="training-quiz-shields-form" class="hidden">
+              <div class="quiz-shields-sponsor">
+                <a href="https://www.obosticker.com/#archerie" target="_blank" rel="noopener noreferrer" aria-label="Sponsor OBO Sticker">
+                  <img src="images/obo-sticker.png" alt="OBO Sticker" class="sponsor-logo" />
+                </a>
+              </div>
+
+              <fieldset class="shields-checkboxes">
+                <legend>Catégories de blasons</legend>
+                
+                <div class="checkbox-item">
+                  <input type="checkbox" id="shield-pa-checkbox" value="PA" checked />
+                  <label for="shield-pa-checkbox">
+                    <span class="checkbox-label-text">Petit Animal (PA)</span>
+                  </label>
+                </div>
+
+                <div class="checkbox-item">
+                  <input type="checkbox" id="shield-pg-checkbox" value="PG" checked />
+                  <label for="shield-pg-checkbox">
+                    <span class="checkbox-label-text">Petit Gibier (PG)</span>
+                  </label>
+                </div>
+
+                <div class="checkbox-item">
+                  <input type="checkbox" id="shield-mg-checkbox" value="MG" checked />
+                  <label for="shield-mg-checkbox">
+                    <span class="checkbox-label-text">Moyen Gibier (MG)</span>
+                  </label>
+                </div>
+
+                <div class="checkbox-item">
+                  <input type="checkbox" id="shield-gg-checkbox" value="GG" checked />
+                  <label for="shield-gg-checkbox">
+                    <span class="checkbox-label-text">Grand Gibier (GG)</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="start-action">
+                <button id="training-quiz-shields-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer quiz blasons">
+                  Démarrer
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <section id="training-hold-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="training-hold-modal-title">
+        <div class="modal-overlay" id="training-hold-modal-overlay"></div>
+        <div class="modal-card training-hold-modal-card">
+          <div class="modal-head">
+            <h3 id="training-hold-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 14a6 6 0 1 1 6-6 6 6 0 0 1-6 6Zm1-10h-2v4.4l3.2 1.9 1-1.7-2.2-1.3V10Z" fill="currentColor" />
+              </svg>
+              <span id="training-hold-modal-title-text">Temps de tenue</span>
+            </h3>
+            <button id="training-hold-close-btn" class="btn btn-light btn-icon" aria-label="Fermer temps de tenue">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="training-hold-meta-row">
+            <strong id="training-hold-series-text" class="training-hold-series-stack">
+              <span class="training-meta-label">Série</span>
+              <span id="training-hold-series-value" class="training-meta-value">3</span>
+            </strong>
+            <strong id="training-hold-repetitions-text" class="training-hold-series-stack">
+              <span class="training-meta-label">Répétition</span>
+              <span id="training-hold-repetitions-value" class="training-meta-value">3</span>
+            </strong>
+          </div>
+
+          <div class="training-hold-ring-wrap">
+            <div id="training-cycle-ring" class="training-hold-ring is-rest" role="img" aria-label="Temps de repos sélectionné">
+              <strong id="training-cycle-ring-value"><span class="training-time-value">4</span><span class="training-time-unit">s</span></strong>
+              <span id="training-cycle-ring-label">Repos</span>
+            </div>
+          </div>
+
+          <div class="start-action">
+            <button id="training-cycle-toggle-btn" class="btn btn-primary btn-icon start-btn" aria-label="Mettre en pause le timer">
+              <span id="training-cycle-toggle-text">Pause</span>
+              <svg id="training-cycle-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M7 5h3v14H7V5Zm7 0h3v14h-3V5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="training-volume-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="training-volume-modal-title">
+        <div class="modal-overlay" id="training-volume-modal-overlay"></div>
+        <div class="modal-card training-volume-modal-card">
+          <div class="modal-head">
+            <h3 id="training-volume-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 4h16v4H4V4Zm0 6h16v4H4v-4Zm0 6h16v4H4v-4Z" fill="currentColor" />
+              </svg>
+              <span>Volume de flèches</span>
+            </h3>
+            <button id="training-volume-close-btn" class="btn btn-light btn-icon" aria-label="Fermer volume de flèches">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="training-volume-meta-row">
+            <strong class="training-volume-meta-block">
+              <span class="training-meta-label">Série</span>
+              <span id="training-volume-current-series-value" class="training-meta-value">1</span>
+            </strong>
+            <strong class="training-volume-meta-block">
+              <span class="training-meta-label">Volée</span>
+              <span id="training-volume-current-volley-value" class="training-meta-value">1</span>
+            </strong>
+          </div>
+
+          <div class="training-volume-progress-wrap">
+            <div class="training-volume-progress-head">
+              <span>Progression des flèches</span>
+              <strong id="training-volume-progress-value">0%</strong>
+            </div>
+            <input id="training-volume-progress-input" type="range" min="0" max="100" step="1" value="0" disabled />
+          </div>
+
+          <div class="start-action">
+            <button id="training-volume-next-btn" class="btn btn-primary btn-icon start-btn" aria-label="Passer à la volée suivante">
+              <span id="training-volume-next-btn-label">Tirer 1 flèche</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="training-volume-counter-wrap" aria-live="polite">
+            <div class="training-volume-counter" aria-label="Compteur analogique de flèches">
+              <span id="training-volume-counter-hundreds" class="training-volume-digit">0</span>
+              <span id="training-volume-counter-tens" class="training-volume-digit">0</span>
+              <span id="training-volume-counter-units" class="training-volume-digit">0</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="training-quiz-shields-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="training-quiz-shields-modal-title">
+        <div class="modal-overlay" id="training-quiz-shields-modal-overlay"></div>
+        <div class="modal-card training-quiz-shields-modal-card">
+          <div class="modal-head">
+            <h3 id="training-quiz-shields-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 3C6.48 3 2 6.58 2 11c0 2.24 1.17 4.26 3.06 5.69-.18 1.17-.69 2.33-1.5 3.31 1.92-.23 3.77-.93 5.31-2.02.99.27 2.04.41 3.13.41 5.52 0 10-3.58 10-8S17.52 3 12 3Z" fill="currentColor" />
+              </svg>
+              <span id="training-quiz-shields-modal-title-text">Quiz blasons</span>
+            </h3>
+            <button id="training-quiz-shields-close-btn" class="btn btn-light btn-icon" aria-label="Fermer quiz blasons">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="quiz-shields-content">
+            <div class="quiz-shields-meta-row">
+              <strong class="quiz-shields-meta-block">
+                <span class="training-meta-label">Score</span>
+                <span id="quiz-shields-score-value" class="training-meta-value">0</span>
+              </strong>
+              <strong class="quiz-shields-meta-block">
+                <span class="training-meta-label">Cible</span>
+                <span id="quiz-shields-question-value" class="training-meta-value">1/20</span>
+              </strong>
+            </div>
+
+            <div class="quiz-shields-image-container">
+              <img id="quiz-shields-image" src="" alt="Blason à identifier" class="quiz-shields-image" />
+            </div>
+
+            <div class="quiz-shields-buttons">
+              <button id="quiz-shields-btn-pa" class="btn btn-primary quiz-shields-option-btn" data-category="PA">
+                <span class="btn-text">PA</span>
+              </button>
+              <button id="quiz-shields-btn-pg" class="btn btn-primary quiz-shields-option-btn" data-category="PG">
+                <span class="btn-text">PG</span>
+              </button>
+              <button id="quiz-shields-btn-mg" class="btn btn-primary quiz-shields-option-btn" data-category="MG">
+                <span class="btn-text">MG</span>
+              </button>
+              <button id="quiz-shields-btn-gg" class="btn btn-primary quiz-shields-option-btn" data-category="GG">
+                <span class="btn-text">GG</span>
+              </button>
+            </div>
+
+            <div id="quiz-shields-feedback" class="quiz-shields-feedback hidden" aria-live="polite"></div>
+
+            <div id="quiz-shields-results" class="quiz-shields-results hidden" aria-live="polite">
+              <div class="results-content">
+                <h2 class="results-title">Quiz terminé !</h2>
+                <div class="results-stats">
+                  <div id="quiz-shields-result-ring" class="quiz-shields-result-ring">
+                    <span id="quiz-shields-result-percentage" class="quiz-shields-result-percentage">0%</span>
+                  </div>
+                </div>
+                <div class="results-actions">
+                  <button id="quiz-shields-restart-btn" class="btn btn-primary btn-icon start-btn" aria-label="Recommencer le quiz">
+                    Recommencer
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -643,8 +1190,8 @@
             </div>
             <div id="duel-points-rule-hint" class="points-rule-hint hidden" aria-live="polite"></div>
             <div class="duel-restart-action">
-              <button id="duel-restart-btn" class="btn btn-primary start-btn hidden" aria-label="Recommencer">
-                Recommencer
+              <button id="duel-restart-btn" class="btn btn-primary start-btn hidden" aria-label="Démarrer">
+                Démarrer
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
                 </svg>
@@ -679,6 +1226,11 @@
             <div id="peloton-archers-grid" class="peloton-archers-grid" role="list"></div>
           </div>
 
+            <div id="peloton-event-flash" class="peloton-event-flash hidden" role="status" aria-live="polite">
+              <strong class="peloton-event-label"></strong>
+              <span class="peloton-event-detail"></span>
+            </div>
+
           <div class="quick-stats duel-current-row">
             <article id="peloton-current-card">
               <div id="peloton-history" class="duel-volley-history"></div>
@@ -707,121 +1259,23 @@
         </div>
       </section>
 
-      <section id="help-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
-        <div class="modal-overlay" id="help-modal-overlay"></div>
-        <div class="modal-card help-modal-card help-paginated-card">
+      <section id="peloton-extra-arrow-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="peloton-extra-arrow-modal-title">
+        <div class="modal-overlay" id="peloton-extra-arrow-modal-overlay"></div>
+        <div class="modal-card peloton-extra-arrow-modal-card">
           <div class="modal-head">
-            <h3 id="help-modal-title" class="modal-title-with-icon">
+            <h3 id="peloton-extra-arrow-modal-title" class="modal-title-with-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 16a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.6-6.3-.7.5c-.4.3-.6.6-.6 1.3v.3h-1.8v-.4c0-1 .3-1.8 1.1-2.4l1-.7c.5-.4.8-.8.8-1.3 0-.8-.6-1.4-1.6-1.4-1 0-1.7.6-1.9 1.6l-1.8-.4c.4-1.8 1.8-2.9 3.8-2.9 2.1 0 3.5 1.2 3.5 3 0 1-.4 1.8-1.8 2.8Z" fill="currentColor" />
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9Z" fill="currentColor" />
               </svg>
-              <span>Aide</span>
-              <small id="help-version" class="help-version"></small>
+              <span>Flèche bonus</span>
             </h3>
-            <button id="help-close-btn" class="btn btn-light btn-icon" aria-label="Fermer aide">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
-              </svg>
-            </button>
           </div>
-
-          <div class="help-page" data-help-page="1">
-            <section class="help-block">
-              <h4>Création d'une session</h4>
-              <ul>
-                <li>Depuis l'accueil, lancez une session via Mode solo ou Mode Multi.</li>
-                <li>Mode Multi : duel ou peloton avec choix du parcours.</li>
-                <li>En Mode Multi, la liste des parcours suit les parcours actifs définis dans Configuration.</li>
-                <li>Définition de la zone de réussite.</li>
-                <li>La tuile Entraînement est affichée en grisé : fonctionnalité bientôt disponible.</li>
-              </ul>
-            </section>
-
-            <section class="help-block">
-              <h4>Historique des sessions</h4>
-              <ul>
-                <li>Filtrage par type et mode de parcours.</li>
-                <li>Affichage des détails de chaque session enregistrée.</li>
-                <li>Suppression des sessions enregistrées.</li>
-              </ul>
-            </section>
-
-            <section class="help-block">
-              <h4>Règles des points</h4>
-              <ul>
-                <li>
-                  FFTA
-                  <ul>
-                    <li>Nature: 1re flèche 20 / 15 / M, 2e flèche 15 / 10 / M.</li>
-                    <li>Campagne: 6 / 5 / 4 / 3 / 2 / 1 / M (3 flèches).</li>
-                    <li>Campagne (armes): AD / BB / TL / CL (pas de AC ni CO).</li>
-                    <li>3D: 11 / 10 / 8 / 5 / M.</li>
-                  </ul>
-                </li>
-                <li>
-                  FFTL
-                  <ul>
-                    <li>3D Two Shoots: 10 / 8 / 5 / M.</li>
-                    <li>3D Hunting: 20 / 16 / 10 / M.</li>
-                    <li>Animal round: 20/18/M, 16/14/M, 12/10/M.</li>
-                    <li>Field / Hunter: X / 5 / 4 / 3 / M.</li>
-                  </ul>
-                </li>
-              </ul>
-            </section>
-
-            <section class="help-block">
-              <h4>Validation de saisie</h4>
-              <ul>
-                <li>Saisie dans l'ordre décroissant des points.</li>
-                <li>Scores non valides grisés.</li>
-                <li>Sauvegarde automatique de la session.</li>
-              </ul>
-            </section>
+          <div class="modal-content">
+            <p id="peloton-extra-arrow-message" style="margin: 1rem 0; text-align: center; font-size: 1.05rem;">
+              <span id="peloton-extra-arrow-archer-name" style="font-weight: bold; color: #2d6a4f;"></span> doit tirer une flèche bonus.
+            </p>
+            <div id="peloton-extra-arrow-points-pad" class="points-pad" style="margin: 1rem 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;"></div>
           </div>
-
-          <div class="help-page hidden" data-help-page="2">
-            <section class="help-block">
-              <h4>Indicateurs de volée</h4>
-              <ul class="zone-indicators">
-                <li><span class="zone-normal"></span> Volée normale.</li>
-                <li><span class="zone-success"></span> Volée de plein.</li>
-                <li><span class="zone-warning"></span> Volée avec une paille.</li>
-                <li><span class="zone-danger"></span> Volée de double pailles.</li>
-              </ul>
-            </section>
-
-            <section class="help-block">
-              <h4>Répartition des scores</h4>
-              <ul class="zone-indicators">
-                <li><span class="zone-danger"></span> Moins de 20% des flèches.</li>
-                <li><span class="zone-warning"></span> Entre 20% et 29% des flèches.</li>
-                <li><span class="zone-alert"></span> Entre 30% et 39% des flèches.</li>
-                <li><span class="zone-success"></span> Plus de 40% des flèches.</li>
-              </ul>
-            </section>
-
-            <section class="help-block">
-              <h4>Répartition des pailles</h4>
-              <ul class="zone-indicators">
-                <li><span class="zone-success"></span> Moins de 20% des flèches.</li>
-                <li><span class="zone-alert"></span> Entre 20% et 29% des flèches.</li>
-                <li><span class="zone-warning"></span> Entre 30% et 39% des flèches.</li>
-                <li><span class="zone-danger"></span> Plus de 40% des flèches.</li>
-              </ul>
-            </section>
-
-            <section class="help-block">
-              <h4>Les actions possibles</h4>
-              <ul>
-                <li>Affichage les statistiques de la session en cours.</li>
-                <li>Téléchargement des données au format JSON.</li>
-                <li>Configuration des parcours visibles (appliquée au Mode solo et au Mode Multi).</li>
-              </ul>
-            </section>
-          </div>
-
-          <nav id="help-pagination" class="history-pagination" aria-label="Pagination aide"></nav>
         </div>
       </section>
 
@@ -843,11 +1297,11 @@
           </div>
           <form id="login-form" class="login-form" novalidate>
             <label>
-              Login
+              Identifiant
               <input id="login-email-input" type="email" inputmode="email" autocomplete="username" placeholder="email@exemple.com" required />
             </label>
             <label>
-              Password
+              Mot de passe
               <input id="login-password-input" type="password" autocomplete="current-password" placeholder="Votre mot de passe" required />
             </label>
             <div id="login-feedback" class="login-feedback hidden" role="alert"></div>
@@ -856,6 +1310,46 @@
                 <path d="M17 9h-1V6.5a4 4 0 1 0-8 0V9H7a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-8a2 2 0 0 0-2-2ZM10 9V6.5a2 2 0 1 1 4 0V9h-4Zm2 9a1.8 1.8 0 0 1-.9-3.35V14a.9.9 0 0 1 1.8 0v.65A1.8 1.8 0 0 1 12 18Z" fill="currentColor" />
               </svg>
               <span>Se connecter</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section id="password-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
+        <div class="modal-overlay" id="password-modal-overlay"></div>
+        <div class="modal-card password-modal-card">
+          <div class="modal-head">
+            <h3 id="password-modal-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M17 9h-1V6.5a4 4 0 1 0-8 0V9H7a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-8a2 2 0 0 0-2-2ZM10 9V6.5a2 2 0 1 1 4 0V9h-4Zm2 9a1.8 1.8 0 0 1-.9-3.35V14a.9.9 0 0 1 1.8 0v.65A1.8 1.8 0 0 1 12 18Z" fill="currentColor" />
+              </svg>
+              <span>Modifier le mot de passe</span>
+            </h3>
+            <button id="password-close-btn" class="btn btn-light btn-icon" aria-label="Fermer changement mot de passe">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <form id="password-form" class="login-form" novalidate>
+            <label>
+              Mot de passe actuel
+              <input id="password-current-input" type="password" autocomplete="current-password" placeholder="Votre mot de passe actuel" required />
+            </label>
+            <label>
+              Nouveau mot de passe
+              <input id="password-new-input" type="password" autocomplete="new-password" placeholder="Nouveau mot de passe" required />
+            </label>
+            <label>
+              Confirmation
+              <input id="password-confirm-input" type="password" autocomplete="new-password" placeholder="Confirmez le nouveau mot de passe" required />
+            </label>
+            <div id="password-feedback" class="login-feedback hidden" role="alert"></div>
+            <button id="password-submit-btn" type="submit" class="btn btn-primary btn-icon login-submit-btn" aria-label="Valider le changement de mot de passe">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 16.2 4.8 12 3.4 13.4 9 19l12-12-1.4-1.4L9 16.2Z" fill="currentColor" />
+              </svg>
+              <span>Valider</span>
             </button>
           </form>
         </div>
@@ -990,7 +1484,7 @@
 
       <section id="history-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="history-modal-title">
         <div class="modal-overlay" id="history-modal-overlay"></div>
-        <div class="modal-card help-modal-card history-modal-card">
+        <div class="modal-card history-modal-card">
           <div class="modal-head">
             <h3 id="history-modal-title" class="modal-title-with-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -1006,7 +1500,7 @@
           </div>
           <div class="history-filter-row">
             <select id="history-ruleset-filter" aria-label="Filtre parcours">
-              <option value="all">Tous parcours</option>
+              <option value="all">Parcours</option>
               <optgroup label="FFTA">
                 <option value="nature">Nature</option>
                 <option value="campagne">Campagne</option>
@@ -1020,17 +1514,16 @@
               </optgroup>
             </select>
             <select id="history-mode-filter" aria-label="Filtre mode">
-              <option value="all">Tous modes</option>
+              <option value="all">Modes</option>
               <option value="team">Équipe</option>
-              <option value="individual">Mode solo</option>
+              <option value="individual">Individuel</option>
               <option value="mixed">Mixte</option>
             </select>
-            <button id="history-reset-filters-btn" class="btn btn-light btn-icon" aria-label="Réinitialiser les filtres">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 .78 1.63L14 13.5V19a1 1 0 0 1-.55.9l-3 1.5A1 1 0 0 1 9 20.5v-7L2.22 4.63A1 1 0 0 1 3 3Z" fill="currentColor" opacity=".3"/>
-                <path d="M2.1 2.1l19.8 19.8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
-            </button>
+            <select id="history-session-type-filter" aria-label="Filtre type de session">
+              <option value="all">Types</option>
+              <option value="training">Entraînement</option>
+              <option value="contest">Concours</option>
+            </select>
           </div>
           <div id="history-list" class="history-list"></div>
           <nav id="history-pagination" class="history-pagination hidden" aria-label="Pagination historique"></nav>
@@ -1050,8 +1543,15 @@
           </div>
         </div>
       </section>
+
+      <section id="welcome-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Message de bienvenue">
+        <div class="modal-overlay" id="welcome-modal-overlay"></div>
+        <div class="modal-card welcome-modal-card">
+          <p id="welcome-modal-message" class="welcome-modal-message">Bienvenue</p>
+        </div>
+      </section>
       <footer class="app-footer">
-        <p>Archery Team Score &copy; 2026 Alain DOAN-HUU - <span id="app-version" class="app-footer-version"></span></p>
+        <p>Capi Scoring &copy; 2026 Alain DOAN-HUU - <span id="app-version" class="app-footer-version"></span></p>
       </footer>
     </main>
 
