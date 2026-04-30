@@ -1903,7 +1903,8 @@ function scrollLiveVolleyHistoryToBottom() {
     return;
   }
   requestAnimationFrame(() => {
-    els.liveVolleyHistoryWrap.scrollTop = els.liveVolleyHistoryWrap.scrollHeight;
+    // History is rendered with newest targets first, keep viewport pinned to top.
+    els.liveVolleyHistoryWrap.scrollTop = 0;
   });
 }
 
@@ -1941,7 +1942,9 @@ function renderLiveVolleyHistory() {
   els.liveVolleyHistoryBody.innerHTML = "";
   const maxVolley = getMaxVolleyForCurrentConfig();
   const sessionCompleted = state.shoots.length === state.targetCount;
-  state.shoots.forEach((volley, idx) => {
+  const orderedIndexes = Array.from({ length: state.shoots.length }, (_, idx) => idx).reverse();
+  orderedIndexes.forEach((idx) => {
+    const volley = state.shoots[idx];
     const isEditingRow = idx === state.editingVolleyIndex;
     const total = roundTotal(volley);
     const successful = isSuccessfulVolley(total);
@@ -2005,7 +2008,7 @@ function renderLiveVolleyHistory() {
       <td class="history-total">-</td>
       <td>-</td>
     `;
-    els.liveVolleyHistoryBody.appendChild(previewRow);
+    els.liveVolleyHistoryBody.prepend(previewRow);
   }
 }
 
