@@ -1934,7 +1934,8 @@ function scrollPelotonHistoryToBottom() {
     return;
   }
   requestAnimationFrame(() => {
-    els.pelotonHistory.scrollTop = els.pelotonHistory.scrollHeight;
+    // Peloton history is rendered with newest targets first.
+    els.pelotonHistory.scrollTop = 0;
   });
 }
 
@@ -6784,6 +6785,7 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
 
   const maxVolleyTotal = Number.isFinite(options.maxVolleyTotal) ? options.maxVolleyTotal : null;
   const highlightBestScore = options.highlightBestScore === true;
+  const reverseOrder = options.reverseOrder === true;
 
   const isCompletedVolley = (arrows) => (
     Array.isArray(arrows)
@@ -6792,7 +6794,13 @@ function renderDuelVolleyHistory(container, scoresByTarget, opponentScoresByTarg
   );
 
   const rows = [];
-  scoresByTarget.forEach((targetArrows, index) => {
+  const orderedIndexes = Array.from({ length: scoresByTarget.length }, (_, index) => index);
+  if (reverseOrder) {
+    orderedIndexes.reverse();
+  }
+
+  orderedIndexes.forEach((index) => {
+    const targetArrows = scoresByTarget[index];
     if (!Array.isArray(targetArrows)) return;
     const hasAnyScore = targetArrows.some((value) => value !== null && value !== undefined);
     if (!hasAnyScore) return;
@@ -6924,7 +6932,7 @@ function renderPelotonHistorySwiper(container, options = {}) {
     historyBodies.forEach((historyBody) => {
       const archerIndex = Number(historyBody.dataset.archerIndex);
       const archerState = state.pelotonByArcher?.[archerIndex];
-        renderDuelVolleyHistory(historyBody, archerState?.scores || [], [], { maxVolleyTotal });
+        renderDuelVolleyHistory(historyBody, archerState?.scores || [], [], { maxVolleyTotal, reverseOrder: true });
     });
   });
 
@@ -7838,7 +7846,10 @@ function renderPelotonView() {
     if (completed) {
       renderPelotonHistorySwiper(els.pelotonHistory, { maxVolleyTotal: pelotonMaxVolleyTotal });
     } else {
-      renderDuelVolleyHistory(els.pelotonHistory, scores, [], { maxVolleyTotal: pelotonMaxVolleyTotal });
+      renderDuelVolleyHistory(els.pelotonHistory, scores, [], {
+        maxVolleyTotal: pelotonMaxVolleyTotal,
+        reverseOrder: true,
+      });
     }
   }
   if (els.pelotonRestartBtn) {
