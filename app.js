@@ -2489,6 +2489,9 @@ async function fetchSoloContestUserProgress(contestUuid) {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
+      if (handleAuthFailureMessage(payload?.error)) {
+        return { ok: false, found: false, entry: null };
+      }
       showFlashInfo(translateErrorToFrench(payload?.error || "Failed to load contest user"));
       return { ok: false, found: false, entry: null };
     }
@@ -3048,7 +3051,7 @@ async function upsertContestUserFromLocalProfile(contestUuid, weapon, data = nul
     : (localStorageScoring || memoryData || undefined);
 
   try {
-    await fetch("/api/contest/users", {
+    const response = await fetch("/api/contest/users", {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -3062,6 +3065,10 @@ async function upsertContestUserFromLocalProfile(contestUuid, weapon, data = nul
         data: payloadData,
       }),
     });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      handleAuthFailureMessage(payload?.error, { openLogin: false });
+    }
   } catch {
     // Keep contest flow resilient if contest-user sync fails.
   }
@@ -3769,6 +3776,37 @@ function clearStoredAuth() {
   }
 }
 
+function isAuthErrorMessage(message) {
+  const normalized = typeof message === "string" ? message.trim().toLowerCase() : "";
+  return (
+    normalized === "invalid or missing token"
+    || normalized === "missing bearer token"
+    || normalized === "invalid token"
+  );
+}
+
+function expireStoredSession(message = "Session expirée. Reconnectez-vous.", { openLogin = true } = {}) {
+  clearStoredAuth();
+  updateHomeLoginTile();
+  updateHomeHeader();
+  updateConfigActionButtons();
+
+  if (message) {
+    showFlashInfo(message);
+  }
+  if (openLogin) {
+    openLoginModal();
+  }
+}
+
+function handleAuthFailureMessage(message, options) {
+  if (!isAuthErrorMessage(message)) {
+    return false;
+  }
+  expireStoredSession("Session expirée. Reconnectez-vous.", options);
+  return true;
+}
+
 function updateHomeLoginTile() {
   if (!els.homeLoginBtn) return;
   const labelText = els.homeLoginBtn.querySelector(".home-tile-label span:last-child");
@@ -3924,6 +3962,10 @@ async function handlePasswordSubmit(event) {
     }
 
     if (!response.ok) {
+      if (handleAuthFailureMessage(payload?.error)) {
+        closePasswordModal();
+        return;
+      }
       const message = payload?.error ? translateErrorToFrench(payload.error) : "Impossible de modifier le mot de passe.";
       setPasswordFeedback(message);
       return;
@@ -3969,14 +4011,24 @@ async function saveConfigToServer() {
         body: JSON.stringify({ entries }),
       }),
     ]);
+    const configErr = !configRes.ok ? await configRes.json().catch(() => ({})) : null;
+    const sessionsErr = !sessionsRes.ok ? await sessionsRes.json().catch(() => ({})) : null;
+    if (
+      handleAuthFailureMessage(configErr?.error)
+      || handleAuthFailureMessage(sessionsErr?.error)
+    ) {
+      return;
+    }
     if (configRes.ok && sessionsRes.ok) {
       showFlashInfo(`Configuration et ${entries.length} parcours sauvegardé(s).`);
     } else if (configRes.ok) {
-      const errData = await sessionsRes.json().catch(() => ({}));
-      const errorMessage = errData?.error ? translateErrorToFrench(errData.error) : sessionsRes.status;
+      const errorMessage = sessionsErr?.error ? translateErrorToFrench(sessionsErr.error) : sessionsRes.status;
       showFlashInfo(`Échec de la sauvegarde des parcours : ${errorMessage}.`);
     } else if (sessionsRes.ok) {
-      showFlashInfo("Échec de la sauvegarde de la configuration.");
+      const errorMessage = configErr?.error
+        ? translateErrorToFrench(configErr.error)
+        : "Échec de la sauvegarde de la configuration.";
+      showFlashInfo(errorMessage);
     } else {
       showFlashInfo("Échec de la sauvegarde.");
     }
@@ -4001,6 +4053,14 @@ async function restoreConfigFromServer() {
       fetch("/api/users/configuration", { headers: { "authorization": `Bearer ${token}` } }),
       fetch("/api/users/sessions", { headers: { "authorization": `Bearer ${token}` } }),
     ]);
+    const configErr = !configRes.ok ? await configRes.json().catch(() => ({})) : null;
+    const sessionsErr = !sessionsRes.ok ? await sessionsRes.json().catch(() => ({})) : null;
+    if (
+      handleAuthFailureMessage(configErr?.error)
+      || handleAuthFailureMessage(sessionsErr?.error)
+    ) {
+      return;
+    }
     if (!configRes.ok && !sessionsRes.ok) {
       showFlashInfo("Échec de la restauration.");
       return;
@@ -5018,15 +5078,20 @@ async function openContestModal() {
     });
 
     if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      if (handleAuthFailureMessage(payload?.error)) {
+        closeContestModal();
+        return;
+      }
       if (els.contestModalContent) {
         els.contestModalContent.innerHTML = `
           <div style="padding: 20px; display: grid; gap: 12px;">
             <p style="margin: 0; font-weight: 700; color: #9b2226;">Impossible de charger les informations du concours.</p>
-            <p style="margin: 0; color: #475569;">L'API a répondu avec une erreur. Vous pouvez fermer puis réessayer.</p>
+            <p style="margin: 0; color: #475569;">${escapeHtml(translateErrorToFrench(payload?.error || "L'API a répondu avec une erreur."))}</p>
           </div>
         `;
       }
-      showFlashError("Erreur lors de la récupération des informations de concours.");
+      showFlashError(translateErrorToFrench(payload?.error || "Erreur lors de la récupération des informations de concours."));
       return;
     }
 
@@ -5464,10 +5529,14 @@ async function createContest(payload) {
 
     if (!response.ok) {
       const errorPayload = await response.json().catch(() => ({}));
+      if (handleAuthFailureMessage(errorPayload?.error)) {
+        closeContestModal();
+        return;
+      }
       if (response.status === 409 && errorPayload?.contest) {
         renderContestInfo(errorPayload.contest);
       }
-      showFlashError(errorPayload.error || "Erreur lors de la création du concours.");
+      showFlashError(translateErrorToFrench(errorPayload?.error || "Erreur lors de la création du concours."));
       return;
     }
 
