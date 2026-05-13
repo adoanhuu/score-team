@@ -21,6 +21,10 @@ async function getAuthenticatedUser(request, env) {
   return row || null;
 }
 
+function getAuthenticatedContestUserId(user) {
+  return user ? String(user.id) : "";
+}
+
 function generateContestUuid() {
   return crypto.randomUUID();
 }
@@ -132,7 +136,7 @@ export async function onRequestPost({ request, env }) {
       : `SELECT c.id, c.uuid, c.name, c.ruleset, c.start_date, c.end_date, c.max_users
          FROM contests c
          INNER JOIN contests_users cu ON lower(cu.contest_uuid) = lower(c.uuid)
-         WHERE cu.user_id = ?
+         WHERE trim(CAST(cu.user_id AS TEXT)) = trim(?)
            AND cu.id = (
              SELECT MIN(cu_owner.id)
              FROM contests_users cu_owner
@@ -141,8 +145,9 @@ export async function onRequestPost({ request, env }) {
          ORDER BY cu.id ASC
          LIMIT 1`;
 
+    const contestLookupValue = hasOwnerId ? user.id : getAuthenticatedContestUserId(user);
     const existing = await env.DB.prepare(existingQuery)
-      .bind(user.id)
+      .bind(contestLookupValue)
       .first();
 
     if (existing) {
@@ -194,7 +199,7 @@ export async function onRequestPost({ request, env }) {
        VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(contest_uuid, user_id) DO NOTHING`
     )
-      .bind(contestUuid, user.id, firstName, lastName, "-", "{}")
+      .bind(contestUuid, getAuthenticatedContestUserId(user), firstName, lastName, "-", "{}")
       .run();
     const participants = await getContestParticipants(env, contestUuid);
 
