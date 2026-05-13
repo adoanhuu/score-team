@@ -827,6 +827,7 @@
                 <option value="hold-time" selected>Temps de tenue</option>
                 <option value="volume-arrows">Volume de flèches</option>
                 <option value="quiz-shields">Quiz blasons</option>
+                <option value="target-score">Score cible</option>
               </select>
             </label>
 
@@ -962,6 +963,53 @@
                     <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
                   </svg>
                 </button>
+              </div>
+            </div>
+
+            <div id="training-target-score-form" class="hidden">
+              <div class="training-target-score-content">
+                <label for="training-target-ruleset-select">
+                  <span class="label-inline">Type de parcours</span>
+                  <select id="training-target-ruleset-select">
+                    <optgroup label="FFTA">
+                      <option value="nature">Nature</option>
+                      <option value="campagne">Campagne</option>
+                      <option value="3d">3D</option>
+                    </optgroup>
+                    <optgroup label="FFTL">
+                      <option value="3d2">3D Two Shoots</option>
+                      <option value="3dh">3D Hunting</option>
+                      <option value="ar">Animal round</option>
+                      <option value="field">Field / Hunter</option>
+                    </optgroup>
+                  </select>
+                </label>
+
+                <div class="training-target-score-control">
+                  <label for="training-target-score-input" class="label-inline">Score cible</label>
+                  <div class="training-volume-total training-target-score-total" aria-live="polite">
+                    <div class="training-volume-counter" aria-label="Compteur du score cible">
+                      <span id="training-target-score-hundreds" class="training-volume-digit">5</span>
+                      <span id="training-target-score-tens" class="training-volume-digit">5</span>
+                      <span id="training-target-score-units" class="training-volume-digit">1</span>
+                    </div>
+                    <div class="training-target-score-meta">
+                      <span id="training-target-score-result">75%</span>
+                    </div>
+                  </div>
+                  <div class="slider-row">
+                    <input id="training-target-score-input" type="range" min="368" max="735" step="1" value="551" />
+                  </div>
+                </div>
+
+                <div class="start-action">
+                  <button id="training-target-score-start-btn" class="btn btn-primary btn-icon start-btn" aria-label="Démarrer entraînement score cible">
+                    Démarrer
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1137,6 +1185,55 @@
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="training-target-score-session-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="training-target-score-session-title">
+        <div class="modal-overlay" id="training-target-score-session-modal-overlay"></div>
+        <div class="modal-card training-target-score-session-modal-card">
+          <div class="modal-head">
+            <h3 id="training-target-score-session-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-8-8V2Zm0 4a6 6 0 1 0 6 6h-2a4 4 0 1 1-4-4V6Zm7.3-3.7L16 5.6V9h3.4l3.3-3.3-2.4-.4-.4-2.4Z" fill="currentColor" />
+              </svg>
+              <span>Score cible</span>
+            </h3>
+            <button id="training-target-score-session-close-btn" class="btn btn-light btn-icon" aria-label="Fermer score cible">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="quick-stats training-target-score-session-stats">
+            <article>
+              <span>Score</span>
+              <strong id="training-target-score-session-target">0</strong>
+            </article>
+            <article>
+              <span>Pourcentage</span>
+              <strong id="training-target-score-session-percent">0%</strong>
+            </article>
+            <article>
+              <span>Cible</span>
+              <strong id="training-target-score-session-count">0</strong>
+            </article>
+          </div>
+
+          <h3 class="training-target-score-history-title">Historique des scores</h3>
+          <div id="training-target-score-session-history" class="training-target-score-history"></div>
+
+          <div id="training-target-score-entry-panel" class="score-entry-sticky training-target-score-entry-panel">
+            <div id="training-target-score-current-shoot-display" class="current-shoot-display"></div>
+            <div class="points-pad-container">
+              <div id="training-target-score-points-pad" class="points-pad"></div>
+              <button id="training-target-score-step-back-btn" class="btn btn-light btn-icon back-btn" aria-label="Effacer la dernière flèche score cible">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l10.6-10.6c.79-.78 2.05-.78 2.83 0M4.22 15.58l3.54 3.53c.78.79 2.04.79 2.83 0l3.53-3.53-6.36-6.36-3.54 3.54c-.78.78-.78 2.05 0 2.82Z" fill="currentColor" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>

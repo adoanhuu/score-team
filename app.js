@@ -1,6 +1,6 @@
 const ARROWS_PER_VOLLEY = 6;
 const TEAM_ARCHERS_PER_VOLLEY = 3;
-const APP_VERSION = "v2.5.1";
+const APP_VERSION = "v2.5.2";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -40,6 +40,11 @@ const TRAINING_VOLUME_DEFAULTS = {
   series: 3,
   volleysPerSeries: 3,
   arrowsPerVolley: 6,
+};
+const TRAINING_TARGET_SCORE_DEFAULTS = {
+  ruleset: "nature",
+  percentage: 75,
+  targetScoresByRuleset: {},
 };
 const SOLO_TIMER_MODE_NONE = "none";
 const SOLO_TIMER_MODE_BEEPS = "beeps";
@@ -339,9 +344,11 @@ const els = {
   trainingHoldTimeForm: document.getElementById("training-hold-time-form"),
   trainingVolumeForm: document.getElementById("training-volume-form"),
   trainingQuizShieldsForm: document.getElementById("training-quiz-shields-form"),
+  trainingTargetScoreForm: document.getElementById("training-target-score-form"),
   trainingStartBtn: document.getElementById("training-start-btn"),
   trainingVolumeStartBtn: document.getElementById("training-volume-start-btn"),
   trainingQuizShieldsStartBtn: document.getElementById("training-quiz-shields-start-btn"),
+  trainingTargetScoreStartBtn: document.getElementById("training-target-score-start-btn"),
   shieldPaCheckbox: document.getElementById("shield-pa-checkbox"),
   shieldPgCheckbox: document.getElementById("shield-pg-checkbox"),
   shieldMgCheckbox: document.getElementById("shield-mg-checkbox"),
@@ -392,6 +399,22 @@ const els = {
   trainingQuizShieldsModal: document.getElementById("training-quiz-shields-modal"),
   trainingQuizShieldsModalOverlay: document.getElementById("training-quiz-shields-modal-overlay"),
   trainingQuizShieldsCloseBtn: document.getElementById("training-quiz-shields-close-btn"),
+  trainingTargetRulesetSelect: document.getElementById("training-target-ruleset-select"),
+  trainingTargetScoreInput: document.getElementById("training-target-score-input"),
+  trainingTargetScoreHundreds: document.getElementById("training-target-score-hundreds"),
+  trainingTargetScoreTens: document.getElementById("training-target-score-tens"),
+  trainingTargetScoreUnits: document.getElementById("training-target-score-units"),
+  trainingTargetScoreResult: document.getElementById("training-target-score-result"),
+  trainingTargetScoreSessionModal: document.getElementById("training-target-score-session-modal"),
+  trainingTargetScoreSessionModalOverlay: document.getElementById("training-target-score-session-modal-overlay"),
+  trainingTargetScoreSessionCloseBtn: document.getElementById("training-target-score-session-close-btn"),
+  trainingTargetScoreSessionTarget: document.getElementById("training-target-score-session-target"),
+  trainingTargetScoreSessionPercent: document.getElementById("training-target-score-session-percent"),
+  trainingTargetScoreSessionCount: document.getElementById("training-target-score-session-count"),
+  trainingTargetScoreSessionHistory: document.getElementById("training-target-score-session-history"),
+  trainingTargetScoreCurrentShootDisplay: document.getElementById("training-target-score-current-shoot-display"),
+  trainingTargetScorePointsPad: document.getElementById("training-target-score-points-pad"),
+  trainingTargetScoreStepBackBtn: document.getElementById("training-target-score-step-back-btn"),
   quizShieldsImageContainer: document.querySelector(".quiz-shields-image-container"),
   quizShieldsImage: document.getElementById("quiz-shields-image"),
   quizShieldsScoreValue: document.getElementById("quiz-shields-score-value"),
@@ -486,6 +509,7 @@ let multiModalForcedMode = null;
 let trainingCycleState = null;
 let trainingVolumeSessionState = null;
 let trainingQuizShieldsSessionState = null;
+let trainingTargetScoreSessionState = null;
 let quizShieldsNextQuestionTimeoutId = null;
 let soloBeepsTimerState = null;
 let trainingAudioContext = null;
@@ -880,6 +904,13 @@ const appConfig = {
   trainingVolume: {
     ...TRAINING_VOLUME_DEFAULTS,
   },
+  trainingTargetScore: {
+    ruleset: TRAINING_TARGET_SCORE_DEFAULTS.ruleset,
+    percentage: TRAINING_TARGET_SCORE_DEFAULTS.percentage,
+    targetScoresByRuleset: {
+      ...TRAINING_TARGET_SCORE_DEFAULTS.targetScoresByRuleset,
+    },
+  },
   enabledRulesets: ["nature", "campagne", "3d", "3d2", "3dh", "ar", "field"],
 };
 
@@ -957,6 +988,28 @@ function loadConfig() {
         appConfig.trainingVolume.arrowsPerVolley = Number.isInteger(parsedArrowsPerVolley)
           ? Math.min(12, Math.max(1, parsedArrowsPerVolley))
           : TRAINING_VOLUME_DEFAULTS.arrowsPerVolley;
+      }
+      if (saved.trainingTargetScore && typeof saved.trainingTargetScore === "object") {
+        const savedRuleset = saved.trainingTargetScore.ruleset;
+        appConfig.trainingTargetScore.ruleset = presets[savedRuleset]
+          ? savedRuleset
+          : TRAINING_TARGET_SCORE_DEFAULTS.ruleset;
+        const parsedPercentage = Number.parseInt(saved.trainingTargetScore.percentage, 10);
+        appConfig.trainingTargetScore.percentage = Number.isInteger(parsedPercentage)
+          ? Math.min(100, Math.max(50, parsedPercentage))
+          : TRAINING_TARGET_SCORE_DEFAULTS.percentage;
+        const targetScoresByRuleset = saved.trainingTargetScore.targetScoresByRuleset;
+        if (targetScoresByRuleset && typeof targetScoresByRuleset === "object") {
+          Object.keys(presets).forEach((ruleset) => {
+            const parsedTarget = Number.parseInt(targetScoresByRuleset[ruleset], 10);
+            if (!Number.isInteger(parsedTarget)) return;
+            const { minScore, maxScore } = getTrainingTargetScoreBounds(ruleset);
+            appConfig.trainingTargetScore.targetScoresByRuleset[ruleset] = Math.min(
+              maxScore,
+              Math.max(minScore, parsedTarget),
+            );
+          });
+        }
       }
       if (Array.isArray(saved.enabledRulesets)) {
         appConfig.enabledRulesets = saved.enabledRulesets;
@@ -1043,7 +1096,7 @@ function syncFederationCheckboxes() {
 }
 
 function updateRulesetSelectOptions() {
-  const selects = [els.rulesetSelect, els.multiRulesetSelect].filter(Boolean);
+  const selects = [els.rulesetSelect, els.multiRulesetSelect, els.trainingTargetRulesetSelect].filter(Boolean);
 
   selects.forEach((select) => {
     const currentValue = select.value;
@@ -1082,6 +1135,8 @@ function updateRulesetSelectOptions() {
         select.value = firstEnabledOption.value;
         if (select === els.rulesetSelect) {
           select.dispatchEvent(new Event("change"));
+        } else if (select === els.trainingTargetRulesetSelect) {
+          updateTrainingTargetScoreDisplay({ useStoredValue: true });
         }
       }
     }
@@ -6473,13 +6528,18 @@ function updateTrainingRepetitionsDisplay() {
 }
 
 function syncTrainingOptionForm() {
-  if (!els.trainingOptionSelect || !els.trainingHoldTimeForm || !els.trainingVolumeForm || !els.trainingQuizShieldsForm) return;
+  if (!els.trainingOptionSelect || !els.trainingHoldTimeForm || !els.trainingVolumeForm || !els.trainingQuizShieldsForm || !els.trainingTargetScoreForm) return;
   const isHoldTime = els.trainingOptionSelect.value === "hold-time";
   const isVolumeArrows = els.trainingOptionSelect.value === "volume-arrows";
   const isQuizShields = els.trainingOptionSelect.value === "quiz-shields";
+  const isTargetScore = els.trainingOptionSelect.value === "target-score";
   els.trainingHoldTimeForm.classList.toggle("hidden", !isHoldTime);
   els.trainingVolumeForm.classList.toggle("hidden", !isVolumeArrows);
   els.trainingQuizShieldsForm.classList.toggle("hidden", !isQuizShields);
+  els.trainingTargetScoreForm.classList.toggle("hidden", !isTargetScore);
+  if (isTargetScore) {
+    updateTrainingTargetScoreDisplay({ useStoredValue: true });
+  }
 }
 
 function updateTrainingVolumeDisplay() {
@@ -6524,6 +6584,329 @@ function updateTrainingVolumeDisplay() {
   setRangeProgress(els.trainingVolumeArrowsInput);
 }
 
+function getTrainingTargetRuleset() {
+  const selectedRuleset = els.trainingTargetRulesetSelect?.value || appConfig.trainingTargetScore.ruleset;
+  if (presets[selectedRuleset]) {
+    return selectedRuleset;
+  }
+  const firstEnabledRuleset = appConfig.enabledRulesets.find((ruleset) => presets[ruleset]);
+  return firstEnabledRuleset || TRAINING_TARGET_SCORE_DEFAULTS.ruleset;
+}
+
+function getTrainingTargetMaxScore(ruleset) {
+  const safeRuleset = presets[ruleset] ? ruleset : TRAINING_TARGET_SCORE_DEFAULTS.ruleset;
+  const arrowsPerVolley = getArrowsPerVolley(safeRuleset, "individual");
+  const allowedPoints = presets[safeRuleset] || [0];
+  const maxVolley = getMaxShootTotalForConfig(safeRuleset, "individual", arrowsPerVolley, allowedPoints);
+  return maxVolley * getTargetCountForRuleset(safeRuleset);
+}
+
+function getTrainingTargetScoreBounds(ruleset) {
+  const maxScore = getTrainingTargetMaxScore(ruleset);
+  return {
+    minScore: Math.ceil(maxScore * 0.5),
+    maxScore,
+  };
+}
+
+function clampTrainingTargetPercentage(value) {
+  const roundedValue = Math.round(Number(value));
+  return Number.isFinite(roundedValue)
+    ? Math.min(100, Math.max(50, roundedValue))
+    : TRAINING_TARGET_SCORE_DEFAULTS.percentage;
+}
+
+function clampTrainingTargetScore(value, ruleset) {
+  const { minScore, maxScore } = getTrainingTargetScoreBounds(ruleset);
+  const roundedScore = Math.round(Number(value));
+  if (Number.isFinite(roundedScore)) {
+    return Math.min(maxScore, Math.max(minScore, roundedScore));
+  }
+  return Math.min(
+    maxScore,
+    Math.max(minScore, Math.round(maxScore * (TRAINING_TARGET_SCORE_DEFAULTS.percentage / 100))),
+  );
+}
+
+function getStoredTrainingTargetScore(ruleset) {
+  const storedScore = Number.parseInt(appConfig.trainingTargetScore.targetScoresByRuleset?.[ruleset], 10);
+  if (Number.isInteger(storedScore)) {
+    return clampTrainingTargetScore(storedScore, ruleset);
+  }
+  const { maxScore } = getTrainingTargetScoreBounds(ruleset);
+  const percentage = clampTrainingTargetPercentage(appConfig.trainingTargetScore.percentage);
+  return clampTrainingTargetScore(maxScore * (percentage / 100), ruleset);
+}
+
+function updateTrainingTargetScoreDisplay(options = {}) {
+  if (!els.trainingTargetRulesetSelect || !els.trainingTargetScoreInput) return;
+  const useStoredValue = Boolean(options.useStoredValue);
+  const ruleset = getTrainingTargetRuleset();
+  const { minScore, maxScore } = getTrainingTargetScoreBounds(ruleset);
+  const parsedScore = Number.parseFloat(els.trainingTargetScoreInput.value);
+  const rawScore = useStoredValue || !Number.isFinite(parsedScore)
+    ? getStoredTrainingTargetScore(ruleset)
+    : parsedScore;
+  const safeScore = clampTrainingTargetScore(rawScore, ruleset);
+  const percentage = clampTrainingTargetPercentage((safeScore / maxScore) * 100);
+
+  els.trainingTargetRulesetSelect.value = ruleset;
+  els.trainingTargetScoreInput.min = String(minScore);
+  els.trainingTargetScoreInput.max = String(maxScore);
+  els.trainingTargetScoreInput.step = "1";
+  els.trainingTargetScoreInput.value = String(safeScore);
+  const targetScoreCounter = String(Math.max(0, Math.min(999, safeScore))).padStart(3, "0");
+  if (els.trainingTargetScoreHundreds) {
+    els.trainingTargetScoreHundreds.textContent = targetScoreCounter[0];
+  }
+  if (els.trainingTargetScoreTens) {
+    els.trainingTargetScoreTens.textContent = targetScoreCounter[1];
+  }
+  if (els.trainingTargetScoreUnits) {
+    els.trainingTargetScoreUnits.textContent = targetScoreCounter[2];
+  }
+  if (els.trainingTargetScoreResult) {
+    els.trainingTargetScoreResult.textContent = `${percentage}%`;
+  }
+
+  appConfig.trainingTargetScore.ruleset = ruleset;
+  appConfig.trainingTargetScore.percentage = Math.min(100, Math.max(50, percentage));
+  appConfig.trainingTargetScore.targetScoresByRuleset[ruleset] = safeScore;
+  saveConfig();
+  setRangeProgress(els.trainingTargetScoreInput, "#2d6a4f");
+}
+
+async function startTrainingTargetScoreSession() {
+  if (!els.trainingTargetScoreInput) return;
+  updateTrainingTargetScoreDisplay();
+
+  const ruleset = getTrainingTargetRuleset();
+  const targetScore = clampTrainingTargetScore(els.trainingTargetScoreInput.value, ruleset);
+  const arrowsPerTarget = getArrowsPerVolley(ruleset, "individual");
+  const allowedPoints = [...new Set(presets[ruleset] || [0])].sort((a, b) => b - a);
+  const targetCount = getTargetCountForRuleset(ruleset);
+  const percentage = clampTrainingTargetPercentage((targetScore / getTrainingTargetMaxScore(ruleset)) * 100);
+
+  trainingTargetScoreSessionState = {
+    ruleset,
+    targetScore,
+    percentage,
+    targetCount,
+    arrowsPerTarget,
+    allowedPoints,
+    currentTargetIndex: 0,
+    currentArrowIndex: 0,
+    scores: Array(targetCount).fill(null).map(() => Array(arrowsPerTarget).fill(null)),
+    completed: false,
+  };
+
+  closeTrainingModal();
+  closeTrainingHoldModal();
+  closeTrainingVolumeModal();
+  closeTrainingQuizShieldsModal();
+  els.trainingTargetScoreSessionModal?.classList.remove("hidden");
+  renderTrainingTargetScoreSession();
+}
+
+function closeTrainingTargetScoreSessionModal() {
+  els.trainingTargetScoreSessionModal?.classList.add("hidden");
+  trainingTargetScoreSessionState = null;
+}
+
+function getTrainingTargetScoreSessionTotal() {
+  if (!trainingTargetScoreSessionState) return 0;
+  return getDuelTotal(trainingTargetScoreSessionState.scores || []);
+}
+
+function getTrainingTargetScoreSessionCurrentArrows() {
+  if (!trainingTargetScoreSessionState) return [];
+  return trainingTargetScoreSessionState.scores[trainingTargetScoreSessionState.currentTargetIndex] || [];
+}
+
+function ensureTrainingTargetScoreTarget(session, targetIndex) {
+  if (!session || !Array.isArray(session.scores)) return;
+  while (session.scores.length <= targetIndex) {
+    session.scores.push(Array(session.arrowsPerTarget).fill(null));
+  }
+}
+
+function getLastTrainingTargetScorePosition(session) {
+  if (!session || !Array.isArray(session.scores)) return null;
+
+  for (let targetIndex = session.scores.length - 1; targetIndex >= 0; targetIndex -= 1) {
+    const targetArrows = session.scores[targetIndex];
+    if (!Array.isArray(targetArrows)) continue;
+    for (let arrowIndex = targetArrows.length - 1; arrowIndex >= 0; arrowIndex -= 1) {
+      if (targetArrows[arrowIndex] !== null && targetArrows[arrowIndex] !== undefined) {
+        return { targetIndex, arrowIndex };
+      }
+    }
+  }
+
+  return null;
+}
+
+function renderTrainingTargetScoreHistory() {
+  if (!els.trainingTargetScoreSessionHistory || !trainingTargetScoreSessionState) return;
+
+  const rows = [];
+  const orderedIndexes = Array.from(
+    { length: trainingTargetScoreSessionState.scores.length },
+    (_, index) => index,
+  ).reverse();
+
+  orderedIndexes.forEach((index) => {
+    const targetArrows = trainingTargetScoreSessionState.scores[index];
+    if (!Array.isArray(targetArrows) || !targetArrows.some((value) => value !== null && value !== undefined)) {
+      return;
+    }
+    const arrowsText = targetArrows
+      .map((value) => (value === null || value === undefined ? "-" : scoreLabel(value)))
+      .join(" / ");
+    const targetTotal = targetArrows.reduce((sum, value) => sum + scoreToValue(value), 0);
+    rows.push(`
+      <tr>
+        <td><span class="volley-pill is-gray">${index + 1}</span></td>
+        <td>${arrowsText}</td>
+        <td class="history-total">${targetTotal}</td>
+      </tr>
+    `);
+  });
+
+  if (rows.length === 0) {
+    els.trainingTargetScoreSessionHistory.innerHTML = '<div class="duel-volley-empty">Aucun score saisi</div>';
+    return;
+  }
+
+  els.trainingTargetScoreSessionHistory.innerHTML = `
+    <div class="table-wrap duel-history-table-wrap">
+      <table class="history-table duel-history-table">
+        <thead>
+          <tr>
+            <th>Cible</th>
+            <th>Flèches</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows.join("")}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderTrainingTargetScorePad() {
+  if (!els.trainingTargetScorePointsPad || !trainingTargetScoreSessionState) return;
+  els.trainingTargetScorePointsPad.innerHTML = "";
+  const isLocked = trainingTargetScoreSessionState.completed;
+  const selectablePoints = getSelectablePointsForArrow(
+    trainingTargetScoreSessionState.ruleset,
+    "individual",
+    trainingTargetScoreSessionState.currentArrowIndex,
+    trainingTargetScoreSessionState.allowedPoints,
+  );
+
+  selectablePoints.forEach((score) => {
+    const button = document.createElement("button");
+    button.className = "point-btn";
+    if (score === 0) button.classList.add("zero");
+    if (score === FIELD_X) button.classList.add("x-score");
+    button.textContent = scoreLabel(score);
+    if (isLocked) {
+      button.disabled = true;
+      button.classList.add("lock-disabled");
+    } else {
+      button.addEventListener("click", () => registerTrainingTargetScore(score));
+    }
+    els.trainingTargetScorePointsPad.appendChild(button);
+  });
+}
+
+function renderTrainingTargetScoreSession() {
+  if (!trainingTargetScoreSessionState) return;
+  const currentTotal = getTrainingTargetScoreSessionTotal();
+  const targetScore = Math.max(1, trainingTargetScoreSessionState.targetScore);
+  const currentPercentage = Math.round((currentTotal / targetScore) * 100);
+  if (els.trainingTargetScoreSessionTarget) {
+    els.trainingTargetScoreSessionTarget.innerHTML = `${currentTotal}<span class="stats-unit">pts</span>`;
+  }
+  if (els.trainingTargetScoreSessionPercent) {
+    els.trainingTargetScoreSessionPercent.textContent = `${currentPercentage}%`;
+  }
+  if (els.trainingTargetScoreSessionCount) {
+    els.trainingTargetScoreSessionCount.textContent = String(trainingTargetScoreSessionState.currentTargetIndex + 1);
+  }
+
+  renderTrainingTargetScoreHistory();
+  renderCurrentShootPills(
+    els.trainingTargetScoreCurrentShootDisplay,
+    getTrainingTargetScoreSessionCurrentArrows(),
+    trainingTargetScoreSessionState.arrowsPerTarget,
+  );
+  renderTrainingTargetScorePad();
+}
+
+function registerTrainingTargetScore(score) {
+  if (!trainingTargetScoreSessionState || trainingTargetScoreSessionState.completed) return;
+  const { currentTargetIndex, currentArrowIndex, arrowsPerTarget, scores } = trainingTargetScoreSessionState;
+  ensureTrainingTargetScoreTarget(trainingTargetScoreSessionState, currentTargetIndex);
+  const selectablePoints = getSelectablePointsForArrow(
+    trainingTargetScoreSessionState.ruleset,
+    "individual",
+    currentArrowIndex,
+    trainingTargetScoreSessionState.allowedPoints,
+  );
+  if (!selectablePoints.includes(score)) return;
+
+  scores[currentTargetIndex][currentArrowIndex] = score;
+
+  if (getTrainingTargetScoreSessionTotal() >= trainingTargetScoreSessionState.targetScore) {
+    trainingTargetScoreSessionState.completed = true;
+    showFlashInfo(`Score cible atteint : ${getTrainingTargetScoreSessionTotal()} pts.`);
+    renderTrainingTargetScoreSession();
+    return;
+  }
+
+  if (currentArrowIndex + 1 >= arrowsPerTarget) {
+    trainingTargetScoreSessionState.currentTargetIndex += 1;
+    trainingTargetScoreSessionState.currentArrowIndex = 0;
+    ensureTrainingTargetScoreTarget(
+      trainingTargetScoreSessionState,
+      trainingTargetScoreSessionState.currentTargetIndex,
+    );
+  } else {
+    trainingTargetScoreSessionState.currentArrowIndex += 1;
+  }
+
+  renderTrainingTargetScoreSession();
+}
+
+function stepBackTrainingTargetScore() {
+  if (!trainingTargetScoreSessionState) return;
+  const session = trainingTargetScoreSessionState;
+  if (session.completed) {
+    session.completed = false;
+    const lastScorePosition = getLastTrainingTargetScorePosition(session);
+    if (lastScorePosition) {
+      session.currentTargetIndex = lastScorePosition.targetIndex;
+      session.currentArrowIndex = lastScorePosition.arrowIndex;
+      session.scores[lastScorePosition.targetIndex][lastScorePosition.arrowIndex] = null;
+      renderTrainingTargetScoreSession();
+      return;
+    }
+  }
+
+  if (session.currentArrowIndex > 0) {
+    session.currentArrowIndex -= 1;
+    session.scores[session.currentTargetIndex][session.currentArrowIndex] = null;
+  } else if (session.currentTargetIndex > 0) {
+    session.currentTargetIndex -= 1;
+    session.currentArrowIndex = session.arrowsPerTarget - 1;
+    session.scores[session.currentTargetIndex][session.currentArrowIndex] = null;
+  }
+
+  renderTrainingTargetScoreSession();
+}
+
 function openTrainingModal() {
   closeStatsModal();
   closeGeneralStatsModal();
@@ -6535,6 +6918,7 @@ function openTrainingModal() {
   closePelotonModal();
   closeTrainingHoldModal();
   closeTrainingVolumeModal();
+  closeTrainingTargetScoreSessionModal();
   if (els.trainingOptionSelect) {
     els.trainingOptionSelect.value = "hold-time";
   }
@@ -6544,6 +6928,7 @@ function openTrainingModal() {
   updateTrainingHoldSecondsDisplay();
   updateTrainingRestSecondsDisplay();
   updateTrainingVolumeDisplay();
+  updateTrainingTargetScoreDisplay({ useStoredValue: true });
   els.trainingModal?.classList.remove("hidden");
 }
 
@@ -8863,6 +9248,15 @@ if (els.trainingVolumeStartBtn) {
 if (els.trainingQuizShieldsStartBtn) {
   els.trainingQuizShieldsStartBtn.addEventListener("click", openTrainingQuizShieldsModal);
 }
+if (els.trainingTargetScoreStartBtn) {
+  els.trainingTargetScoreStartBtn.addEventListener("click", () => {
+    if (els.trainingOptionSelect?.value !== "target-score") {
+      showFlashInfo("Sélectionnez d'abord l'exercice Score cible.");
+      return;
+    }
+    void startTrainingTargetScoreSession();
+  });
+}
 if (els.trainingSeriesInput) {
   els.trainingSeriesInput.addEventListener("input", updateTrainingSeriesDisplay);
 }
@@ -8890,6 +9284,14 @@ if (els.trainingVolumeVolleysInput) {
 if (els.trainingVolumeArrowsInput) {
   els.trainingVolumeArrowsInput.addEventListener("input", updateTrainingVolumeDisplay);
 }
+if (els.trainingTargetRulesetSelect) {
+  els.trainingTargetRulesetSelect.addEventListener("change", () => {
+    updateTrainingTargetScoreDisplay({ useStoredValue: true });
+  });
+}
+if (els.trainingTargetScoreInput) {
+  els.trainingTargetScoreInput.addEventListener("input", updateTrainingTargetScoreDisplay);
+}
 if (els.trainingHoldModalOverlay) {
   els.trainingHoldModalOverlay.addEventListener("click", (e) => e.stopPropagation());
 }
@@ -8910,6 +9312,15 @@ if (els.trainingQuizShieldsModalOverlay) {
 }
 if (els.trainingQuizShieldsCloseBtn) {
   els.trainingQuizShieldsCloseBtn.addEventListener("click", closeTrainingQuizShieldsModal);
+}
+if (els.trainingTargetScoreSessionModalOverlay) {
+  els.trainingTargetScoreSessionModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.trainingTargetScoreSessionCloseBtn) {
+  els.trainingTargetScoreSessionCloseBtn.addEventListener("click", closeTrainingTargetScoreSessionModal);
+}
+if (els.trainingTargetScoreStepBackBtn) {
+  els.trainingTargetScoreStepBackBtn.addEventListener("click", stepBackTrainingTargetScore);
 }
 if (els.quizShieldsOptionButtons) {
   els.quizShieldsOptionButtons.forEach(btn => {
@@ -9181,6 +9592,9 @@ if (els.trainingVolumeVolleysInput) {
 if (els.trainingVolumeArrowsInput) {
   els.trainingVolumeArrowsInput.value = String(appConfig.trainingVolume.arrowsPerVolley);
 }
+if (els.trainingTargetRulesetSelect) {
+  els.trainingTargetRulesetSelect.value = appConfig.trainingTargetScore.ruleset;
+}
 updateTrainingSeriesDisplay();
 updateTrainingRepetitionsDisplay();
 updateTrainingHoldSecondsDisplay();
@@ -9189,6 +9603,7 @@ updateSoloBeepsPreparationDisplay();
 syncSoloBeepsTiringInputForRuleset();
 updateSoloBeepsSettingsVisibility();
 updateTrainingVolumeDisplay();
+updateTrainingTargetScoreDisplay({ useStoredValue: true });
 syncSoloScoringCardHeight();
 
 window.addEventListener("resize", syncSoloScoringCardHeight);
