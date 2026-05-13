@@ -4,6 +4,10 @@ function normalizeParam(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeUserId(value) {
+  return normalizeParam(value);
+}
+
 async function getAuthenticatedUser(request, env) {
   const token = parseBearerToken(request.headers.get("authorization") || "");
   if (!token) return null;
@@ -28,7 +32,7 @@ async function getContestUser(env, contestUuid, userId) {
   const row = await env.DB.prepare(
     `SELECT contest_uuid, user_id, first_name, last_name, weapon, data
      FROM contests_users
-     WHERE lower(contest_uuid) = lower(?) AND user_id = ?
+     WHERE lower(contest_uuid) = lower(?) AND trim(CAST(user_id AS TEXT)) = trim(?)
      LIMIT 1`
   )
     .bind(contestUuid, userId)
@@ -47,7 +51,7 @@ async function getContestUser(env, contestUuid, userId) {
 
   return {
     contest_uuid: row.contest_uuid,
-    user_id: row.user_id,
+    user_id: normalizeUserId(row.user_id),
     first_name: row.first_name,
     last_name: row.last_name,
     weapon: row.weapon,
@@ -55,20 +59,48 @@ async function getContestUser(env, contestUuid, userId) {
   };
 }
 
-export async function onRequestGet({ request, env }) {
-  const user = await getAuthenticatedUser(request, env);
-  if (!user) {
-    return jsonResponse(401, { error: "Invalid or missing token" });
+function getResolvedIdentity({ user, userId, firstName = "", lastName = "" }) {
+  if (user) {
+    return {
+      userId: String(user.id),
+      firstName: normalizeParam(firstName) || normalizeParam(user.first_name) || "Archer",
+      lastName: normalizeParam(lastName) || normalizeParam(user.last_name) || "Inconnu",
+    };
   }
 
+  const normalizedUserId = normalizeUserId(userId);
+  if (!normalizedUserId) {
+    return null;
+  }
+
+  return {
+    userId: normalizedUserId,
+    firstName: normalizeParam(firstName),
+    lastName: normalizeParam(lastName),
+  };
+}
+
+export async function onRequestGet({ request, env }) {
+  const user = await getAuthenticatedUser(request, env);
   const url = new URL(request.url);
   const contestUuid = normalizeParam(url.searchParams.get("contest_uuid"));
+  const requestedUserId = normalizeUserId(url.searchParams.get("user_id"));
+
   if (!contestUuid) {
     return jsonResponse(400, { error: "contest_uuid is required" });
   }
 
+  const identity = getResolvedIdentity({
+    user,
+    userId: requestedUserId,
+  });
+
+  if (!identity?.userId) {
+    return jsonResponse(400, { error: "user_id is required" });
+  }
+
   try {
-    const entry = await getContestUser(env, contestUuid, user.id);
+    const entry = await getContestUser(env, contestUuid, identity.userId);
     if (!entry) {
       return jsonResponse(200, { found: false });
     }
@@ -84,9 +116,6 @@ export async function onRequestGet({ request, env }) {
 
 export async function onRequestPost({ request, env }) {
   const user = await getAuthenticatedUser(request, env);
-  if (!user) {
-    return jsonResponse(401, { error: "Invalid or missing token" });
-  }
 
   let payload;
   try {
@@ -100,10 +129,22 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse(400, { error: "contest_uuid is required" });
   }
 
-  const firstName = normalizeParam(payload?.first_name) || normalizeParam(user.first_name) || "Archer";
-  const lastName = normalizeParam(payload?.last_name) || normalizeParam(user.last_name) || "Inconnu";
-  const weapon = normalizeParam(payload?.weapon) || "-";
+  const identity = getResolvedIdentity({
+    user,
+    userId: payload?.user_id,
+    firstName: payload?.first_name,
+    lastName: payload?.last_name,
+  });
 
+  if (!identity?.userId) {
+    return jsonResponse(400, { error: "user_id is required" });
+  }
+
+  if (!identity.firstName || !identity.lastName) {
+    return jsonResponse(400, { error: "first_name and last_name are required" });
+  }
+
+  const weapon = normalizeParam(payload?.weapon) || "-";
   const rawData = payload?.data;
   const data = rawData && typeof rawData === "object" && !Array.isArray(rawData)
     ? JSON.stringify(rawData)
@@ -130,15 +171,15 @@ export async function onRequestPost({ request, env }) {
            ELSE contests_users.data
          END`
     )
-      .bind(contestUuid, user.id, firstName, lastName, weapon, data)
+      .bind(contestUuid, identity.userId, identity.firstName, identity.lastName, weapon, data)
       .run();
 
     return jsonResponse(200, {
       success: true,
       contest_uuid: contestUuid,
-      user_id: user.id,
-      first_name: firstName,
-      last_name: lastName,
+      user_id: identity.userId,
+      first_name: identity.firstName,
+      last_name: identity.lastName,
       weapon,
     });
   } catch {

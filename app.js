@@ -15,6 +15,8 @@ const AUTH_USER_LAST_NAME_KEY = "score-team-auth-user-last-name-v1";
 const CONTEST_UUID_KEY = "score-team-contest-uuid-v1";
 const CONTEST_PROGRESS_KEY = "score-team-contest-progress-v1";
 const CONTEST_WEAPON_KEY = "score-team-contest-weapon-v1";
+const SOLO_CONTEST_DEVICE_ID_KEY = "score-team-solo-contest-device-id-v1";
+const SOLO_CONTEST_PROFILE_KEY = "score-team-solo-contest-profile-v1";
 const WELCOME_MODAL_MS = 2000;
 const TRAINING_SERIES_BREAK_SECONDS = 5;
 const QUIZ_SHIELDS_NEXT_DELAY_MS = 2000;
@@ -79,6 +81,7 @@ const state = {
   sessionTime: "",
   contestIdentifier: "",
   soloContestInfo: null,
+  soloContestParticipant: null,
   generalStatsGraphEnabled: false,
   duel: {
     ruleset: "3d",
@@ -178,6 +181,17 @@ const els = {
   welcomeModal: document.getElementById("welcome-modal"),
   welcomeModalOverlay: document.getElementById("welcome-modal-overlay"),
   welcomeModalMessage: document.getElementById("welcome-modal-message"),
+  soloContestParticipantModal: document.getElementById("solo-contest-participant-modal"),
+  soloContestParticipantModalOverlay: document.getElementById("solo-contest-participant-modal-overlay"),
+  soloContestParticipantCloseBtn: document.getElementById("solo-contest-participant-close-btn"),
+  soloContestParticipantForm: document.getElementById("solo-contest-participant-form"),
+  soloContestFirstNameInput: document.getElementById("solo-contest-first-name-input"),
+  soloContestLastNameInput: document.getElementById("solo-contest-last-name-input"),
+  soloContestWeaponSelect: document.getElementById("solo-contest-weapon-select"),
+  soloContestUserIdInput: document.getElementById("solo-contest-user-id-input"),
+  soloContestParticipantFeedback: document.getElementById("solo-contest-participant-feedback"),
+  soloContestParticipantCancelBtn: document.getElementById("solo-contest-participant-cancel-btn"),
+  soloContestParticipantSubmitBtn: document.getElementById("solo-contest-participant-submit-btn"),
   historyModeFilter: document.getElementById("history-mode-filter"),
   historyRulesetFilter: document.getElementById("history-ruleset-filter"),
   historySessionTypeFilter: document.getElementById("history-session-type-filter"),
@@ -475,6 +489,7 @@ let trainingQuizShieldsSessionState = null;
 let quizShieldsNextQuestionTimeoutId = null;
 let soloBeepsTimerState = null;
 let trainingAudioContext = null;
+let soloContestParticipantModalResolver = null;
 const TRAINING_VOICE_VOLUME = 0.55;
 
 function getTrainingAudioContext() {
@@ -2439,6 +2454,144 @@ function normalizeContestRuleset(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+function bytesToHex(bytes) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function getOrCreateSoloContestDeviceId() {
+  try {
+    const existingId = (window.localStorage.getItem(SOLO_CONTEST_DEVICE_ID_KEY) || "").trim();
+    if (existingId) {
+      return existingId;
+    }
+    const generatedId = typeof crypto?.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    window.localStorage.setItem(SOLO_CONTEST_DEVICE_ID_KEY, generatedId);
+    return generatedId;
+  } catch {
+    return typeof crypto?.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
+
+async function computeSoloContestDeviceUserId() {
+  const deviceId = getOrCreateSoloContestDeviceId();
+  if (!crypto?.subtle) {
+    return deviceId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 64);
+  }
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(deviceId));
+  return bytesToHex(new Uint8Array(digest));
+}
+
+function normalizeSoloContestParticipantProfile(profile, contestUuid = "") {
+  if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
+    return null;
+  }
+
+  const firstName = typeof profile.firstName === "string" ? profile.firstName.trim() : "";
+  const lastName = typeof profile.lastName === "string" ? profile.lastName.trim() : "";
+  const weapon = typeof profile.weapon === "string" ? profile.weapon.trim() : "";
+  const userId = typeof profile.userId === "string" ? profile.userId.trim() : "";
+  const normalizedContestUuid = typeof contestUuid === "string" && contestUuid.trim()
+    ? contestUuid.trim()
+    : (typeof profile.contestUuid === "string" ? profile.contestUuid.trim() : "");
+
+  if (!firstName || !lastName || !weapon || !userId) {
+    return null;
+  }
+
+  return {
+    contestUuid: normalizedContestUuid,
+    firstName,
+    lastName,
+    weapon,
+    userId,
+  };
+}
+
+function loadSoloContestProfileStore() {
+  try {
+    const raw = window.localStorage.getItem(SOLO_CONTEST_PROFILE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSoloContestProfileStore(store) {
+  try {
+    window.localStorage.setItem(SOLO_CONTEST_PROFILE_KEY, JSON.stringify(store));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function getStoredSoloContestParticipant(contestUuid) {
+  const normalizedContestUuid = typeof contestUuid === "string" ? contestUuid.trim() : "";
+  if (!normalizedContestUuid) {
+    return null;
+  }
+
+  const store = loadSoloContestProfileStore();
+  const contestKey = normalizedContestUuid.toLowerCase();
+  const specificProfile = normalizeSoloContestParticipantProfile(store[contestKey], normalizedContestUuid);
+  if (specificProfile) {
+    return specificProfile;
+  }
+
+  const lastProfile = normalizeSoloContestParticipantProfile(store.lastProfile, normalizedContestUuid);
+  return lastProfile ? { ...lastProfile, contestUuid: normalizedContestUuid } : null;
+}
+
+function storeSoloContestParticipant(contestUuid, participant) {
+  const normalizedContestUuid = typeof contestUuid === "string" ? contestUuid.trim() : "";
+  const normalizedProfile = normalizeSoloContestParticipantProfile(participant, normalizedContestUuid);
+  if (!normalizedContestUuid || !normalizedProfile) {
+    return;
+  }
+
+  const store = loadSoloContestProfileStore();
+  store[normalizedContestUuid.toLowerCase()] = normalizedProfile;
+  store.lastProfile = {
+    firstName: normalizedProfile.firstName,
+    lastName: normalizedProfile.lastName,
+    weapon: normalizedProfile.weapon,
+    userId: normalizedProfile.userId,
+  };
+  saveSoloContestProfileStore(store);
+}
+
+function getActiveSoloContestParticipant(contestUuid = state.soloContestInfo?.uuid || "") {
+  const normalizedContestUuid = typeof contestUuid === "string" ? contestUuid.trim() : "";
+  if (!normalizedContestUuid) {
+    return null;
+  }
+
+  const activeProfile = normalizeSoloContestParticipantProfile(state.soloContestParticipant, normalizedContestUuid);
+  if (activeProfile && activeProfile.contestUuid.toLowerCase() === normalizedContestUuid.toLowerCase()) {
+    return activeProfile;
+  }
+
+  return getStoredSoloContestParticipant(normalizedContestUuid);
+}
+
+function syncSoloContestParticipantWeaponOptions(ruleset, selectedWeapon = "") {
+  if (!els.soloContestWeaponSelect) return;
+
+  const weapons = getWeaponsForRuleset(ruleset);
+  els.soloContestWeaponSelect.innerHTML = weapons
+    .map((weapon) => `<option value="${weapon}">${escapeHtml(formatWeaponLabel(weapon))}</option>`)
+    .join("");
+
+  const fallbackWeapon = weapons[0] || "AC";
+  const safeSelectedWeapon = isWeaponAllowedForRuleset(selectedWeapon, ruleset) ? selectedWeapon : fallbackWeapon;
+  els.soloContestWeaponSelect.value = safeSelectedWeapon;
+}
+
 function extractContestIsoDate(value) {
   if (typeof value !== "string") return "";
   const match = value.match(/\d{4}-\d{2}-\d{2}/);
@@ -2475,23 +2628,17 @@ async function syncSoloContestUserProgress() {
 
 async function fetchSoloContestUserProgress(contestUuid) {
   const uuid = typeof contestUuid === "string" ? contestUuid.trim() : "";
-  const token = window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
-  if (!uuid || !token) {
+  const participant = getActiveSoloContestParticipant(uuid);
+  if (!uuid || !participant?.userId) {
     return { ok: true, found: false, entry: null };
   }
 
   try {
-    const response = await fetch(`/api/contest/users?contest_uuid=${encodeURIComponent(uuid)}`, {
+    const response = await fetch(`/api/contest/users?contest_uuid=${encodeURIComponent(uuid)}&user_id=${encodeURIComponent(participant.userId)}`, {
       method: "GET",
-      headers: {
-        authorization: `Bearer ${token}`,
-      },
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      if (handleAuthFailureMessage(payload?.error)) {
-        return { ok: false, found: false, entry: null };
-      }
       showFlashInfo(translateErrorToFrench(payload?.error || "Failed to load contest user"));
       return { ok: false, found: false, entry: null };
     }
@@ -2561,6 +2708,7 @@ function restoreSoloContestUserProgress(entry) {
 
 async function validateSoloContestIdentifierBeforeStart() {
   state.soloContestInfo = null;
+  state.soloContestParticipant = null;
 
   if (state.contestMode) {
     return true;
@@ -2569,12 +2717,6 @@ async function validateSoloContestIdentifierBeforeStart() {
   const contestIdentifier = els.contestIdentifierInput ? els.contestIdentifierInput.value.trim() : "";
   if (!contestIdentifier) {
     return true;
-  }
-
-  if (!hasStoredAuthToken()) {
-    showFlashInfo("Connectez-vous pour rattacher cette session à un concours.");
-    openLoginModal();
-    return false;
   }
 
   const ruleset = els.rulesetSelect?.value || "";
@@ -2614,7 +2756,7 @@ async function validateSoloContestIdentifierBeforeStart() {
       return false;
     }
 
-    state.soloContestInfo = {
+    const contestInfo = {
       id: contest.id,
       uuid: contest.uuid || contestIdentifier,
       name: contest.name || "Concours",
@@ -2622,6 +2764,14 @@ async function validateSoloContestIdentifierBeforeStart() {
       startDate: contest.start_date || "",
       endDate: contest.end_date || "",
     };
+
+    const participant = await openSoloContestParticipantModal(contestInfo);
+    if (!participant) {
+      return false;
+    }
+
+    state.soloContestInfo = contestInfo;
+    state.soloContestParticipant = participant;
     return true;
   } catch {
     showFlashInfo("Impossible de vérifier le concours pour le moment.");
@@ -2911,6 +3061,9 @@ function startScoring() {
   state.contestIdentifier = els.contestIdentifierInput ? els.contestIdentifierInput.value.trim() : "";
   if (state.contestMode) {
     state.soloContestInfo = null;
+    state.soloContestParticipant = null;
+  } else if (!state.soloContestInfo) {
+    state.soloContestParticipant = null;
   }
   state.activeRuleset = els.rulesetSelect.value;
   state.scoringMode = scoringMode;
@@ -3036,11 +3189,6 @@ async function upsertContestUserFromLocalProfile(contestUuid, weapon, data = nul
   const uuid = typeof contestUuid === "string" ? contestUuid.trim() : "";
   if (!uuid) return;
 
-  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
-  if (!token) return;
-
-  const firstName = (window.localStorage.getItem(AUTH_USER_FIRST_NAME_KEY) || "").trim() || "Archer";
-  const lastName = (window.localStorage.getItem(AUTH_USER_LAST_NAME_KEY) || "").trim() || "Inconnu";
   const safeWeapon = typeof weapon === "string" && weapon.trim() ? weapon.trim() : "-";
   const localStorageScoring = getContestScoringFromLocalStorage(uuid, contestRuleset || state.activeRuleset);
   const memoryData = data && typeof data === "object" && !Array.isArray(data) ? data : null;
@@ -3050,24 +3198,45 @@ async function upsertContestUserFromLocalProfile(contestUuid, weapon, data = nul
     ? (memoryData || localStorageScoring || undefined)
     : (localStorageScoring || memoryData || undefined);
 
+  const soloParticipant = getActiveSoloContestParticipant(uuid);
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
+  const firstName = soloParticipant?.firstName
+    || (window.localStorage.getItem(AUTH_USER_FIRST_NAME_KEY) || "").trim()
+    || "Archer";
+  const lastName = soloParticipant?.lastName
+    || (window.localStorage.getItem(AUTH_USER_LAST_NAME_KEY) || "").trim()
+    || "Inconnu";
+  const userId = soloParticipant?.userId || "";
+
+  if (!soloParticipant && !token) {
+    return;
+  }
+
+  const headers = {
+    "content-type": "application/json",
+  };
+  if (!soloParticipant && token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+
   try {
     const response = await fetch("/api/contest/users", {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "authorization": `Bearer ${token}`,
-      },
+      headers,
       body: JSON.stringify({
         contest_uuid: uuid,
+        user_id: userId || undefined,
         first_name: firstName,
         last_name: lastName,
-        weapon: safeWeapon,
+        weapon: soloParticipant?.weapon || safeWeapon,
         data: payloadData,
       }),
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      handleAuthFailureMessage(payload?.error, { openLogin: false });
+      if (!soloParticipant) {
+        handleAuthFailureMessage(payload?.error, { openLogin: false });
+      }
     }
   } catch {
     // Keep contest flow resilient if contest-user sync fails.
@@ -3697,6 +3866,135 @@ function closeHelpModal() {
   return;
 }
 
+function setSoloContestParticipantFeedback(message, tone = "error") {
+  if (!els.soloContestParticipantFeedback) return;
+  els.soloContestParticipantFeedback.classList.remove("is-success", "is-error");
+  if (!message) {
+    els.soloContestParticipantFeedback.textContent = "";
+    els.soloContestParticipantFeedback.classList.add("hidden");
+    return;
+  }
+  els.soloContestParticipantFeedback.textContent = message;
+  els.soloContestParticipantFeedback.classList.add(tone === "success" ? "is-success" : "is-error");
+  els.soloContestParticipantFeedback.classList.remove("hidden");
+}
+
+function closeSoloContestParticipantModal() {
+  els.soloContestParticipantModal?.classList.add("hidden");
+  setSoloContestParticipantFeedback("");
+  if (els.soloContestParticipantForm) {
+    els.soloContestParticipantForm.dataset.contestUuid = "";
+    els.soloContestParticipantForm.dataset.ruleset = "";
+  }
+  if (els.soloContestParticipantSubmitBtn) {
+    els.soloContestParticipantSubmitBtn.disabled = false;
+  }
+}
+
+function resolveSoloContestParticipantModal(result = null) {
+  const resolver = soloContestParticipantModalResolver;
+  soloContestParticipantModalResolver = null;
+  closeSoloContestParticipantModal();
+  if (typeof resolver === "function") {
+    resolver(result);
+  }
+}
+
+async function openSoloContestParticipantModal(contest) {
+  if (!els.soloContestParticipantModal || !els.soloContestParticipantForm) {
+    return null;
+  }
+
+  const contestUuid = typeof contest?.uuid === "string" ? contest.uuid.trim() : "";
+  const ruleset = typeof contest?.ruleset === "string" ? contest.ruleset.trim() : "";
+  if (!contestUuid || !ruleset) {
+    return null;
+  }
+
+  const storedProfile = getStoredSoloContestParticipant(contestUuid);
+  let defaultFirstName = storedProfile?.firstName || "";
+  let defaultLastName = storedProfile?.lastName || "";
+  if (!defaultFirstName) {
+    defaultFirstName = (window.localStorage.getItem(AUTH_USER_FIRST_NAME_KEY) || "").trim();
+  }
+  if (!defaultLastName) {
+    defaultLastName = (window.localStorage.getItem(AUTH_USER_LAST_NAME_KEY) || "").trim();
+  }
+
+  const currentWeapon = typeof els.weaponSelect?.value === "string" ? els.weaponSelect.value.trim() : "";
+  const defaultWeapon = storedProfile?.weapon || currentWeapon;
+  syncSoloContestParticipantWeaponOptions(ruleset, defaultWeapon);
+
+  els.soloContestParticipantForm.dataset.contestUuid = contestUuid;
+  els.soloContestParticipantForm.dataset.ruleset = ruleset;
+  if (els.soloContestFirstNameInput) {
+    els.soloContestFirstNameInput.value = defaultFirstName;
+  }
+  if (els.soloContestLastNameInput) {
+    els.soloContestLastNameInput.value = defaultLastName;
+  }
+  if (els.soloContestUserIdInput) {
+    els.soloContestUserIdInput.value = storedProfile?.userId || await computeSoloContestDeviceUserId();
+  }
+  setSoloContestParticipantFeedback("");
+  els.soloContestParticipantSubmitBtn?.removeAttribute("disabled");
+  els.soloContestParticipantModal.classList.remove("hidden");
+  window.setTimeout(() => {
+    els.soloContestLastNameInput?.focus();
+  }, 0);
+
+  return new Promise((resolve) => {
+    if (soloContestParticipantModalResolver) {
+      resolveSoloContestParticipantModal(null);
+    }
+    soloContestParticipantModalResolver = resolve;
+  });
+}
+
+async function handleSoloContestParticipantSubmit(event) {
+  event.preventDefault();
+
+  const contestUuid = typeof els.soloContestParticipantForm?.dataset.contestUuid === "string"
+    ? els.soloContestParticipantForm.dataset.contestUuid.trim()
+    : "";
+  const ruleset = typeof els.soloContestParticipantForm?.dataset.ruleset === "string"
+    ? els.soloContestParticipantForm.dataset.ruleset.trim()
+    : "";
+  const firstName = (els.soloContestFirstNameInput?.value || "").trim();
+  const lastName = (els.soloContestLastNameInput?.value || "").trim();
+  const weapon = (els.soloContestWeaponSelect?.value || "").trim();
+  const userId = (els.soloContestUserIdInput?.value || "").trim();
+
+  if (!firstName || !lastName) {
+    setSoloContestParticipantFeedback("Le nom et le prénom sont requis.");
+    return;
+  }
+  if (!contestUuid || !ruleset || !userId) {
+    setSoloContestParticipantFeedback("Impossible d'initialiser l'inscription concours.");
+    return;
+  }
+  if (!isWeaponAllowedForRuleset(weapon, ruleset)) {
+    setSoloContestParticipantFeedback("La catégorie d'arme sélectionnée n'est pas compatible avec ce parcours.");
+    return;
+  }
+
+  if (els.weaponSelect && isWeaponAllowedForRuleset(weapon, els.rulesetSelect?.value || ruleset)) {
+    els.weaponSelect.value = weapon;
+    updateSuccessZoneSlider();
+  }
+
+  const participant = {
+    contestUuid,
+    firstName,
+    lastName,
+    weapon,
+    userId,
+  };
+  state.soloContestParticipant = participant;
+  storeSoloContestParticipant(contestUuid, participant);
+  resolveSoloContestParticipantModal(participant);
+}
+
 function setLoginFeedback(message, tone = "error") {
   if (!els.loginFeedback) return;
   els.loginFeedback.classList.remove("is-success", "is-error");
@@ -3729,6 +4027,9 @@ function translateErrorToFrench(message) {
     "Password update failed": "La mise à jour du mot de passe a échoué.",
     "uuid and ruleset are required": "Le code concours et le type de parcours sont requis.",
     "contest_uuid is required": "L'identifiant du concours est requis.",
+    "user_id is required": "L'identifiant de l'appareil est requis.",
+    "first_name and last_name are required": "Le nom et le prénom sont requis.",
+    "Contest not found": "Concours introuvable.",
     "Failed to verify contest": "Impossible de vérifier le concours.",
     "Failed to load contest user": "Impossible de récupérer l'historique du concours.",
   };
@@ -3889,6 +4190,7 @@ function openPasswordModal() {
   closeMultiModal();
   closeDuelModal();
   closeLoginModal();
+  closeSoloContestParticipantModal();
   setPasswordFeedback("");
   if (els.passwordForm) {
     els.passwordForm.reset();
@@ -4131,6 +4433,7 @@ function openLoginModal() {
   closeConfigModal();
   closeMultiModal();
   closeDuelModal();
+  closeSoloContestParticipantModal();
   setLoginFeedback("");
   if (els.loginForm) {
     els.loginForm.reset();
@@ -8070,7 +8373,9 @@ function restart() {
   state.contestMode = false;
   state.contestInfo = null;
   state.soloContestInfo = null;
+  state.soloContestParticipant = null;
   resetRoundBuffer();
+  closeSoloContestParticipantModal();
   closeStatsModal();
   closeGeneralStatsModal();
   closeHelpModal();
@@ -8478,6 +8783,20 @@ if (els.passwordForm) {
 }
 if (els.welcomeModalOverlay) {
   els.welcomeModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.soloContestParticipantModalOverlay) {
+  els.soloContestParticipantModalOverlay.addEventListener("click", (e) => e.stopPropagation());
+}
+if (els.soloContestParticipantCloseBtn) {
+  els.soloContestParticipantCloseBtn.addEventListener("click", () => resolveSoloContestParticipantModal(null));
+}
+if (els.soloContestParticipantCancelBtn) {
+  els.soloContestParticipantCancelBtn.addEventListener("click", () => resolveSoloContestParticipantModal(null));
+}
+if (els.soloContestParticipantForm) {
+  els.soloContestParticipantForm.addEventListener("submit", (event) => {
+    void handleSoloContestParticipantSubmit(event);
+  });
 }
 if (els.loginForm) {
   els.loginForm.addEventListener("submit", handleLoginSubmit);

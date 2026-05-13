@@ -13,6 +13,10 @@ async function getAuthenticatedUser(request, env) {
   return row || null;
 }
 
+function getAuthenticatedContestUserId(user) {
+  return user ? String(user.id) : "";
+}
+
 async function contestsHasOwnerId(env) {
   const columns = await env.DB.prepare("PRAGMA table_info(contests)").all();
   const rows = Array.isArray(columns?.results) ? columns.results : [];
@@ -103,7 +107,7 @@ export async function onRequestGet({ request, env }) {
               ) AS total_users
        FROM contests c
        INNER JOIN contests_users cu ON lower(cu.contest_uuid) = lower(c.uuid)
-       WHERE cu.user_id = ?
+       WHERE trim(CAST(cu.user_id AS TEXT)) = trim(?)
          AND cu.id = (
            SELECT MIN(cu_owner.id)
            FROM contests_users cu_owner
@@ -112,8 +116,10 @@ export async function onRequestGet({ request, env }) {
        ORDER BY cu.id ASC
        LIMIT 1`;
 
+  const contestLookupValue = hasOwnerId ? user.id : getAuthenticatedContestUserId(user);
+
   const contest = await env.DB.prepare(contestQuery)
-    .bind(user.id)
+    .bind(contestLookupValue)
     .first();
 
   if (contest) {

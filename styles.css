@@ -2908,6 +2908,13 @@ input[type="range"]:focus-visible {
   color: var(--ink);
 }
 
+.solo-contest-participant-help {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
 .login-feedback {
   font-size: 0.92rem;
   color: #b42318;

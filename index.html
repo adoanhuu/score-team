@@ -1279,6 +1279,53 @@
         </div>
       </section>
 
+      <section id="solo-contest-participant-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="solo-contest-participant-title">
+        <div class="modal-overlay" id="solo-contest-participant-modal-overlay"></div>
+        <div class="modal-card login-modal-card">
+          <div class="modal-head">
+            <h3 id="solo-contest-participant-title" class="modal-title-with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.314 0-6 2.015-6 4.5V20h12v-1.5C18 16.015 15.314 14 12 14Z" fill="currentColor" />
+              </svg>
+              <span>Inscription concours</span>
+            </h3>
+            <button id="solo-contest-participant-close-btn" class="btn btn-light btn-icon" aria-label="Fermer inscription concours">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <form id="solo-contest-participant-form" class="login-form" novalidate>
+            <p class="solo-contest-participant-help">Renseignez vos informations pour rattacher cette session solo au concours.</p>
+            <label>
+              Nom
+              <input id="solo-contest-last-name-input" type="text" autocomplete="family-name" placeholder="Votre nom" required />
+            </label>
+            <label>
+              Prénom
+              <input id="solo-contest-first-name-input" type="text" autocomplete="given-name" placeholder="Votre prénom" required />
+            </label>
+            <label>
+              Catégorie d'arme
+              <select id="solo-contest-weapon-select" required>
+                <option value="AC">AC - Arc de chasse</option>
+                <option value="AD">AD - Arc droit</option>
+                <option value="BB">BB - Barebow</option>
+                <option value="CL">CL - Classique</option>
+                <option value="CO">CO - Compound</option>
+                <option value="TL">TL - Tir libre</option>
+              </select>
+            </label>
+            <input id="solo-contest-user-id-input" type="hidden" />
+            <div id="solo-contest-participant-feedback" class="login-feedback hidden" role="alert"></div>
+            <div class="modal-actions">
+              <button id="solo-contest-participant-cancel-btn" type="button" class="btn btn-light">Annuler</button>
+              <button id="solo-contest-participant-submit-btn" type="submit" class="btn btn-primary">Valider</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
       <section id="login-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
         <div class="modal-overlay" id="login-modal-overlay"></div>
         <div class="modal-card login-modal-card">
