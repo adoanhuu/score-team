@@ -404,9 +404,11 @@ const els = {
   trainingTargetScoreHundreds: document.getElementById("training-target-score-hundreds"),
   trainingTargetScoreTens: document.getElementById("training-target-score-tens"),
   trainingTargetScoreUnits: document.getElementById("training-target-score-units"),
+  trainingTargetScoreResult: document.getElementById("training-target-score-result"),
   trainingTargetScoreSessionModal: document.getElementById("training-target-score-session-modal"),
   trainingTargetScoreSessionModalOverlay: document.getElementById("training-target-score-session-modal-overlay"),
   trainingTargetScoreSessionCloseBtn: document.getElementById("training-target-score-session-close-btn"),
+  trainingTargetScoreSessionTitlePercent: document.getElementById("training-target-score-session-title-percent"),
   trainingTargetScoreSessionTarget: document.getElementById("training-target-score-session-target"),
   trainingTargetScoreSessionPercent: document.getElementById("training-target-score-session-percent"),
   trainingTargetScoreSessionCount: document.getElementById("training-target-score-session-count"),
@@ -6682,6 +6684,10 @@ function updateTrainingTargetScoreDisplay(options = {}) {
   if (els.trainingTargetScoreUnits) {
     els.trainingTargetScoreUnits.textContent = targetScoreCounter[2];
   }
+  if (els.trainingTargetScoreResult) {
+    els.trainingTargetScoreResult.textContent = `${percentage}%`;
+  }
+
   appConfig.trainingTargetScore.ruleset = ruleset;
   appConfig.trainingTargetScore.percentage = Math.min(100, Math.max(50, percentage));
   appConfig.trainingTargetScore.targetScoresByRuleset[ruleset] = safeScore;
@@ -6847,6 +6853,9 @@ function renderTrainingTargetScoreSession() {
   }
   if (els.trainingTargetScoreSessionPercent) {
     els.trainingTargetScoreSessionPercent.textContent = `${currentPercentage}%`;
+  }
+  if (els.trainingTargetScoreSessionTitlePercent) {
+    els.trainingTargetScoreSessionTitlePercent.textContent = `${currentPercentage}%`;
   }
   if (els.trainingTargetScoreSessionCount) {
     els.trainingTargetScoreSessionCount.textContent = String(trainingTargetScoreSessionState.currentTargetIndex + 1);
