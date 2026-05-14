@@ -631,12 +631,36 @@ function getDuelBotMissChance(level) {
   return Math.max(minMissChance, rawMissChance);
 }
 
-function pickDuelBotScore(selectablePoints, level) {
+function getDuelBotMinimumArrowScore(level) {
+  const safeLevel = Math.min(20, Math.max(1, Number(level) || 1));
+  if (safeLevel === 20) return 8;
+  if (safeLevel >= 14 && safeLevel < 18) return 5;
+  return 0;
+}
+
+function isDuelBotExpertLevel(level) {
+  const safeLevel = Math.min(20, Math.max(1, Number(level) || 1));
+  return safeLevel >= 18 && safeLevel < 20;
+}
+
+function pickDuelBotScore(selectablePoints, level, options = {}) {
   if (!Array.isArray(selectablePoints) || selectablePoints.length === 0) return 0;
 
   const sorted = [...selectablePoints].sort((a, b) => scoreToValue(b) - scoreToValue(a));
-  const missValue = sorted.find((point) => scoreToValue(point) === 0);
-  const scoringOnly = sorted.filter((point) => scoreToValue(point) > 0);
+  const minimumArrowScore = getDuelBotMinimumArrowScore(level);
+  const currentTargetScores = Array.isArray(options.currentTargetScores) ? options.currentTargetScores : [];
+  const hasTargetMiss = currentTargetScores.some((value) => scoreToValue(value) === 0);
+  const forbidMiss = minimumArrowScore > 0 || (isDuelBotExpertLevel(level) && hasTargetMiss);
+  const allScoringPoints = sorted.filter((point) => scoreToValue(point) > 0);
+  const constrainedScoringPoints = minimumArrowScore > 0
+    ? allScoringPoints.filter((point) => scoreToValue(point) >= minimumArrowScore)
+    : allScoringPoints;
+  const scoringOnly = constrainedScoringPoints.length > 0
+    ? constrainedScoringPoints
+    : allScoringPoints.slice(0, 1);
+  const missValue = forbidMiss
+    ? undefined
+    : sorted.find((point) => scoreToValue(point) === 0);
   if (scoringOnly.length === 0) return missValue ?? 0;
 
   const missChance = getDuelBotMissChance(level);
@@ -677,7 +701,9 @@ function runDuelBotTurnIfNeeded() {
       state.duel.allowedPoints,
     );
     const botLevel = getCurrentDuelBotLevel();
-    const botScore = pickDuelBotScore(selectablePoints, botLevel);
+    const botScore = pickDuelBotScore(selectablePoints, botLevel, {
+      currentTargetScores: state.duel.scoresP2?.[state.duel.currentTargetIndex],
+    });
     registerDuelScore(botScore);
 
     if (duelBotMode && state.duel && !state.duel.completed && !state.duel.previewLocked && state.duel.activePlayer === 2) {
