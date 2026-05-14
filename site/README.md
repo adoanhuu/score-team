@@ -7,6 +7,7 @@ Ce répertoire contient les pages d'aide et de documentation pour l'application 
 ### 1. **index.html** - Accueil
 
 Page de présentation générale de l'application avec liens vers les autres pages.
+Inclut désormais l'accès au mode Entraînement.
 
 ### 2. **nouvelle-session.html** - Créer une nouvelle session
 
@@ -16,6 +17,7 @@ Guide détaillé pour :
 - Configurer le nombre de cibles
 - Définir la zone de succès
 - Sélectionner le mode d'équipe ou Mode solo
+- Utiliser le mode Entraînement, dont l'exercice Score cible
 - Tableau comparatif des parcours disponibles
 
 ### 3. **saisie-scores.html** - Saisie des scores
@@ -27,6 +29,8 @@ Documentation sur :
 - **Codes des armes FFTL** : BB-C, BB-R, BH-C, BH-R, BL, BU, FS-R, FS-C, FU, HB, LB, TR
 - Conseils pour une saisie rapide
 - Points possibles selon le parcours
+- Exercice Score cible et progression vers l'objectif
+- Mode duel contre Paquito et règles par niveau
 
 ### 4. **statistiques.html** - Lire les statistiques
 
