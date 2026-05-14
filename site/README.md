@@ -1,6 +1,6 @@
-# Site d'aide - Archery Team Score
+# Site d'aide - Capi Scoring
 
-Ce répertoire contient les pages d'aide et de documentation pour l'application Archery Team Score.
+Ce répertoire contient les pages d'aide et de documentation pour l'application Capi Scoring.
 
 ## 📋 Pages disponibles
 

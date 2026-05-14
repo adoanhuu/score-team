@@ -9603,7 +9603,9 @@ syncScoringModeFieldset();
 syncWeaponSelectOptions();
 updateWeaponSelectVisibility();
 updateUseTimerVisibility();
-els.appVersion.textContent = APP_VERSION;
+if (els.appVersion) {
+  els.appVersion.textContent = APP_VERSION;
+}
 state._lastRuleset = els.rulesetSelect.value;
 state._lastScoringMode = getSelectedScoringMode();
 state._lastWeapon = els.weaponSelect ? els.weaponSelect.value : "";

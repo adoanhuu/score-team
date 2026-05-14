@@ -3,28 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Archery Team Score - Application web progressive pour gérer les scores de tir à l'arc FFTA et FFTL. Saisie rapide, statistiques avancées, hors ligne.">
+  <meta name="description" content="Capi Scoring - Application web progressive pour gérer les scores de tir à l'arc FFTA et FFTL. Saisie rapide, statistiques avancées, hors ligne.">
   <meta name="keywords" content="tir à l'arc, archery, scores, FFTA, FFTL, application web, PWA">
-  <meta name="author" content="Archery Team Score">
-  <meta property="og:title" content="Archery Team Score - Gestion des scores de tir à l'arc">
+  <meta name="author" content="Capi Scoring">
+  <meta property="og:title" content="Capi Scoring - Gestion des scores de tir à l'arc">
   <meta property="og:description" content="Application web progressive pour gérer facilement les scores de parcours de tir à l'arc.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://archery-team-score.com">
   <meta property="og:image" content="../icons/icon-maskable-192.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Archery Team Score">
+  <meta name="twitter:title" content="Capi Scoring">
   <meta name="twitter:description" content="Gestion des scores de tir à l'arc - FFTA et FFTL">
-  <title>Archery Team Score - Accueil</title>
+  <title>Capi Scoring - Accueil</title>
   <link rel="stylesheet" href="shared.css">
 </head>
 <body class="home-page">
   <div class="site-wrapper">
     <!-- En-tête -->
     <header class="site-header">
+      <span class="site-version" aria-label="Version"></span>
       <div class="header-content">
         <a href="index.html" class="header-logo">
-          <img src="../icons/icon-maskable-192.png" alt="Archery Team Score">
-          Archery Team Score
+          <img src="../icons/icon-maskable-192.png" alt="Capi Scoring">
+          Capi Scoring
         </a>
         <button class="menu-toggle" aria-label="Toggle menu">
           <svg viewBox="0 0 24 24" fill="currentColor">
@@ -36,6 +37,8 @@
           <a href="nouvelle-session.html">Nouvelle session</a>
           <a href="saisie-scores.html">Saisie des scores</a>
           <a href="statistiques.html">Statistiques</a>
+          <a href="index.html#mode-multi">Mode Multi</a>
+          <a href="nouvelle-session.html#mode-entrainement">S'entraîner</a>
         </nav>
       </div>
     </header>
@@ -44,11 +47,11 @@
     <main class="site-main">
       <div class="page-content">
         <h1>
-          Bienvenue dans Archery Team Score
+          Bienvenue dans Capi Scoring
         </h1>
 
         <p style="font-size: 1.1rem; color: #536357;">
-          Archery Team Score est une application web conçue pour simplifier la gestion des scores lors des parcours de tir à l'arc.
+          Capi Scoring est une application web conçue pour simplifier la gestion des scores lors des parcours de tir à l'arc.
         </p>
 
         <h2>Fonctionnalités principales</h2>
@@ -88,6 +91,22 @@
             <p><a href="statistiques.html">En savoir plus →</a></p>
           </div>
 
+          <div class="explanation-card" id="mode-multi">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5ZM8 13c-2.67 0-8 1.34-8 4v2h7v-2.5c0-.95.37-1.81 1.05-2.56-.02-.3-.03-.6-.05-.94Z"/>
+              </svg>
+              Mode Multi
+            </h3>
+            <p>Gérez les séances à plusieurs avec des vues adaptées aux tirs collectifs.</p>
+            <ul class="feature-list">
+              <li><strong>Duel</strong> : deux archers face à face, avec historique séparé.</li>
+              <li><strong>Peloton</strong> : jusqu'à six archers sur une saisie partagée.</li>
+              <li><strong>Concours</strong> : rejoindre ou suivre une session de concours.</li>
+              <li><strong>Paquito</strong> : bot de duel avec niveau réglable.</li>
+            </ul>
+          </div>
+
           <div class="explanation-card">
             <h3>
               <svg viewBox="0 0 24 24" fill="currentColor">
@@ -123,7 +142,7 @@
           </li>
         </ol>
 
-        <p>Archery Team Score se base sur les règlements de la FFTA (Fédération Française de Tir à l'Arc) et de la FFTL (Fédération Field de Tir Libre). L'application fonctionne hors ligne grâce à la technologie de <strong>PWA</strong> (Progressive Web Apps).</p>
+        <p>Capi Scoring se base sur les règlements de la FFTA (Fédération Française de Tir à l'Arc) et de la FFTL (Fédération Field de Tir Libre). L'application fonctionne hors ligne grâce à la technologie de <strong>PWA</strong> (Progressive Web Apps).</p>
 
         <p>La tuile <strong>Entraînement</strong> donne accès à des exercices autonomes, dont <strong>Score cible</strong> pour tirer jusqu'à atteindre un objectif de points.</p>
 
@@ -133,7 +152,7 @@
     <!-- Pied de page -->
     <footer class="site-footer">
       <div class="footer-content">
-        <p>&copy; 2026 Archery Team Score. Application dédiée aux archers de parcours.</p>
+        <p>&copy; 2026 Capi Scoring. Application dédiée aux archers de parcours.</p>
       </div>
     </footer>
   </div>
