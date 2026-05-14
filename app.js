@@ -404,7 +404,6 @@ const els = {
   trainingTargetScoreHundreds: document.getElementById("training-target-score-hundreds"),
   trainingTargetScoreTens: document.getElementById("training-target-score-tens"),
   trainingTargetScoreUnits: document.getElementById("training-target-score-units"),
-  trainingTargetScoreResult: document.getElementById("training-target-score-result"),
   trainingTargetScoreSessionModal: document.getElementById("training-target-score-session-modal"),
   trainingTargetScoreSessionModalOverlay: document.getElementById("training-target-score-session-modal-overlay"),
   trainingTargetScoreSessionCloseBtn: document.getElementById("training-target-score-session-close-btn"),
@@ -6609,6 +6608,24 @@ function getTrainingTargetScoreBounds(ruleset) {
   };
 }
 
+function getTrainingTargetSuccessZone(ruleset, arrowsPerTarget, allowedPoints) {
+  const selectedWeapon = els.weaponSelect?.value || state.weapon || "";
+  const fallbackWeapon = getWeaponsForRuleset(ruleset)[0] || "";
+  const weapon = isWeaponAllowedForRuleset(selectedWeapon, ruleset) ? selectedWeapon : fallbackWeapon;
+  const zoneKey = `${ruleset}:individual:${weapon}`;
+  const savedZone = Number.parseInt(appConfig.successZoneByRuleset?.[zoneKey], 10);
+  const currentZone = state.activeRuleset === ruleset && state.scoringMode === "individual"
+    ? state.successZone
+    : null;
+  return clampSuccessZoneForConfig(
+    Number.isInteger(savedZone) ? savedZone : currentZone,
+    ruleset,
+    "individual",
+    arrowsPerTarget,
+    allowedPoints,
+  );
+}
+
 function clampTrainingTargetPercentage(value) {
   const roundedValue = Math.round(Number(value));
   return Number.isFinite(roundedValue)
@@ -6665,10 +6682,6 @@ function updateTrainingTargetScoreDisplay(options = {}) {
   if (els.trainingTargetScoreUnits) {
     els.trainingTargetScoreUnits.textContent = targetScoreCounter[2];
   }
-  if (els.trainingTargetScoreResult) {
-    els.trainingTargetScoreResult.textContent = `${percentage}%`;
-  }
-
   appConfig.trainingTargetScore.ruleset = ruleset;
   appConfig.trainingTargetScore.percentage = Math.min(100, Math.max(50, percentage));
   appConfig.trainingTargetScore.targetScoresByRuleset[ruleset] = safeScore;
@@ -6686,11 +6699,13 @@ async function startTrainingTargetScoreSession() {
   const allowedPoints = [...new Set(presets[ruleset] || [0])].sort((a, b) => b - a);
   const targetCount = getTargetCountForRuleset(ruleset);
   const percentage = clampTrainingTargetPercentage((targetScore / getTrainingTargetMaxScore(ruleset)) * 100);
+  const successZone = getTrainingTargetSuccessZone(ruleset, arrowsPerTarget, allowedPoints);
 
   trainingTargetScoreSessionState = {
     ruleset,
     targetScore,
     percentage,
+    successZone,
     targetCount,
     arrowsPerTarget,
     allowedPoints,
@@ -6764,11 +6779,12 @@ function renderTrainingTargetScoreHistory() {
       .map((value) => (value === null || value === undefined ? "-" : scoreLabel(value)))
       .join(" / ");
     const targetTotal = targetArrows.reduce((sum, value) => sum + scoreToValue(value), 0);
+    const successClass = targetTotal >= trainingTargetScoreSessionState.successZone ? "success" : "";
     rows.push(`
       <tr>
         <td><span class="volley-pill is-gray">${index + 1}</span></td>
         <td>${arrowsText}</td>
-        <td class="history-total">${targetTotal}</td>
+        <td class="history-total ${successClass}">${targetTotal}</td>
       </tr>
     `);
   });
