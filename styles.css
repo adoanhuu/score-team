@@ -794,6 +794,7 @@ input[type="range"]:focus-visible {
 }
 
 #start-btn,
+#solo-reset-incomplete-btn,
 #multi-start-btn,
 #duel-restart-btn,
 #training-start-btn,
@@ -810,6 +811,7 @@ input[type="range"]:focus-visible {
 }
 
 #start-btn svg,
+#solo-reset-incomplete-btn svg,
 #multi-start-btn svg,
 #duel-restart-btn svg,
 #training-start-btn svg,
@@ -820,6 +822,19 @@ input[type="range"]:focus-visible {
 #quiz-shields-restart-btn svg,
 #training-cycle-toggle-btn svg {
   color: #fff;
+}
+
+.start-reset-btn {
+  background: var(--danger);
+  border-color: var(--danger);
+  width: 100%;
+  justify-content: center;
+  margin-top: 0;
+}
+
+.start-reset-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 #duel-restart-btn svg {

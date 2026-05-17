@@ -84,6 +84,8 @@ const state = {
   soloTimerVolleyIndex: null,
   sessionDate: "",
   sessionTime: "",
+  sessionStartedAt: "",
+  historyEntryArchivedAt: "",
   contestIdentifier: "",
   soloContestInfo: null,
   soloContestParticipant: null,
@@ -133,6 +135,7 @@ const els = {
   setupCloseBtn: document.getElementById("setup-close-btn"),
   scoringCloseBtn: document.getElementById("scoring-close-btn"),
   startBtn: document.getElementById("start-btn"),
+  soloResetIncompleteBtn: document.getElementById("solo-reset-incomplete-btn"),
   backSetupBtn: document.getElementById("back-setup-btn"),
   stepBackBtn: document.getElementById("step-back-btn"),
   shootTitle: document.getElementById("volley-title"),
@@ -515,6 +518,8 @@ let quizShieldsNextQuestionTimeoutId = null;
 let soloBeepsTimerState = null;
 let trainingAudioContext = null;
 let soloContestParticipantModalResolver = null;
+let pendingSoloResumeArchivedAt = "";
+let applyingSoloResumeSetup = false;
 const TRAINING_VOICE_VOLUME = 0.55;
 
 function getTrainingAudioContext() {
@@ -1467,6 +1472,8 @@ function persistAppState() {
             lieu: state.lieu || "",
             sessionDate: state.sessionDate || "",
             sessionTime: state.sessionTime || "",
+            sessionStartedAt: state.sessionStartedAt || "",
+            historyEntryArchivedAt: state.historyEntryArchivedAt || "",
             contestIdentifier: state.contestIdentifier || "",
             soloContestInfo: state.soloContestInfo
               ? {
@@ -1587,6 +1594,8 @@ function restoreContestProgressState(contestInfo, initialScoring = null) {
   state.lieu = scoring.lieu || "";
   state.sessionDate = scoring.sessionDate || "";
   state.sessionTime = scoring.sessionTime || "";
+  state.sessionStartedAt = scoring.sessionStartedAt || "";
+  state.historyEntryArchivedAt = scoring.historyEntryArchivedAt || "";
   state.contestIdentifier = scoring.contestIdentifier || "";
   state.soloContestInfo = scoring.soloContestInfo && typeof scoring.soloContestInfo === "object"
     ? {
@@ -1719,6 +1728,8 @@ function restorePersistedState() {
   state.lieu = saved.lieu || "";
   state.sessionDate = saved.sessionDate || "";
   state.sessionTime = saved.sessionTime || "";
+  state.sessionStartedAt = saved.sessionStartedAt || "";
+  state.historyEntryArchivedAt = saved.historyEntryArchivedAt || "";
   state.contestIdentifier = saved.contestIdentifier || "";
   state.soloContestInfo = saved.soloContestInfo && typeof saved.soloContestInfo === "object"
     ? {
@@ -2350,6 +2361,7 @@ function registerScore(score) {
       }
 
       // Save immediately when a full volley is validated.
+      updateSoloHistoryEntryFromCurrentSession();
       persistAppState();
 
       if (state.soloContestInfo?.uuid) {
@@ -2375,7 +2387,7 @@ function registerScore(score) {
         state.resultsPayload = buildResultsPayload();
         if (state.resultsPayload && !state.completionArchived) {
           if (!state.contestMode) {
-            state.resultsPayload = addHistoryEntry(state.resultsPayload) || state.resultsPayload;
+            state.resultsPayload = updateSoloHistoryEntryFromCurrentSession() || state.resultsPayload;
             showFlashInfo("Parcours enregistré dans l'historique.");
           } else {
             showFlashInfo("Concours terminé.");
@@ -2452,6 +2464,8 @@ async function deleteVolleyAt(index) {
   state.resultsPayload = null;
   state.completionArchived = false;
   refreshScoringView();
+  updateSoloHistoryEntryFromCurrentSession();
+  persistAppState();
   if (state.soloContestInfo?.uuid) {
     void syncSoloContestUserProgress();
   }
@@ -2473,6 +2487,8 @@ function stepBackOneArrow() {
     state.resultsPayload = null;
     state.completionArchived = false;
     refreshScoringView();
+    updateSoloHistoryEntryFromCurrentSession();
+    persistAppState();
     return;
   }
 
@@ -2489,6 +2505,8 @@ function stepBackOneArrow() {
   state.resultsPayload = null;
   state.completionArchived = false;
   refreshScoringView();
+  updateSoloHistoryEntryFromCurrentSession();
+  persistAppState();
   if (state.soloContestInfo?.uuid) {
     void syncSoloContestUserProgress();
   }
@@ -3140,6 +3158,8 @@ function startScoring() {
   state.lieu = els.lieuInput ? els.lieuInput.value.trim() : "";
   state.sessionDate = els.sessionDateInput ? els.sessionDateInput.value : "";
   state.sessionTime = els.sessionTimeInput ? els.sessionTimeInput.value : "";
+  state.sessionStartedAt = new Date().toISOString();
+  state.historyEntryArchivedAt = "";
   state.contestIdentifier = els.contestIdentifierInput ? els.contestIdentifierInput.value.trim() : "";
   if (state.contestMode) {
     state.soloContestInfo = null;
@@ -3184,6 +3204,15 @@ function startScoring() {
 }
 
 async function handleStartScoring() {
+  if (pendingSoloResumeArchivedAt) {
+    const entry = loadHistoryEntries().find((item) => item.archivedAt === pendingSoloResumeArchivedAt);
+    if (entry && restoreIncompleteSoloSession(entry)) {
+      return;
+    }
+    pendingSoloResumeArchivedAt = "";
+    setStartButtonResumeMode(false);
+  }
+
   if (!state.contestMode) {
     syncSessionDateTimeForSoloMode();
   }
@@ -3414,7 +3443,7 @@ function buildResultsPayload() {
   });
 
   return {
-    generatedAt: new Date().toISOString(),
+    generatedAt: state.sessionStartedAt || new Date().toISOString(),
     ruleset: state.activeRuleset,
     scoringMode: state.scoringMode,
     weapon: state.weapon || "",
@@ -3430,6 +3459,7 @@ function buildResultsPayload() {
     targetCount: state.targetCount,
     arrowsPerVolley: state.arrowsPerVolley,
     successZone: state.successZone,
+    completed: state.targetCount > 0 && state.shoots.length === state.targetCount,
     total,
     avgVolley: Number(avgshoot.toFixed(2)),
     avgArrow: Number(avgArrow.toFixed(2)),
@@ -4864,6 +4894,7 @@ function renderGeneralStatsModal() {
   }
 
   const entries = loadHistoryEntries().filter((entry) => {
+    if (entry.completed === false) return false;
     if (selectedRuleset !== "all" && entry.ruleset !== selectedRuleset) return false;
     if (selectedWeapon !== "all" && entry.weapon !== selectedWeapon) return false;
     if (selectedSessionType !== "all" && normalizeSoloSessionType(entry.soloSessionType) !== selectedSessionType) return false;
@@ -5013,9 +5044,277 @@ function saveHistoryEntries(entries) {
         soloSessionType: normalizeSoloSessionType(entry.soloSessionType),
       }));
     window.localStorage.setItem(HISTORY_KEY, JSON.stringify(normalizedEntries.slice(0, MAX_HISTORY_ITEMS)));
+    syncSoloResumeAvailabilityAfterHistoryChange(normalizedEntries);
   } catch {
     // Ignore storage failures.
   }
+}
+
+function syncSoloResumeAvailabilityAfterHistoryChange(entries) {
+  const hasIncompleteSession = entries.some((entry) => (
+    entry
+    && entry.completed === false
+    && presets[entry.ruleset]
+    && Array.isArray(entry.volleys)
+    && entry.volleys.length > 0
+  ));
+
+  if (hasIncompleteSession) return;
+
+  pendingSoloResumeArchivedAt = "";
+  setStartButtonResumeMode(false);
+}
+
+function getHistoryEntryUpdateDate(entry) {
+  return new Date(entry?.updatedAt || entry?.archivedAt || entry?.generatedAt || 0).getTime();
+}
+
+function getLatestIncompleteSoloHistoryEntry() {
+  return loadHistoryEntries()
+    .filter((entry) => (
+      entry
+      && entry.completed === false
+      && presets[entry.ruleset]
+      && Array.isArray(entry.volleys)
+      && entry.volleys.length > 0
+    ))
+    .sort((a, b) => getHistoryEntryUpdateDate(b) - getHistoryEntryUpdateDate(a))[0] || null;
+}
+
+function setStartButtonResumeMode(shouldResume) {
+  if (!els.startBtn) return;
+  const label = shouldResume ? "Reprendre" : "Démarrer";
+  const icon = els.startBtn.querySelector("svg");
+  els.startBtn.replaceChildren(document.createTextNode(label));
+  if (icon) {
+    els.startBtn.appendChild(icon);
+  }
+  els.startBtn.setAttribute("aria-label", shouldResume ? "Reprendre la saisie" : "Démarrer la saisie");
+  els.soloResetIncompleteBtn?.classList.toggle("hidden", !shouldResume);
+  setSoloSetupReadOnly(shouldResume);
+}
+
+function setSoloSetupReadOnly(isReadOnly) {
+  const controls = [
+    els.rulesetSelect,
+    els.weaponSelect,
+    els.successZoneInput,
+    els.lieuInput,
+    els.sessionDateInput,
+    els.sessionTimeInput,
+    els.contestIdentifierInput,
+    els.soloBeepsPreparationInput,
+    els.soloBeepsTiringInput,
+    ...els.scoringModeInputs,
+    ...els.useTargetGroupsInputs,
+    ...els.soloSessionTypeInputs,
+    ...els.useTimerInputs,
+    ...els.showScoresInputs,
+  ].filter(Boolean);
+
+  controls.forEach((control) => {
+    control.disabled = Boolean(isReadOnly);
+  });
+
+  els.setupCard?.classList.toggle("is-readonly", Boolean(isReadOnly));
+
+  if (!isReadOnly) {
+    syncScoringModeFieldset();
+    updateWeaponSelectVisibility();
+    updateUseTimerVisibility();
+  }
+}
+
+function cancelPendingSoloResume() {
+  if (applyingSoloResumeSetup) return;
+  pendingSoloResumeArchivedAt = "";
+  setStartButtonResumeMode(false);
+}
+
+async function resetPendingSoloSession() {
+  const archivedAt = pendingSoloResumeArchivedAt || getLatestIncompleteSoloHistoryEntry()?.archivedAt || "";
+  if (!archivedAt) {
+    setStartButtonResumeMode(false);
+    return;
+  }
+
+  const confirmed = await confirmAction(
+    "Supprimer cette session non terminée ? Les scores saisis seront supprimés.",
+    "Supprimer",
+  );
+  if (!confirmed) return;
+
+  const entries = loadHistoryEntries().filter((entry) => entry.archivedAt !== archivedAt);
+  saveHistoryEntries(entries);
+  pendingSoloResumeArchivedAt = "";
+  clearPersistedState();
+  persistAppState();
+  showFlashInfo("Session non terminée supprimée.");
+}
+
+function setYesNoInputs(inputs, value) {
+  const targetValue = value ? "yes" : "no";
+  const input = [...inputs].find((item) => item.value === targetValue);
+  if (input) input.checked = true;
+}
+
+function applyIncompleteSoloSessionToSetup(entry) {
+  if (!entry || !presets[entry.ruleset]) return false;
+
+  applyingSoloResumeSetup = true;
+  try {
+    els.rulesetSelect.value = entry.ruleset;
+    syncScoringModeFieldset();
+
+    const scoringMode = normalizeScoringMode(entry.scoringMode, entry.ruleset);
+    els.scoringModeInputs.forEach((input) => {
+      input.checked = input.value === scoringMode;
+    });
+    syncWeaponSelectOptions(entry.weapon || null);
+    updateWeaponSelectVisibility();
+    updateUseTimerVisibility();
+    syncTargetCountDisplay();
+
+    const maxZone = getMaxSuccessZoneForSetup();
+    els.successZoneInput.max = String(maxZone);
+    const successZone = Number.parseInt(entry.successZone, 10);
+    if (Number.isInteger(successZone) && successZone >= 1) {
+      els.successZoneInput.value = String(Math.min(maxZone, successZone));
+    }
+    if (els.lieuInput) els.lieuInput.value = entry.lieu || "";
+    if (els.sessionDateInput) els.sessionDateInput.value = entry.sessionDate || "";
+    if (els.sessionTimeInput) els.sessionTimeInput.value = entry.sessionTime || "";
+    if (els.contestIdentifierInput) els.contestIdentifierInput.value = entry.contestIdentifier || "";
+
+    setYesNoInputs(els.useTargetGroupsInputs, typeof entry.useTargetGroups === "boolean" ? entry.useTargetGroups : true);
+    syncSoloSessionTypeInputs(entry.soloSessionType);
+    syncSoloTimerModeInputs(entry.timerMode || entry.useTimer);
+    setYesNoInputs(els.showScoresInputs, typeof entry.showScores === "boolean" ? entry.showScores : true);
+    updateContestIdentifierVisibility();
+    updateSuccessZoneSlider();
+  } finally {
+    applyingSoloResumeSetup = false;
+  }
+
+  pendingSoloResumeArchivedAt = entry.archivedAt || "";
+  setStartButtonResumeMode(Boolean(pendingSoloResumeArchivedAt));
+  return Boolean(pendingSoloResumeArchivedAt);
+}
+
+function restoreIncompleteSoloSession(entry) {
+  if (!entry || !presets[entry.ruleset]) return false;
+
+  const scoringMode = normalizeScoringMode(entry.scoringMode, entry.ruleset);
+  const arrowsPerVolley = Number.isInteger(entry.arrowsPerVolley)
+    ? entry.arrowsPerVolley
+    : getArrowsPerVolley(entry.ruleset, scoringMode);
+  const restoredVolleys = (entry.volleys || [])
+    .map((volley) => ({
+      arrows: Array.isArray(volley?.arrows) ? [...volley.arrows] : [],
+      group: typeof volley?.group === "string" ? volley.group : "",
+    }))
+    .filter((volley) => volley.arrows.length === arrowsPerVolley);
+
+  if (restoredVolleys.length === 0) return false;
+
+  state.contestMode = false;
+  state.contestInfo = null;
+  state.targetCount = Number.isInteger(entry.targetCount) ? entry.targetCount : getTargetCountForRuleset(entry.ruleset);
+  state.successZone = Number.isInteger(entry.successZone) ? entry.successZone : 1;
+  state.lieu = entry.lieu || "";
+  state.sessionDate = entry.sessionDate || "";
+  state.sessionTime = entry.sessionTime || "";
+  state.sessionStartedAt = entry.generatedAt || new Date().toISOString();
+  state.historyEntryArchivedAt = entry.archivedAt || "";
+  state.contestIdentifier = entry.contestIdentifier || "";
+  state.soloContestInfo = null;
+  state.soloContestParticipant = null;
+  state.activeRuleset = entry.ruleset;
+  state.scoringMode = scoringMode;
+  state.weapon = isWeaponAllowedForRuleset(entry.weapon || "", entry.ruleset)
+    ? entry.weapon
+    : getWeaponsForRuleset(entry.ruleset)[0];
+  state.useTargetGroups = typeof entry.useTargetGroups === "boolean" ? entry.useTargetGroups : true;
+  state.soloSessionType = normalizeSoloSessionType(entry.soloSessionType);
+  state.soloTimerMode = normalizeSoloTimerMode(entry.timerMode, normalizeSoloTimerMode(entry.useTimer));
+  state.showScores = typeof entry.showScores === "boolean" ? entry.showScores : true;
+  state.arrowsPerVolley = arrowsPerVolley;
+  state.allowedPoints = Array.isArray(entry.allowedPoints) && entry.allowedPoints.length
+    ? [...entry.allowedPoints]
+    : [...presets[entry.ruleset]];
+  state.shoots = restoredVolleys.map((volley) => [...volley.arrows]);
+  state.shootGroups = restoredVolleys.map((volley) => volley.group || "");
+  state.resultsPayload = null;
+  state.activeStatsPayload = null;
+  state.progressionAxis = entry.progressionAxis || "";
+  state.soloTimerVolleyIndex = null;
+  state.completionArchived = false;
+  state.editingVolleyIndex = null;
+  state.lastEditedVolleyIndex = null;
+  state.inputLocked = false;
+  resetRoundBuffer();
+  syncTargetGroupSelect();
+
+  pendingSoloResumeArchivedAt = "";
+  setStartButtonResumeMode(false);
+
+  els.setupCard.classList.add("hidden");
+  els.scoringCard.classList.remove("hidden");
+  els.homeScreen.classList.add("hidden");
+  closeStatsModal();
+  closeHelpModal();
+  refreshScoringView({ scrollHistory: true, scrollCard: true });
+  updateSoloHistoryEntryFromCurrentSession();
+  persistAppState();
+  showFlashInfo("Session reprise.");
+  return true;
+}
+
+function removeCurrentSoloHistoryEntry() {
+  if (!state.historyEntryArchivedAt) return;
+  const entries = loadHistoryEntries().filter((entry) => entry.archivedAt !== state.historyEntryArchivedAt);
+  state.historyEntryArchivedAt = "";
+  saveHistoryEntries(entries);
+}
+
+function updateSoloHistoryEntryFromCurrentSession() {
+  if (state.contestMode) return null;
+
+  if (state.shoots.length === 0) {
+    removeCurrentSoloHistoryEntry();
+    state.resultsPayload = null;
+    return null;
+  }
+
+  const payload = buildResultsPayload();
+  if (!payload) return null;
+
+  const entries = loadHistoryEntries();
+  const existingIndex = entries.findIndex((entry) => {
+    if (state.historyEntryArchivedAt && entry.archivedAt === state.historyEntryArchivedAt) return true;
+    if (!state.historyEntryArchivedAt && entry.generatedAt === payload.generatedAt) return true;
+    return false;
+  });
+  const previousEntry = existingIndex >= 0 ? entries[existingIndex] : null;
+  const archivedAt = previousEntry?.archivedAt || state.historyEntryArchivedAt || new Date().toISOString();
+  const entry = {
+    ...(previousEntry || {}),
+    ...payload,
+    archivedAt,
+    updatedAt: new Date().toISOString(),
+  };
+
+  state.historyEntryArchivedAt = archivedAt;
+  state.resultsPayload = entry;
+
+  if (existingIndex >= 0) {
+    entries[existingIndex] = entry;
+    saveHistoryEntries(entries);
+  } else {
+    saveHistoryEntries([entry, ...entries]);
+  }
+
+  return entry;
 }
 
 function updateHistoryEntryProgressionAxis(payload, progressionAxis) {
@@ -5040,19 +5339,16 @@ function updateHistoryEntryProgressionAxis(payload, progressionAxis) {
   return true;
 }
 
-function addHistoryEntry(payload) {
-  const entries = loadHistoryEntries();
-  const entry = { ...payload, archivedAt: new Date().toISOString() };
-  saveHistoryEntries([entry, ...entries]);
-  return entry;
-}
-
 async function removeHistoryEntry(archivedAt) {
   const confirmed = await confirmAction("Confirmer la suppression de ce parcours de l'historique ?", "Supprimer");
   if (!confirmed) {
     return;
   }
   const entries = loadHistoryEntries().filter((entry) => entry.archivedAt !== archivedAt);
+  if (pendingSoloResumeArchivedAt === archivedAt) {
+    pendingSoloResumeArchivedAt = "";
+    setStartButtonResumeMode(false);
+  }
   saveHistoryEntries(entries);
   renderHistoryList();
 }
@@ -8803,6 +9099,8 @@ function restart() {
   state.resultsPayload = null;
   state.progressionAxis = "";
   state.soloTimerVolleyIndex = null;
+  state.sessionStartedAt = "";
+  state.historyEntryArchivedAt = "";
   state.editingVolleyIndex = null;
   state.lastEditedVolleyIndex = null;
   state.inputLocked = false;
@@ -8810,6 +9108,8 @@ function restart() {
   state.contestInfo = null;
   state.soloContestInfo = null;
   state.soloContestParticipant = null;
+  pendingSoloResumeArchivedAt = "";
+  setStartButtonResumeMode(false);
   resetRoundBuffer();
   closeSoloContestParticipantModal();
   closeStatsModal();
@@ -8827,6 +9127,7 @@ function restart() {
 }
 
 els.rulesetSelect.addEventListener("change", () => {
+  cancelPendingSoloResume();
   // Save current zone for previous config before switching
   const prevWeapon = state._lastWeapon || "";
   const prevKey = `${state._lastRuleset}:${state._lastScoringMode}:${prevWeapon}`;
@@ -8858,6 +9159,7 @@ els.rulesetSelect.addEventListener("change", () => {
 });
 
 els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => {
+  cancelPendingSoloResume();
   // Save current zone for previous mode before switching
   const prevWeapon = state._lastWeapon || "";
   const prevKey = `${state._lastRuleset}:${state._lastScoringMode}:${prevWeapon}`;
@@ -8889,6 +9191,7 @@ els.scoringModeInputs.forEach((input) => input.addEventListener("change", () => 
 }));
 if (els.weaponSelect) {
   els.weaponSelect.addEventListener("change", () => {
+    cancelPendingSoloResume();
     // Save current zone for previous weapon before switching
     const prevWeapon = state._lastWeapon || "";
     const prevKey = `${state._lastRuleset}:${state._lastScoringMode}:${prevWeapon}`;
@@ -8909,29 +9212,54 @@ if (els.weaponSelect) {
     state._lastWeapon = weapon;
   });
 }
-els.successZoneInput.addEventListener("input", updateSuccessZoneSlider);
+els.successZoneInput.addEventListener("input", () => {
+  cancelPendingSoloResume();
+  updateSuccessZoneSlider();
+});
 if (els.sessionDateInput) {
-  els.sessionDateInput.addEventListener("change", persistAppState);
+  els.sessionDateInput.addEventListener("change", () => {
+    cancelPendingSoloResume();
+    persistAppState();
+  });
 }
 if (els.sessionTimeInput) {
-  els.sessionTimeInput.addEventListener("change", persistAppState);
+  els.sessionTimeInput.addEventListener("change", () => {
+    cancelPendingSoloResume();
+    persistAppState();
+  });
 }
 if (els.contestIdentifierInput) {
-  els.contestIdentifierInput.addEventListener("input", persistAppState);
+  els.contestIdentifierInput.addEventListener("input", () => {
+    cancelPendingSoloResume();
+    persistAppState();
+  });
 }
-els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", persistAppState));
+els.useTargetGroupsInputs.forEach((input) => input.addEventListener("change", () => {
+  cancelPendingSoloResume();
+  persistAppState();
+}));
 els.soloSessionTypeInputs.forEach((input) => input.addEventListener("change", () => {
+  cancelPendingSoloResume();
   updateContestIdentifierVisibility();
   persistAppState();
 }));
 els.useTimerInputs.forEach((input) => input.addEventListener("change", () => {
+  cancelPendingSoloResume();
   updateSoloBeepsSettingsVisibility();
   persistAppState();
 }));
-els.showScoresInputs.forEach((input) => input.addEventListener("change", persistAppState));
+els.showScoresInputs.forEach((input) => input.addEventListener("change", () => {
+  cancelPendingSoloResume();
+  persistAppState();
+}));
 els.startBtn.addEventListener("click", () => {
   void handleStartScoring();
 });
+if (els.soloResetIncompleteBtn) {
+  els.soloResetIncompleteBtn.addEventListener("click", () => {
+    void resetPendingSoloSession();
+  });
+}
 if (els.backSetupBtn) {
   els.backSetupBtn.addEventListener("click", restart);
 }
@@ -8941,7 +9269,15 @@ if (els.historyBtn) {
 
 function showSetupFromHome() {
   document.body.classList.add("home-underlay-active");
-    // Pre-select individual mode so the timer option is visible by default.
+  const incompleteSession = getLatestIncompleteSoloHistoryEntry();
+  if (incompleteSession && applyIncompleteSoloSessionToSetup(incompleteSession)) {
+    els.setupCard.classList.remove("hidden");
+    return;
+  }
+
+  pendingSoloResumeArchivedAt = "";
+  setStartButtonResumeMode(false);
+  // Pre-select individual mode so the timer option is visible by default.
   const individualInput = [...els.scoringModeInputs].find((i) => i.value === "individual");
   if (individualInput && !individualInput.checked && isScoringModeAllowedForRuleset("individual", els.rulesetSelect.value)) {
     els.scoringModeInputs.forEach((i) => { i.checked = i.value === "individual"; });
