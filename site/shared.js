@@ -2,6 +2,11 @@
 document.addEventListener('DOMContentLoaded', function() {
   const menuToggle = document.querySelector('.menu-toggle');
   const nav = document.querySelector('.site-nav');
+  const versionBadges = document.querySelectorAll('.site-version');
+
+  versionBadges.forEach(badge => {
+    badge.textContent = window.APP_VERSION;
+  });
 
   if (menuToggle) {
     menuToggle.addEventListener('click', function() {
@@ -29,9 +34,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Marquer le lien actuel
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  const currentHash = window.location.hash;
   navLinks.forEach(link => {
     const href = link.getAttribute('href');
-    if (href === currentPage || (currentPage === '' && href === 'index.html')) {
+    const url = new URL(href, window.location.href);
+    const linkPage = url.pathname.split('/').pop() || 'index.html';
+    const linkHash = url.hash;
+    const isSamePage = linkPage === currentPage || (currentPage === '' && linkPage === 'index.html');
+    const isHashMatch = linkHash ? linkHash === currentHash : !currentHash;
+    if (isSamePage && isHashMatch) {
       link.classList.add('active');
     }
   });

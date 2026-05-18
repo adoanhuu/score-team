@@ -1,4 +1,4 @@
-# Archery Team Score Arc
+# Capi Scoring Arc
 
 Application web mobile pour saisir les scores d'une équipe sur un parcours Nature, Campagne ou 3D en tir à l'arc.
 

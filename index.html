@@ -16,6 +16,7 @@
   <body>
     <section id="home-screen" class="home-screen" role="main" aria-label="Accueil">
       <header class="home-header">
+        <span id="app-version" class="home-header-version" aria-label="Version"></span>
         <div class="home-header-wrapper">
         <img src="icons/icon.png" alt="Capi Scoring" class="home-logo" />
         <div class="home-header-text">
@@ -284,6 +285,12 @@
             Démarrer
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+            </svg>
+          </button>
+          <button id="solo-reset-incomplete-btn" class="btn btn-primary btn-icon start-btn start-reset-btn hidden" aria-label="Supprimer la session non terminée">
+            Supprimer
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h2v9H7V9Zm4 0h2v9h-2V9Zm4 0h2v9h-2V9ZM6 7h12l-1 14H7L6 7Z" fill="currentColor" />
             </svg>
           </button>
         </div>
@@ -993,9 +1000,6 @@
                       <span id="training-target-score-tens" class="training-volume-digit">5</span>
                       <span id="training-target-score-units" class="training-volume-digit">1</span>
                     </div>
-                    <div class="training-target-score-meta">
-                      <span id="training-target-score-result">75%</span>
-                    </div>
                   </div>
                   <div class="slider-row">
                     <input id="training-target-score-input" type="range" min="368" max="735" step="1" value="551" />
@@ -1213,7 +1217,7 @@
               <strong id="training-target-score-session-target">0</strong>
             </article>
             <article>
-              <span>Pourcentage</span>
+              <span>Progression</span>
               <strong id="training-target-score-session-percent">0%</strong>
             </article>
             <article>
@@ -1694,11 +1698,9 @@
           <p id="welcome-modal-message" class="welcome-modal-message">Bienvenue</p>
         </div>
       </section>
-      <footer class="app-footer">
-        <p>Capi Scoring &copy; 2026 Alain DOAN-HUU - <span id="app-version" class="app-footer-version"></span></p>
-      </footer>
     </main>
 
+    <script src="version.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Découvrir le Mode Multi de Capi Scoring : duel, peloton, concours et duel contre le bot Paquito.">
+  <meta name="keywords" content="mode multi, duel, peloton, concours, Paquito, scores tir à l'arc">
+  <meta name="author" content="Capi Scoring">
+  <meta property="og:title" content="Mode Multi - Capi Scoring">
+  <meta property="og:description" content="Gérez les séances à plusieurs avec duel, peloton, concours et bot Paquito.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://archery-team-score.com/mode-multi">
+  <meta property="og:image" content="../icons/icon-maskable-192.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Mode Multi - Capi Scoring">
+  <meta name="twitter:description" content="Duel, peloton, concours et bot Paquito">
+  <title>Mode Multi - Capi Scoring</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <div class="site-wrapper">
+    <!-- En-tête -->
+    <header class="site-header">
+      <span class="site-version" aria-label="Version"></span>
+      <div class="header-content">
+        <a href="index.html" class="header-logo">
+          <img src="../icons/icon-maskable-192.png" alt="Capi Scoring">
+          Capi Scoring
+        </a>
+        <button class="menu-toggle" aria-label="Toggle menu">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z"/>
+          </svg>
+        </button>
+        <nav class="site-nav">
+          <a href="index.html">Accueil</a>
+          <a href="nouvelle-session.html">Nouvelle session</a>
+          <a href="saisie-scores.html">Saisie des scores</a>
+          <a href="statistiques.html">Statistiques</a>
+          <a href="mode-multi.html">Mode Multi</a>
+          <a href="entrainement.html">Entraînement</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Contenu principal -->
+    <main class="site-main">
+      <div class="page-content">
+        <h1>
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5ZM8 13c-2.67 0-8 1.34-8 4v2h7v-2.5c0-.95.37-1.81 1.05-2.56-.02-.3-.03-.6-.05-.94Z"/>
+          </svg>
+          Mode Multi
+        </h1>
+
+        <p>Le <strong>Mode Multi</strong> regroupe les modes pensés pour tirer à plusieurs, suivre un duel ou simuler un adversaire. Il se choisit lors de la création d'une nouvelle session.</p>
+
+        <div class="explanation-grid">
+          <div class="explanation-card">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 3h10v2H7V3Zm-2 4h14v2H5V7Zm2 4h4v10H7V11Zm6 0h4v10h-4V11Z"/>
+              </svg>
+              Duel
+            </h3>
+            <p>Le duel met deux archers face à face sur une même session. Chaque archer conserve son historique et son total, ce qui permet de suivre l'écart cible après cible.</p>
+          </div>
+
+          <div class="explanation-card">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M5 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm7 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm7 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM2 19v-2c0-2 2-4 4.5-4S11 15 11 17v2H2Zm10 0v-2c0-1.1-.36-2.12-.97-3 1.02-.64 2.08-1 2.97-1 2.5 0 4.5 2 4.5 4v2H12Zm6 0v-2c0-1.48-.68-2.82-1.74-3.74.45-.17.9-.26 1.24-.26 2.5 0 4.5 2 4.5 4v2h-4Z"/>
+              </svg>
+              Peloton
+            </h3>
+            <p>Le peloton sert à saisir les scores de plusieurs archers sur une interface commune. Il est adapté aux groupes qui avancent ensemble sur le parcours.</p>
+          </div>
+
+          <div class="explanation-card">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M4 3h14l-1.5 4L18 11H4v10H2V3h2Zm2 2v4h9.1l-.8-2 .8-2H6Zm5 9h10v2H11v-2Zm0 4h7v2h-7v-2Z"/>
+              </svg>
+              Concours
+            </h3>
+            <p>Le mode concours permet de rejoindre ou de suivre une session de concours. Il facilite la saisie collective et le suivi d'une session partagée.</p>
+          </div>
+
+          <div class="explanation-card">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-6a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4Zm-2 5h4V6a2 2 0 1 0-4 0v1Zm-1 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm6 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm-5 3v2h4v-2h-4Z"/>
+              </svg>
+              Paquito
+            </h3>
+            <p>Paquito est le bot du mode duel. Il joue le rôle du deuxième archer et son niveau se règle avec un slider pour adapter la difficulté.</p>
+          </div>
+        </div>
+
+        <h2>Duel contre Paquito</h2>
+        <p>Pour activer Paquito, créez un duel et utilisez <strong>Paquito</strong> comme deuxième archer. Le bot tire automatiquement selon le niveau choisi.</p>
+        <ul>
+          <li><strong>Pro</strong> : aucune flèche sous 5 points.</li>
+          <li><strong>Expert</strong> : jamais de double paille sur une même cible.</li>
+          <li><strong>Élite</strong> : aucune flèche sous 8 points.</li>
+        </ul>
+
+        <h2>Quand utiliser chaque item ?</h2>
+        <ul>
+          <li><strong>Duel</strong> : pour comparer deux archers ou créer une opposition directe.</li>
+          <li><strong>Peloton</strong> : pour noter un groupe complet qui tire sur le même parcours.</li>
+          <li><strong>Concours</strong> : pour une session organisée ou partagée avec d'autres participants.</li>
+          <li><strong>Paquito</strong> : pour s'entraîner seul avec un adversaire virtuel.</li>
+        </ul>
+
+        <div style="background: var(--light-blue); padding: 16px; border-radius: 12px; margin: 24px 0;">
+          <p style="margin-top: 0;"><strong>Conseil</strong> : Si vous hésitez, commencez par <strong>Duel</strong> pour deux archers, ou <strong>Peloton</strong> dès que le groupe contient plus de deux tireurs.</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Pied de page -->
+    <footer class="site-footer">
+      <div class="footer-content">
+        <p>&copy; 2026 Capi Scoring. Application dédiée aux archers de parcours.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="../version.js"></script>
+  <script src="shared.js"></script>
+</body>
+</html>

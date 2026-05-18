@@ -5,26 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Saisie des scores de tir à l'arc - Codes des armes FFTA et FFTL, conseils rapides et points par parcours.">
   <meta name="keywords" content="saisie scores, codes armes, archery, FFTA, FFTL, tir à l'arc">
-  <meta name="author" content="Archery Team Score">
-  <meta property="og:title" content="Saisie des scores - Archery Team Score">
+  <meta name="author" content="Capi Scoring">
+  <meta property="og:title" content="Saisie des scores - Capi Scoring">
   <meta property="og:description" content="Guide complet pour saisir vos scores avec tous les codes des armes disponibles.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://archery-team-score.com/saisie-scores">
   <meta property="og:image" content="../icons/icon-maskable-192.png">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Saisie des scores - Archery Team Score">
+  <meta name="twitter:title" content="Saisie des scores - Capi Scoring">
   <meta name="twitter:description" content="Codes des armes et guide de saisie">
-  <title>Saisie des Scores - Archery Team Score</title>
+  <title>Saisie des Scores - Capi Scoring</title>
   <link rel="stylesheet" href="shared.css">
 </head>
 <body>
   <div class="site-wrapper">
     <!-- En-tête -->
     <header class="site-header">
+      <span class="site-version" aria-label="Version"></span>
       <div class="header-content">
         <a href="index.html" class="header-logo">
-          <img src="../icons/icon-maskable-192.png" alt="Archery Team Score">
-          Archery Team Score
+          <img src="../icons/icon-maskable-192.png" alt="Capi Scoring">
+          Capi Scoring
         </a>
         <button class="menu-toggle" aria-label="Toggle menu">
           <svg viewBox="0 0 24 24" fill="currentColor">
@@ -36,6 +37,8 @@
           <a href="nouvelle-session.html">Nouvelle session</a>
           <a href="saisie-scores.html">Saisie des scores</a>
           <a href="statistiques.html">Statistiques</a>
+          <a href="mode-multi.html">Mode Multi</a>
+          <a href="entrainement.html">Entraînement</a>
         </nav>
       </div>
     </header>
@@ -86,9 +89,27 @@
               </svg>
               Historique en direct
             </h3>
-            <p>Affiche l'ensemble des voléées de votre session. Les scores sont modifiables ou supprimables à tout moment.</p>
+            <p>Affiche l'ensemble des volées de votre session. Les scores sont modifiables ou supprimables à tout moment.</p>
           </div>
         </div>
+
+        <h2>Exercice Score cible</h2>
+        <p>L'exercice <strong>Score cible</strong> utilise une popin de saisie dédiée. En haut, trois cadres affichent :</p>
+        <ul>
+          <li><strong>Score</strong> : le total des scores déjà saisis dans l'historique.</li>
+          <li><strong>Progression</strong> : le rapport entre le score actuel et le score cible.</li>
+          <li><strong>Cible</strong> : la cible actuellement tirée.</li>
+        </ul>
+        <p>L'historique est présenté du plus récent au plus ancien. Le bloc de saisie reste accessible en bas de la popin et la saisie s'arrête automatiquement lorsque le score cible est atteint ou dépassé.</p>
+        <p>Le nombre de cibles du parcours sert à calculer le score cible, mais il ne bloque pas la saisie : si l'objectif n'est pas atteint, vous pouvez continuer sur les cibles suivantes.</p>
+
+        <h2>Mode duel contre Paquito</h2>
+        <p>En Mode Multi, saisissez <strong>Paquito</strong> comme deuxième archer pour activer le bot. Un slider permet de choisir son niveau.</p>
+        <ul>
+          <li><strong>Pro</strong> : Paquito ne tire pas de flèche sous 5 points.</li>
+          <li><strong>Expert</strong> : Paquito peut faire une paille, mais jamais une double paille sur la même cible.</li>
+          <li><strong>Élite</strong> : Paquito ne tire pas de flèche sous 8 points.</li>
+        </ul>
 
         <h2>Codes des armes FFTA</h2>
         <table class="codes-table">
@@ -245,11 +266,12 @@
     <!-- Pied de page -->
     <footer class="site-footer">
       <div class="footer-content">
-        <p>&copy; 2026 Archery Team Score. Application dédiée aux archers de parcours.</p>
+        <p>&copy; 2026 Capi Scoring. Application dédiée aux archers de parcours.</p>
       </div>
     </footer>
   </div>
 
+  <script src="../version.js"></script>
   <script src="shared.js"></script>
 </body>
 </html>

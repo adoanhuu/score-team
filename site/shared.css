@@ -56,12 +56,24 @@ a {
   flex-direction: column;
 }
 
+.site-version {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.9;
+}
+
 .header-content {
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
   gap: 16px;
   padding: 14px;
@@ -70,11 +82,13 @@ a {
 .header-logo {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   text-decoration: none;
   color: white;
   font-weight: 700;
   font-size: 2.2rem;
+  text-align: center;
   transition: all 0.3s ease;
 }
 
@@ -86,21 +100,6 @@ a {
 
 .header-logo:hover {
   color: #8fb0e0;
-}
-
-.home-page .header-content {
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.home-page .header-logo {
-  justify-content: center;
-  text-align: center;
-}
-
-.home-page .site-nav {
-  margin: 0;
 }
 
 /* Menu toggle button */
@@ -130,8 +129,8 @@ a {
   display: flex;
   gap: 4px;
   padding-right: 2px;
-  width: min(600px, 100%);
-  margin: 0 0 -70px auto;
+  width: min(1000px, 100%);
+  margin: 0 0 -14px 0;
   background: white;
 }
 
@@ -271,6 +270,13 @@ a {
 .explanation-card p:last-child {
   margin-top: auto;
   text-align: right;
+}
+
+.explanation-card .feature-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 
 .explanation-card h3 {
