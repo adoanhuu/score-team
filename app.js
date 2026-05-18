@@ -1,6 +1,5 @@
 const ARROWS_PER_VOLLEY = 6;
 const TEAM_ARCHERS_PER_VOLLEY = 3;
-const APP_VERSION = "v2.5.3";
 const LAST_SCORE_PREVIEW_MS = 300;
 const AUTO_SAVE_KEY = "score-team-autosave-v1";
 const HISTORY_KEY = "score-team-history-v1";
@@ -9940,7 +9939,7 @@ syncWeaponSelectOptions();
 updateWeaponSelectVisibility();
 updateUseTimerVisibility();
 if (els.appVersion) {
-  els.appVersion.textContent = APP_VERSION;
+  els.appVersion.textContent = window.APP_VERSION;
 }
 state._lastRuleset = els.rulesetSelect.value;
 state._lastScoringMode = getSelectedScoringMode();
@@ -10015,7 +10014,7 @@ if ("serviceWorker" in navigator) {
     }
 
     navigator.serviceWorker
-      .register(`/service-worker.js?v=${encodeURIComponent(APP_VERSION)}`, {
+      .register(`/service-worker.js?v=${encodeURIComponent(window.APP_VERSION)}`, {
         scope: "/",
         updateViaCache: "none",
       })

@@ -1,5 +1,3 @@
-const SITE_VERSION = 'v2.5.3';
-
 // Gestion du menu responsive
 document.addEventListener('DOMContentLoaded', function() {
   const menuToggle = document.querySelector('.menu-toggle');
@@ -7,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const versionBadges = document.querySelectorAll('.site-version');
 
   versionBadges.forEach(badge => {
-    badge.textContent = SITE_VERSION;
+    badge.textContent = window.APP_VERSION;
   });
 
   if (menuToggle) {
