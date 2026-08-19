@@ -1,4 +1,4 @@
-.PHONY: dev dev-down deploy db-migrate remote-db-migrate remote select-users select-user insert-user delete-user hash-password set-user-password remote-select-users remote-select-user remote-update-user-token remote-delete-user remote-insert-user remote-delete-session remote-update-password remote-set-user-password remote-exec select-sessions remote-select-sessions select-contests select-contest insert-contest delete-contest remote-select-contests remote-select-contest remote-insert-contest remote-delete-contest select-contests-users select-contests-user insert-contests-user update-contest-user update-contests-user delete-contests-user remote-select-contests-users remote-select-contests-user remote-insert-contests-user remote-update-contests-user remote-delete-contests-user
+.PHONY: dev dev-down deploy db-migrate remote-db-migrate remote select-users select-user insert-user delete-user hash-password set-user-password remote-select-users remote-select-user remote-update-user-token remote-delete-user remote-insert-user remote-delete-session remote-update-password remote-set-user-password remote-exec select-sessions remote-select-sessions select-contests select-contest insert-contest delete-contest remote-select-contests remote-select-contest remote-insert-contest remote-delete-contest select-contests-users select-contests-user insert-contests-user update-contest-user update-contests-user delete-contests-user remote-select-contests-users remote-select-contests-user remote-insert-contests-user remote-update-contests-user remote-delete-contests-user import-sessions remote-import-sessions
 
 REMOTE_WRANGLER_CONFIG ?= wrangler.local.toml
 REMOTE_D1_DATABASE ?= score-team
@@ -30,7 +30,7 @@ select-users:
 		echo "Local D1 database not found. Run 'make db-migrate-local' first."; \
 		exit 1; \
 	fi; \
-	sqlite3 -header -column "$$db_path" "SELECT id, first_name, last_name, email, configuration FROM users;"
+	sqlite3 -header -column "$$db_path" "SELECT id, first_name, last_name, email, password_hash, configuration FROM users;"
 
 select-user:
 	@if [ -z "$(EMAIL)" ]; then \
@@ -43,7 +43,7 @@ select-user:
 		exit 1; \
 	fi; \
 	email_escaped="$$(printf '%s' "$(EMAIL)" | sed "s/'/''/g")"; \
-	sqlite3 -header -column "$$db_path" "SELECT id, first_name, last_name, email, created_at, token, token_created_at FROM users WHERE email = '$$email_escaped';"
+	sqlite3 -header -column "$$db_path" "SELECT id, first_name, last_name, email, password_hash, created_at, token, token_created_at FROM users WHERE email = '$$email_escaped';"
 
 insert-user:
 	@if [ -z "$(FIRST_NAME)" ] || [ -z "$(LAST_NAME)" ] || [ -z "$(EMAIL)" ] || { [ -z "$(PASSWORD_HASH)" ] && [ -z "$(PASSWORD_HASH_FILE)" ]; }; then \
@@ -221,6 +221,53 @@ remote-select-sessions:
 	fi; \
 	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) \
 		--command "SELECT s.id, u.email, s.date, s.time, json_extract(s.data_json, '$$.ruleset') AS ruleset, json_extract(s.data_json, '$$.weapon') AS weapon, json_extract(s.data_json, '$$.total') AS total, s.created_at FROM sessions s JOIN users u ON s.user_id = u.id$$user_filter ORDER BY s.date DESC, s.time DESC;"
+
+import-sessions:
+	@if [ -z "$(EMAIL)" ] || [ -z "$(FILE)" ]; then \
+		echo "Usage: make import-sessions EMAIL=user@example.com FILE=./export.json"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(FILE)" ]; then \
+		echo "File not found: $(FILE)"; \
+		exit 1; \
+	fi
+	@db_path="$$(find .wrangler/state/v3/d1/miniflare-D1DatabaseObject -name '*.sqlite' | head -n 1)"; \
+	if [ -z "$$db_path" ]; then \
+		echo "Local D1 database not found. Run 'make db-migrate' first."; \
+		exit 1; \
+	fi; \
+	email_escaped="$$(printf '%s' "$(EMAIL)" | sed "s/'/''/g")"; \
+	user_id="$$(sqlite3 "$$db_path" "SELECT id FROM users WHERE email = '$$email_escaped' LIMIT 1;")"; \
+	if [ -z "$$user_id" ]; then \
+		echo "No user found for email $(EMAIL)"; \
+		exit 1; \
+	fi; \
+	sql_file="$$(mktemp)"; \
+	USER_ID="$$user_id" INPUT_FILE="$(FILE)" node scripts/generate-sessions-sql.js > "$$sql_file" || { rm -f "$$sql_file"; exit 1; }; \
+	sqlite3 "$$db_path" < "$$sql_file"; \
+	rm -f "$$sql_file"; \
+	echo "Imported sessions from $(FILE) for $(EMAIL) (user_id=$$user_id)."
+
+remote-import-sessions:
+	@if [ -z "$(EMAIL)" ] || [ -z "$(FILE)" ]; then \
+		echo "Usage: make remote-import-sessions EMAIL=user@example.com FILE=./export.json [REMOTE_WRANGLER_CONFIG=wrangler.local.toml] [REMOTE_D1_DATABASE=score-team]"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(FILE)" ]; then \
+		echo "File not found: $(FILE)"; \
+		exit 1; \
+	fi
+	@email_escaped="$$(printf '%s' "$(EMAIL)" | sed "s/'/''/g")"; \
+	user_id="$$(npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) --json --command "SELECT id FROM users WHERE email = '$$email_escaped' LIMIT 1;" | jq -r '.[0].results[0].id // empty')"; \
+	if [ -z "$$user_id" ]; then \
+		echo "No user found for email $(EMAIL)"; \
+		exit 1; \
+	fi; \
+	sql_file="$$(mktemp)"; \
+	USER_ID="$$user_id" INPUT_FILE="$(FILE)" node scripts/generate-sessions-sql.js > "$$sql_file" || { rm -f "$$sql_file"; exit 1; }; \
+	npx wrangler d1 execute $(REMOTE_D1_DATABASE) --remote --config $(REMOTE_WRANGLER_CONFIG) -y --file="$$sql_file"; \
+	rm -f "$$sql_file"; \
+	echo "Imported sessions from $(FILE) for $(EMAIL) (user_id=$$user_id) into remote DB."
 
 select-contests:
 	@db_path="$$(find .wrangler/state/v3/d1/miniflare-D1DatabaseObject -name '*.sqlite' | head -n 1)"; \
