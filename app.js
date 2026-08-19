@@ -6797,7 +6797,7 @@ function startTrainingCycle() {
 
   stopTrainingCycle();
   if (els.trainingHoldModalTitleText) {
-    els.trainingHoldModalTitleText.textContent = "he un enue";
+    els.trainingHoldModalTitleText.textContent = "Temps de tenue";
   }
   setTrainingMetaLabel(els.trainingHoldSeriesText, "Serie");
   setTrainingMetaLabel(els.trainingHoldRepetitionsText, "Repetition");
