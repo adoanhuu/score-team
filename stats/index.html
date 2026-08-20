@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Statistiques utilisateurs - Capi Scoring</title>
+    <link rel="icon" href="../icons/icon.png" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --ink: #1f2a24;
+        --blue: #1558c0;
+        --light-blue: #8fb0e0;
+        --light-grey: #d6c8b8;
+        --danger: #9b2226;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Nunito", "Trebuchet MS", sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+
+      header {
+        background: var(--blue);
+        color: white;
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      header a {
+        color: white;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      main {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 24px 16px;
+      }
+
+      h1 {
+        font-size: 1.4rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+        background: white;
+      }
+
+      th {
+        color: #000;
+        background-color: var(--light-blue);
+        padding: 10px 12px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 3px solid var(--blue);
+      }
+
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--light-grey);
+      }
+
+      tbody tr:nth-child(odd) {
+        background: #e6e6e6;
+      }
+
+      tbody tr:nth-child(even) {
+        background: #f0f0f0;
+      }
+
+      .message {
+        margin-top: 24px;
+        padding: 16px;
+        border-radius: 8px;
+        background: white;
+        border-left: 4px solid var(--danger);
+      }
+
+      .message a {
+        color: var(--blue);
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="../index.html">Capi Scoring</a>
+      <span>Statistiques utilisateurs</span>
+    </header>
+    <main>
+      <h1>Liste des utilisateurs</h1>
+      <div id="stats-content"></div>
+    </main>
+    <script>
+      const AUTH_TOKEN_KEY = "score-team-auth-token-v1";
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        }[ch]));
+      }
+
+      function formatDate(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "-";
+        return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+      }
+
+      function renderMessage(text) {
+        const content = document.getElementById("stats-content");
+        content.innerHTML = `<div class="message"><p>${escapeHtml(text)}</p><p><a href="../index.html">Retourner à l'accueil pour vous connecter</a></p></div>`;
+      }
+
+      function renderUsers(users) {
+        const content = document.getElementById("stats-content");
+        if (!Array.isArray(users) || users.length === 0) {
+          content.innerHTML = `<div class="message"><p>Aucun utilisateur trouvé.</p></div>`;
+          return;
+        }
+        const rows = users
+          .map(
+            (user) => `
+              <tr>
+                <td>${escapeHtml(user.first_name)}</td>
+                <td>${escapeHtml(user.last_name)}</td>
+                <td>${escapeHtml(user.email)}</td>
+                <td>${formatDate(user.created_at)}</td>
+              </tr>
+            `
+          )
+          .join("");
+        content.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Prénom</th>
+                <th>Nom</th>
+                <th>Email</th>
+                <th>Créé le</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      }
+
+      async function loadUsers() {
+        const token = window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
+        if (!token.trim()) {
+          renderMessage("Vous devez être connecté pour consulter la liste des utilisateurs.");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/users/list", {
+            headers: { authorization: `Bearer ${token}` },
+          });
+          if (!response.ok) {
+            if (response.status === 401) {
+              renderMessage("Votre session a expiré. Reconnectez-vous pour consulter la liste des utilisateurs.");
+              return;
+            }
+            renderMessage("Impossible de charger la liste des utilisateurs.");
+            return;
+          }
+          const data = await response.json().catch(() => ({}));
+          renderUsers(data?.users);
+        } catch {
+          renderMessage("Erreur réseau lors du chargement de la liste des utilisateurs.");
+        }
+      }
+
+      loadUsers();
+    </script>
+  </body>
+</html>
