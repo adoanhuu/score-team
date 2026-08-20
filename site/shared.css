@@ -314,6 +314,14 @@ a {
   border-bottom: 1px solid var(--light-grey);
 }
 
+.codes-table tbody tr:nth-child(odd) {
+  background: #e6e6e6;
+}
+
+.codes-table tbody tr:nth-child(even) {
+  background: #f0f0f0;
+}
+
 .codes-table tr:hover {
   background: #f9f6f1;
 }
