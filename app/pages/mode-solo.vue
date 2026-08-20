@@ -25,6 +25,11 @@ import type { SoloSetupValues } from "../composables/useSoloSession";
 
 const session = useSoloSession();
 const timer = useSoloTimer();
+// Instantiating useContest() here (even though scoring itself lives in useSoloSession)
+// keeps its contest-sync watcher alive while the user is actively scoring a
+// Concours-linked session (the watcher would otherwise be torn down when the
+// mode-multi.vue setup screen that first called useContest() unmounts).
+useContest();
 const { confirmAction } = useConfirm();
 const { showFlash } = useFlash();
 const { config, load: loadConfig } = useConfig();
@@ -601,6 +606,13 @@ onBeforeUnmount(() => timer.stop());
           <p v-if="session.state.value.editingVolleyIndex !== null">
             Modification de la volée
             {{ session.state.value.editingVolleyIndex + 1 }}
+          </p>
+          <p
+            v-if="session.state.value.contestMode"
+            class="contest-scoring-badge"
+          >
+            Concours : {{ session.state.value.contestInfo?.name }}
+            <NuxtLink to="/concours">Voir le concours</NuxtLink>
           </p>
         </div>
         <div class="head-actions">

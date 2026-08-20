@@ -2,8 +2,9 @@
 // `state` object + actions (registerScore/undo/edit/delete), backed by the
 // pure helpers in scoring-engine.ts and persisted incrementally to Dexie via
 // useHistory().upsert() (mirrors updateSoloHistoryEntryFromCurrentSession()).
-// Contest-mode (Concours) linking and the Peloton/Duel/Multi engines are
-// intentionally NOT ported here - out of scope for this pass.
+// Contest-mode (Concours) linking is supported via the `contestMode`/
+// `contestInfo` fields + `configureContest()` below (driven by useContest.ts);
+// the Peloton/Duel/Multi engines remain separate composables.
 import type { Ruleset } from "~/utils/scoring-format";
 import {
     presets,
@@ -32,6 +33,15 @@ export interface SoloVolley {
     group: string | null;
     total: number;
     success: boolean;
+}
+
+/** Minimal contest identity attached to a Concours-linked Mode Solo session (mirrors app.js's state.contestInfo). */
+export interface ContestInfo {
+    uuid: string;
+    name: string;
+    ruleset: string;
+    startDate: string;
+    endDate: string;
 }
 
 export interface SoloSetupValues {
@@ -64,6 +74,8 @@ interface SoloState extends SoloSetupValues {
     editingVolleyIndex: number | null;
     lastEditedVolleyIndex: number | null;
     progressionAxis: string;
+    contestMode: boolean;
+    contestInfo: ContestInfo | null;
 }
 
 function createDefaultSetup(ruleset: Ruleset = "nature"): SoloSetupValues {
@@ -100,6 +112,8 @@ function freshScoringDefaults(): Pick<
     | "editingVolleyIndex"
     | "lastEditedVolleyIndex"
     | "progressionAxis"
+    | "contestMode"
+    | "contestInfo"
 > {
     return {
         phase: "setup",
@@ -115,6 +129,8 @@ function freshScoringDefaults(): Pick<
         editingVolleyIndex: null,
         lastEditedVolleyIndex: null,
         progressionAxis: "",
+        contestMode: false,
+        contestInfo: null,
     };
 }
 
@@ -188,6 +204,12 @@ export function useSoloSession() {
         state.value.selectedGroup = group;
     }
 
+    /** Links (or unlinks, when passed null) this Mode Solo session to a Concours contest (mirrors app.js's state.contestMode/state.contestInfo). */
+    function configureContest(info: ContestInfo | null) {
+        state.value.contestMode = Boolean(info);
+        state.value.contestInfo = info;
+    }
+
     function startScoring(setup: SoloSetupValues) {
         configureForSetup(setup);
         state.value.phase = "scoring";
@@ -201,6 +223,8 @@ export function useSoloSession() {
         state.value.editingVolleyIndex = null;
         state.value.lastEditedVolleyIndex = null;
         state.value.progressionAxis = "";
+        state.value.contestMode = false;
+        state.value.contestInfo = null;
     }
 
     /** Registers one arrow's score; commits the volley (after a brief preview) once arrowsPerVolley arrows are entered. */
@@ -347,6 +371,8 @@ export function useSoloSession() {
             distribution: totals,
             volleys,
             progressionAxis: state.value.progressionAxis,
+            contestMode: state.value.contestMode,
+            contestInfo: state.value.contestInfo,
         };
     }
 
@@ -396,6 +422,8 @@ export function useSoloSession() {
             editingVolleyIndex: null,
             lastEditedVolleyIndex: null,
             progressionAxis: String(entry.progressionAxis ?? ""),
+            contestMode: Boolean(entry.contestMode),
+            contestInfo: (entry.contestInfo as ContestInfo | null) ?? null,
         };
     }
 
@@ -438,6 +466,7 @@ export function useSoloSession() {
         useTargetGroupsForScoring,
         configureForSetup,
         selectGroup,
+        configureContest,
         startScoring,
         registerScore,
         stepBackOneArrow,

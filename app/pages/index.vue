@@ -56,6 +56,15 @@ function onComingSoonTile(label: string) {
     `« ${label} » sera migré ici prochainement. Utilisez l'application actuelle en attendant.`,
   );
 }
+
+function onContestTileClick() {
+  if (!isAuthenticated.value) {
+    showFlash("Connectez-vous pour accéder aux concours.");
+    openLogin();
+    return;
+  }
+  navigateTo("/concours");
+}
 </script>
 
 <template>
@@ -99,11 +108,11 @@ function onComingSoonTile(label: string) {
         </span>
       </NuxtLink>
 
-      <button
+      <NuxtLink
         id="home-peloton-btn"
         class="home-tile"
+        to="/mode-multi"
         aria-label="Mode Multi"
-        @click="onComingSoonTile('Mode Multi')"
       >
         <span class="home-tile-label">
           <svg
@@ -119,13 +128,13 @@ function onComingSoonTile(label: string) {
           </svg>
           <span>Mode Multi</span>
         </span>
-      </button>
+      </NuxtLink>
 
       <button
         id="home-contest-btn"
         class="home-tile"
         aria-label="Concours"
-        @click="onComingSoonTile('Concours')"
+        @click="onContestTileClick"
       >
         <span class="home-tile-label">
           <svg
