@@ -27,10 +27,10 @@ export interface HistoryEntryRecord {
 }
 
 // Mirrors app.js's `appConfig` (CONFIG_KEY localStorage blob). Loosely typed
-// on purpose: fields like trainingHold/soloBeeps/trainingVolume belong to
-// the not-yet-migrated scoring engine, but must still round-trip through
-// IndexedDB and the server (`/api/users/configuration` stores/returns a
-// single opaque JSON blob) even before their own UI exists in Nuxt.
+// on purpose: some fields belong to the not-yet-migrated scoring engine, but
+// must still round-trip through IndexedDB and the server
+// (`/api/users/configuration` stores/returns a single opaque JSON blob) even
+// before their own UI exists in Nuxt.
 export interface ConfigRecord {
     id: "current";
     fullTarget_team: number;
@@ -42,6 +42,21 @@ export interface ConfigRecord {
     soloBeeps?: {
         preparationSeconds: number;
         tiringSecondsByRuleset: Record<string, number>;
+    };
+    trainingHold?: {
+        series: number;
+        repetitions: number;
+        holdSeconds: number;
+        restSeconds: number;
+    };
+    trainingVolume?: {
+        series: number;
+        volleysPerSeries: number;
+        arrowsPerVolley: number;
+    };
+    trainingTargetScore?: {
+        ruleset: string;
+        percentage: number;
     };
     [key: string]: unknown;
 }

@@ -154,11 +154,11 @@ function onContestTileClick() {
         </span>
       </button>
 
-      <button
+      <NuxtLink
         id="home-training-tile-btn"
         class="home-tile"
+        to="/entrainement"
         aria-label="Entraînement"
-        @click="onComingSoonTile('Entraînement')"
       >
         <span class="home-tile-label">
           <svg
@@ -174,7 +174,7 @@ function onContestTileClick() {
           </svg>
           <span>Entraînement</span>
         </span>
-      </button>
+      </NuxtLink>
 
       <NuxtLink
         id="home-history-btn"
