@@ -449,8 +449,8 @@ a {
 
   .site-nav a.active {
     border-bottom: none;
-    background: var(--blue);
-    color: white;
+    background: white;
+    color: var(--blue);
   }
 
   .site-main {

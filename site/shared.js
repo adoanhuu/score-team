@@ -33,14 +33,15 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Marquer le lien actuel
-  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  const normalizePage = (page) => (page || 'index.html').replace(/\.html$/i, '') || 'index';
+  const currentPage = normalizePage(window.location.pathname.split('/').pop());
   const currentHash = window.location.hash;
   navLinks.forEach(link => {
     const href = link.getAttribute('href');
     const url = new URL(href, window.location.href);
-    const linkPage = url.pathname.split('/').pop() || 'index.html';
+    const linkPage = normalizePage(url.pathname.split('/').pop());
     const linkHash = url.hash;
-    const isSamePage = linkPage === currentPage || (currentPage === '' && linkPage === 'index.html');
+    const isSamePage = linkPage === currentPage;
     const isHashMatch = linkHash ? linkHash === currentHash : !currentHash;
     if (isSamePage && isHashMatch) {
       link.classList.add('active');
