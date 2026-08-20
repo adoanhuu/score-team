@@ -249,9 +249,13 @@ async function stepBack() {
 }
 
 // Timer: start a prep->shoot cycle whenever a new arrow is awaited.
+// `phase` is included so the very first arrow of a session (volleys=0,
+// currentArrowIndex=0) also triggers a cycle: the cursor changes from
+// "setup-0-0" to "scoring-0-0" the moment startScoring()/restoreIncompleteSession()
+// flips the phase, even though volleys/currentArrowIndex themselves don't move.
 const arrowCursor = computed(
   () =>
-    `${session.state.value.volleys.length}-${session.state.value.currentArrowIndex}`,
+    `${session.state.value.phase}-${session.state.value.volleys.length}-${session.state.value.currentArrowIndex}`,
 );
 watch(arrowCursor, () => {
   if (session.state.value.phase !== "scoring") return;

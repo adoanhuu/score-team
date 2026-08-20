@@ -51,12 +51,6 @@ async function onLoginTileClick() {
   openLogin();
 }
 
-function onComingSoonTile(label: string) {
-  showFlash(
-    `« ${label} » sera migré ici prochainement. Utilisez l'application actuelle en attendant.`,
-  );
-}
-
 function onContestTileClick() {
   if (!isAuthenticated.value) {
     showFlash("Connectez-vous pour accéder aux concours.");
@@ -198,11 +192,11 @@ function onContestTileClick() {
         </span>
       </NuxtLink>
 
-      <button
+      <NuxtLink
         id="home-stats-btn"
         class="home-tile"
+        to="/statistiques"
         aria-label="Statistiques"
-        @click="onComingSoonTile('Statistiques')"
       >
         <span class="home-tile-label">
           <svg
@@ -218,7 +212,7 @@ function onContestTileClick() {
           </svg>
           <span>Statistiques</span>
         </span>
-      </button>
+      </NuxtLink>
 
       <NuxtLink
         id="home-config-btn"
