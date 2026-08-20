@@ -2813,6 +2813,10 @@ async function validateSoloContestIdentifierBeforeStart() {
     return true;
   }
 
+  if (getSelectedSoloSessionType() !== SOLO_SESSION_TYPE_CONTEST) {
+    return true;
+  }
+
   const contestIdentifier = els.contestIdentifierInput ? els.contestIdentifierInput.value.trim() : "";
   if (!contestIdentifier) {
     return true;
@@ -4406,6 +4410,23 @@ function updateConfigActionButtons() {
   if (els.configRestoreServerBtn) els.configRestoreServerBtn.classList.toggle("hidden", !isLoggedIn);
 }
 
+async function syncSessionsToServer() {
+  if (!hasStoredAuthToken()) return;
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) return;
+  try {
+    const res = await fetch("/api/users/sessions", {
+      method: "PUT",
+      headers: { "content-type": "application/json", "authorization": `Bearer ${token}` },
+      body: JSON.stringify({ entries: loadHistoryEntries() }),
+    });
+    const err = !res.ok ? await res.json().catch(() => ({})) : null;
+    handleAuthFailureMessage(err?.error, { openLogin: false });
+  } catch {
+    // Ignore network failures; the session stays saved locally and will sync on the next attempt.
+  }
+}
+
 async function saveConfigToServer() {
   const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
   if (!token) return;
@@ -5282,6 +5303,9 @@ function updateSoloHistoryEntryFromCurrentSession() {
   if (state.shoots.length === 0) {
     removeCurrentSoloHistoryEntry();
     state.resultsPayload = null;
+    if (hasStoredAuthToken()) {
+      void syncSessionsToServer();
+    }
     return null;
   }
 
@@ -5311,6 +5335,10 @@ function updateSoloHistoryEntryFromCurrentSession() {
     saveHistoryEntries(entries);
   } else {
     saveHistoryEntries([entry, ...entries]);
+  }
+
+  if (hasStoredAuthToken()) {
+    void syncSessionsToServer();
   }
 
   return entry;
