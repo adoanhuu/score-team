@@ -44,17 +44,6 @@ body.home-underlay-active .app {
   -webkit-overflow-scrolling: touch;
 }
 
-body.home-underlay-active::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 240;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(1.5px);
-  -webkit-backdrop-filter: blur(1.5px);
-  pointer-events: none;
-}
-
 .app-header h1 {
   margin: 0;
   font-size: 1.6rem;
@@ -3759,6 +3748,12 @@ input[type="range"]:focus-visible {
   flex-direction: column;
   background: var(--bg);
   font-family: "Nunito", "Trebuchet MS", sans-serif;
+  transition: opacity 0.2s ease;
+}
+
+body.home-underlay-active .home-screen {
+  opacity: 0.05;
+  pointer-events: none;
 }
 
 .home-header {
