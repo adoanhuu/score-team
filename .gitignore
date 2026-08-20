@@ -2,3 +2,7 @@
 docker-compose.override.yml
 wrangler.local.toml
 .wrangler/
+node_modules/
+.nuxt/
+.output/
+dist/

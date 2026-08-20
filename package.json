@@ -1,0 +1,30 @@
+{
+  "name": "team-score",
+  "version": "1.0.0",
+  "description": "Application web mobile pour saisir les scores d'une équipe sur un parcours Nature, Campagne ou 3D en tir à l'arc.",
+  "main": "app.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adoanhuu/score-team.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/adoanhuu/score-team/issues"
+  },
+  "homepage": "https://github.com/adoanhuu/score-team#readme",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@vite-pwa/nuxt": "^1.1.1",
+    "dexie": "^4.4.5",
+    "nuxt": "^4.4.8"
+  }
+}
