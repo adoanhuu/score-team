@@ -31,7 +31,8 @@ body {
 }
 
 .app {
-  max-width: 720px;
+  width: 600px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 16px 14px 50px;
 }
@@ -40,8 +41,21 @@ body.home-underlay-active .app {
   position: fixed;
   inset: 0;
   z-index: 250;
+  display: grid;
+  place-items: center;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+body.home-underlay-active::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
+  pointer-events: none;
 }
 
 .app-header h1 {
@@ -92,6 +106,7 @@ body.home-underlay-active .app {
   border-radius: 16px;
   padding: 14px;
   margin-top: 14px;
+  min-width: 400px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
@@ -225,14 +240,14 @@ label {
 .mode-fieldset {
   border: none;
   padding: 0;
-  margin: 0;
+  margin: 0 0 16px;
   display: grid;
   gap: 6px;
 }
 
 .mode-fieldset legend {
   display: block;
-  margin-bottom: 0;
+  margin-bottom: 6px;
   padding: 0;
   font-weight: 700;
   font-size: inherit;
@@ -281,8 +296,12 @@ label {
 .setup-options-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 20px;
   align-items: start;
+}
+
+.training-setup-row {
+  grid-template-columns: 1fr;
 }
 
 .show-scores-fieldset {
@@ -316,6 +335,8 @@ label {
   border-radius: 999px;
   background: #ece6dd;
   min-width: 128px;
+  width: fit-content;
+  justify-self: start;
 }
 
 .timer-mode-switch {
@@ -367,12 +388,14 @@ label {
   transition: background-color 0.16s ease, color 0.16s ease;
 }
 
-.switch-option input[type="radio"][value="yes"]:checked + span {
+.switch-option input[type="radio"][value="yes"]:checked + span,
+.switch-option input[type="radio"][value="true"]:checked + span {
   background: #2d6a4f;
   color: #fff;
 }
 
-.switch-option input[type="radio"][value="no"]:checked + span {
+.switch-option input[type="radio"][value="no"]:checked + span,
+.switch-option input[type="radio"][value="false"]:checked + span {
   background: #c62828;
   color: #fff;
 }
@@ -418,6 +441,18 @@ label {
 }
 
 .switch-option input[type="radio"][value="all"]:checked + span {
+  background: #1f6feb;
+  color: #fff;
+}
+
+.switch-option input[type="radio"][value="peloton"]:checked + span,
+.switch-option input[type="radio"][value="duel"]:checked + span {
+  background: #1f6feb;
+  color: #fff;
+}
+
+.switch-option input[type="radio"][value="4"]:checked + span,
+.switch-option input[type="radio"][value="6"]:checked + span {
   background: #1f6feb;
   color: #fff;
 }
@@ -751,20 +786,6 @@ input[type="range"]:focus-visible {
   cursor: pointer;
 }
 
-.btn-primary {
-  margin-top: 10px;
-  background: var(--accent);
-  color: #fff;
-}
-
-.btn-primary svg {
-  color: #fff;
-}
-
-.start-btn svg {
-  color: #fff;
-}
-
 .start-action {
   margin-top: 2px;
   display: grid;
@@ -773,62 +794,14 @@ input[type="range"]:focus-visible {
 }
 
 .start-btn {
-  background: var(--light-blue);
-  border: 1px solid #1558c0;
   width: 100%;
   min-height: 54px;
-  display: inline-grid;
-  place-items: center;
   margin-top: 0;
-}
-
-#start-btn,
-#solo-reset-incomplete-btn,
-#multi-start-btn,
-#duel-restart-btn,
-#training-start-btn,
-#training-volume-start-btn,
-#training-volume-next-btn,
-#training-quiz-shields-start-btn,
-#training-target-score-start-btn,
-#quiz-shields-restart-btn,
-#training-cycle-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-#start-btn svg,
-#solo-reset-incomplete-btn svg,
-#multi-start-btn svg,
-#duel-restart-btn svg,
-#training-start-btn svg,
-#training-volume-start-btn svg,
-#training-volume-next-btn svg,
-#training-quiz-shields-start-btn svg,
-#training-target-score-start-btn svg,
-#quiz-shields-restart-btn svg,
-#training-cycle-toggle-btn svg {
-  color: #fff;
 }
 
 .start-reset-btn {
-  background: var(--danger);
-  border-color: var(--danger);
   width: 100%;
-  justify-content: center;
   margin-top: 0;
-}
-
-.start-reset-btn svg {
-  width: 20px;
-  height: 20px;
-}
-
-#duel-restart-btn svg {
-  width: 20px;
-  height: 20px;
 }
 
 #history-btn {
@@ -874,6 +847,43 @@ input[type="range"]:focus-visible {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Unified CTA button design: blue background, centered white text.
+   If the button also contains an icon, it is always rendered after
+   the text and colored white, regardless of DOM order (see `order`
+   below) — this avoids having to reorder markup in every consuming
+   page. Icon-only utility buttons (close/delete/pagination/etc.,
+   which never show visible text) keep their own discreet style
+   defined above (.btn-light/.btn-danger/.btn-icon) and are
+   intentionally excluded here via :not(.btn-icon). These selectors
+   are placed last on purpose so they win the cascade over the
+   equal-specificity .btn-icon rule above for buttons that combine
+   both an icon and visible text (e.g. .btn-primary.btn-icon). */
+.btn-primary,
+.btn-light:not(.btn-icon),
+.btn-danger:not(.btn-icon),
+.btn-icon.config-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  background: var(--light-blue);
+  border: 1px solid #1558c0;
+  color: #fff;
+  text-align: center;
+}
+
+.btn-primary svg,
+.btn-light:not(.btn-icon) svg,
+.btn-danger:not(.btn-icon) svg,
+.btn-icon.config-action-btn svg {
+  order: 2;
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .scoring-head {
@@ -1094,7 +1104,7 @@ input[type="range"]:focus-visible {
 .solo-options-panel-body {
   padding-top: 12px;
   display: grid;
-  gap: 12px;
+  gap: 20px;
 }
 
 .arrow-cell {
@@ -1758,6 +1768,7 @@ input[type="range"]:focus-visible {
   inset: 0;
   z-index: 300;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: 16px;
 }
@@ -1772,7 +1783,8 @@ input[type="range"]:focus-visible {
 
 .modal-card {
   position: relative;
-  width: min(680px, 100%);
+  width: min(600px, 100%);
+  min-width: 400px;
   max-height: min(85vh, 860px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -1908,19 +1920,19 @@ input[type="range"]:focus-visible {
 }
 
 #contest-modal .modal-card {
-  width: min(760px, 100%);
+  width: min(600px, 100%);
 }
 
 #contest-scores-modal .modal-card {
-  width: min(760px, 100%);
+  width: min(600px, 100%);
 }
 
 #contest-stats-modal .modal-card {
-  width: min(760px, 100%);
+  width: min(600px, 100%);
 }
 
 #contest-ranking-modal .modal-card {
-  width: min(760px, 100%);
+  width: min(600px, 100%);
 }
 
 .contest-info-panel {
@@ -2418,9 +2430,9 @@ input[type="range"]:focus-visible {
 }
 
 .peloton-names-row {
-  margin-bottom: 10px;
+  margin: 16px 0 10px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
 
@@ -2439,6 +2451,7 @@ input[type="range"]:focus-visible {
 }
 
 .peloton-names-error {
+  grid-column: 1 / -1;
   color: #dc3545;
   font-size: 0.875rem;
   margin-bottom: 12px;
@@ -2919,7 +2932,7 @@ input[type="range"]:focus-visible {
 }
 
 .confirm-modal-card {
-  width: min(420px, 100%);
+  width: min(600px, 100%);
 }
 
 .confirm-modal-message {
@@ -2935,7 +2948,7 @@ input[type="range"]:focus-visible {
 }
 
 .welcome-modal-card {
-  width: min(420px, 100%);
+  width: min(600px, 100%);
   padding-top: 28px;
   position: relative;
   overflow: hidden;
@@ -2958,11 +2971,12 @@ input[type="range"]:focus-visible {
 }
 
 .login-modal-card {
-  width: min(460px, 100%);
+  width: 600px;
+  max-width: 100%;
 }
 
 .contest-modal-card {
-  width: min(560px, 100%);
+  width: min(600px, 100%);
 }
 
 .login-form {
@@ -3598,6 +3612,17 @@ input[type="range"]:focus-visible {
   .solo-session-type-inline {
     grid-column: 2;
   }
+
+  /* Mode solo's setup grid keeps the requested single-column order
+     (Parcours, Date/heure, Type de session, Mode de saisie) on all screen
+     sizes instead of the shared .grid-two 2-column layout. */
+  .solo-setup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .solo-setup-grid .solo-session-type-inline {
+    grid-column: 1;
+  }
 }
 
 .zone-indicators {
@@ -3752,7 +3777,6 @@ input[type="range"]:focus-visible {
 }
 
 body.home-underlay-active .home-screen {
-  opacity: 0.05;
   pointer-events: none;
 }
 
@@ -4511,4 +4535,10 @@ body.home-underlay-active .home-screen {
   color: #9b2226;
   border-color: #d62828;
   background: #ffebee;
+}
+
+.history-filters {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
 }

@@ -388,250 +388,304 @@ function pillScoreClass(value: number | null) {
         </div>
       </div>
 
-      <label>
-        <span class="label-inline">Exercice</span>
-        <select v-model="selectedExercise">
-          <option value="hold-time">Temps de tenue</option>
-          <option value="volume-arrows">Volume de flèches</option>
-          <option value="quiz-shields">Quiz blasons</option>
-          <option value="target-score">Score cible</option>
-        </select>
-      </label>
-
-      <!-- Temps de tenue form -->
-      <div v-if="selectedExercise === 'hold-time'" class="setup-options-row">
+      <div class="grid-two solo-setup-grid">
         <label>
-          <span class="label-inline"
-            >Séries <strong>{{ holdSeries }}</strong></span
-          >
-          <input
-            type="range"
-            min="3"
-            max="6"
-            step="1"
-            :value="holdSeries"
-            :style="{ '--range-progress': rangeProgress(holdSeries, 3, 6) }"
-            @input="
-              holdSeries = Number(($event.target as HTMLInputElement).value)
-            "
-          />
-        </label>
-        <label>
-          <span class="label-inline"
-            >Répétitions par série <strong>{{ holdRepetitions }}</strong></span
-          >
-          <input
-            type="range"
-            min="3"
-            max="6"
-            step="1"
-            :value="holdRepetitions"
-            :style="{
-              '--range-progress': rangeProgress(holdRepetitions, 3, 6),
-            }"
-            @input="
-              holdRepetitions = Number(
-                ($event.target as HTMLInputElement).value,
-              )
-            "
-          />
-        </label>
-        <label>
-          <span class="label-inline"
-            >Temps de tenue <strong>{{ holdSeconds }}s</strong></span
-          >
-          <input
-            type="range"
-            min="2"
-            max="12"
-            step="1"
-            :value="holdSeconds"
-            :style="{ '--range-progress': rangeProgress(holdSeconds, 2, 12) }"
-            @input="
-              holdSeconds = Number(($event.target as HTMLInputElement).value)
-            "
-          />
-        </label>
-        <label>
-          <span class="label-inline"
-            >Temps de repos <strong>{{ restSeconds }}s</strong></span
-          >
-          <input
-            type="range"
-            min="5"
-            max="30"
-            step="1"
-            :value="restSeconds"
-            :style="{ '--range-progress': rangeProgress(restSeconds, 5, 30) }"
-            @input="
-              restSeconds = Number(($event.target as HTMLInputElement).value)
-            "
-          />
-        </label>
-        <button class="btn btn-primary btn-icon start-btn" @click="startHold">
-          Démarrer
-        </button>
-      </div>
-
-      <!-- Volume de flèches form -->
-      <div
-        v-else-if="selectedExercise === 'volume-arrows'"
-        class="setup-options-row"
-      >
-        <label>
-          <span class="label-inline"
-            >Séries <strong>{{ volumeSeries }}</strong></span
-          >
-          <input
-            type="range"
-            min="1"
-            max="10"
-            step="1"
-            :value="volumeSeries"
-            :style="{ '--range-progress': rangeProgress(volumeSeries, 1, 10) }"
-            @input="
-              volumeSeries = Number(($event.target as HTMLInputElement).value)
-            "
-          />
-        </label>
-        <label>
-          <span class="label-inline"
-            >Volées par série
-            <strong>{{ volumeVolleysPerSeries }}</strong></span
-          >
-          <input
-            type="range"
-            min="1"
-            max="6"
-            step="1"
-            :value="volumeVolleysPerSeries"
-            :style="{
-              '--range-progress': rangeProgress(volumeVolleysPerSeries, 1, 6),
-            }"
-            @input="
-              volumeVolleysPerSeries = Number(
-                ($event.target as HTMLInputElement).value,
-              )
-            "
-          />
-        </label>
-        <label>
-          <span class="label-inline"
-            >Flèches par volée
-            <strong>{{ volumeArrowsPerVolley }}</strong></span
-          >
-          <input
-            type="range"
-            min="1"
-            max="12"
-            step="1"
-            :value="volumeArrowsPerVolley"
-            :style="{
-              '--range-progress': rangeProgress(volumeArrowsPerVolley, 1, 12),
-            }"
-            @input="
-              volumeArrowsPerVolley = Number(
-                ($event.target as HTMLInputElement).value,
-              )
-            "
-          />
-        </label>
-        <p class="training-volume-total">
-          Total <strong>{{ volumeTotalArrows }}</strong> flèches
-        </p>
-        <button class="btn btn-primary btn-icon start-btn" @click="startVolume">
-          Démarrer
-        </button>
-      </div>
-
-      <!-- Quiz blasons form -->
-      <div
-        v-else-if="selectedExercise === 'quiz-shields'"
-        class="setup-options-row"
-      >
-        <fieldset class="mode-fieldset">
-          <legend class="label-inline">Catégories</legend>
-          <label class="switch-option"
-            ><input v-model="shieldPa" type="checkbox" />
-            <span>Petit animal (PA)</span></label
-          >
-          <label class="switch-option"
-            ><input v-model="shieldPg" type="checkbox" />
-            <span>Petit gibier (PG)</span></label
-          >
-          <label class="switch-option"
-            ><input v-model="shieldMg" type="checkbox" />
-            <span>Moyen gibier (MG)</span></label
-          >
-          <label class="switch-option"
-            ><input v-model="shieldGg" type="checkbox" />
-            <span>Grand gibier (GG)</span></label
-          >
-        </fieldset>
-        <button class="btn btn-primary btn-icon start-btn" @click="startQuiz">
-          Démarrer
-        </button>
-      </div>
-
-      <!-- Score cible form -->
-      <div v-else class="setup-options-row">
-        <label>
-          <span class="label-inline">Parcours</span>
-          <select v-model="targetRuleset" @change="onTargetRulesetChange">
-            <optgroup label="FFTA">
-              <option v-for="r in FFTA_RULESETS" :key="r" :value="r">
-                {{ formatRulesetLabel(r) }}
-              </option>
-            </optgroup>
-            <optgroup label="FFTL">
-              <option v-for="r in FFTL_RULESETS" :key="r" :value="r">
-                {{ formatRulesetLabel(r) }}
-              </option>
-            </optgroup>
+          <span class="label-inline">Exercice</span>
+          <select v-model="selectedExercise">
+            <option value="hold-time">Temps de tenue</option>
+            <option value="volume-arrows">Volume de flèches</option>
+            <option value="quiz-shields">Quiz blasons</option>
+            <option value="target-score">Score cible</option>
           </select>
         </label>
-        <label>
-          <span class="label-inline">Arme</span>
-          <select v-model="targetWeapon">
-            <option
-              v-for="w in getWeaponsForRuleset(targetRuleset)"
-              :key="w"
-              :value="w"
+
+        <!-- Temps de tenue form -->
+        <template v-if="selectedExercise === 'hold-time'">
+          <div class="setup-options-row training-setup-row">
+            <label>
+              <span class="label-inline"
+                >Séries <strong>{{ holdSeries }}</strong></span
+              >
+              <input
+                type="range"
+                min="3"
+                max="6"
+                step="1"
+                :value="holdSeries"
+                :style="{ '--range-progress': rangeProgress(holdSeries, 3, 6) }"
+                @input="
+                  holdSeries = Number(($event.target as HTMLInputElement).value)
+                "
+              />
+            </label>
+            <label>
+              <span class="label-inline"
+                >Répétitions par série
+                <strong>{{ holdRepetitions }}</strong></span
+              >
+              <input
+                type="range"
+                min="3"
+                max="6"
+                step="1"
+                :value="holdRepetitions"
+                :style="{
+                  '--range-progress': rangeProgress(holdRepetitions, 3, 6),
+                }"
+                @input="
+                  holdRepetitions = Number(
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
+            <label>
+              <span class="label-inline"
+                >Temps de tenue <strong>{{ holdSeconds }}s</strong></span
+              >
+              <input
+                type="range"
+                min="2"
+                max="12"
+                step="1"
+                :value="holdSeconds"
+                :style="{
+                  '--range-progress': rangeProgress(holdSeconds, 2, 12),
+                }"
+                @input="
+                  holdSeconds = Number(
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
+            <label>
+              <span class="label-inline"
+                >Temps de repos <strong>{{ restSeconds }}s</strong></span
+              >
+              <input
+                type="range"
+                min="5"
+                max="30"
+                step="1"
+                :value="restSeconds"
+                :style="{
+                  '--range-progress': rangeProgress(restSeconds, 5, 30),
+                }"
+                @input="
+                  restSeconds = Number(
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
+          </div>
+          <div class="start-action">
+            <button
+              class="btn btn-primary btn-icon start-btn"
+              @click="startHold"
             >
-              {{ formatWeaponLabel(w) }}
-            </option>
-          </select>
-        </label>
-        <label>
-          <span class="label-inline"
-            >Objectif <strong>{{ targetPercentage }}%</strong></span
-          >
-          <input
-            type="range"
-            min="50"
-            max="100"
-            step="1"
-            :value="targetPercentage"
-            :style="{
-              '--range-progress': rangeProgress(targetPercentage, 50, 100),
-            }"
-            @input="
-              onTargetPercentageChange(
-                Number(($event.target as HTMLInputElement).value),
-              )
-            "
-          />
-        </label>
-        <p class="training-volume-total">
-          Score cible <strong>{{ targetScoreValue }}</strong> /
-          {{ targetMaxScore }} pts
-        </p>
-        <button
-          class="btn btn-primary btn-icon start-btn"
-          @click="startTargetScore"
-        >
-          Démarrer
-        </button>
+              Démarrer
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- Volume de flèches form -->
+        <template v-else-if="selectedExercise === 'volume-arrows'">
+          <div class="setup-options-row">
+            <label>
+              <span class="label-inline"
+                >Séries <strong>{{ volumeSeries }}</strong></span
+              >
+              <input
+                type="range"
+                min="1"
+                max="10"
+                step="1"
+                :value="volumeSeries"
+                :style="{
+                  '--range-progress': rangeProgress(volumeSeries, 1, 10),
+                }"
+                @input="
+                  volumeSeries = Number(
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
+            <label>
+              <span class="label-inline"
+                >Volées par série
+                <strong>{{ volumeVolleysPerSeries }}</strong></span
+              >
+              <input
+                type="range"
+                min="1"
+                max="6"
+                step="1"
+                :value="volumeVolleysPerSeries"
+                :style="{
+                  '--range-progress': rangeProgress(
+                    volumeVolleysPerSeries,
+                    1,
+                    6,
+                  ),
+                }"
+                @input="
+                  volumeVolleysPerSeries = Number(
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
+            <label>
+              <span class="label-inline"
+                >Flèches par volée
+                <strong>{{ volumeArrowsPerVolley }}</strong></span
+              >
+              <input
+                type="range"
+                min="1"
+                max="12"
+                step="1"
+                :value="volumeArrowsPerVolley"
+                :style="{
+                  '--range-progress': rangeProgress(
+                    volumeArrowsPerVolley,
+                    1,
+                    12,
+                  ),
+                }"
+                @input="
+                  volumeArrowsPerVolley = Number(
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
+            <p class="training-volume-total">
+              Total <strong>{{ volumeTotalArrows }}</strong> flèches
+            </p>
+          </div>
+          <div class="start-action">
+            <button
+              class="btn btn-primary btn-icon start-btn"
+              @click="startVolume"
+            >
+              Démarrer
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- Quiz blasons form -->
+        <template v-else-if="selectedExercise === 'quiz-shields'">
+          <div class="setup-options-row">
+            <fieldset class="mode-fieldset">
+              <legend class="label-inline">Catégories</legend>
+              <label class="switch-option"
+                ><input v-model="shieldPa" type="checkbox" />
+                <span>Petit animal (PA)</span></label
+              >
+              <label class="switch-option"
+                ><input v-model="shieldPg" type="checkbox" />
+                <span>Petit gibier (PG)</span></label
+              >
+              <label class="switch-option"
+                ><input v-model="shieldMg" type="checkbox" />
+                <span>Moyen gibier (MG)</span></label
+              >
+              <label class="switch-option"
+                ><input v-model="shieldGg" type="checkbox" />
+                <span>Grand gibier (GG)</span></label
+              >
+            </fieldset>
+          </div>
+          <div class="start-action">
+            <button
+              class="btn btn-primary btn-icon start-btn"
+              @click="startQuiz"
+            >
+              Démarrer
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- Score cible form -->
+        <template v-else>
+          <div class="setup-options-row">
+            <label>
+              <span class="label-inline">Parcours</span>
+              <select v-model="targetRuleset" @change="onTargetRulesetChange">
+                <optgroup label="FFTA">
+                  <option v-for="r in FFTA_RULESETS" :key="r" :value="r">
+                    {{ formatRulesetLabel(r) }}
+                  </option>
+                </optgroup>
+                <optgroup label="FFTL">
+                  <option v-for="r in FFTL_RULESETS" :key="r" :value="r">
+                    {{ formatRulesetLabel(r) }}
+                  </option>
+                </optgroup>
+              </select>
+            </label>
+            <label>
+              <span class="label-inline">Arme</span>
+              <select v-model="targetWeapon">
+                <option
+                  v-for="w in getWeaponsForRuleset(targetRuleset)"
+                  :key="w"
+                  :value="w"
+                >
+                  {{ formatWeaponLabel(w) }}
+                </option>
+              </select>
+            </label>
+            <label>
+              <span class="label-inline"
+                >Objectif <strong>{{ targetPercentage }}%</strong></span
+              >
+              <input
+                type="range"
+                min="50"
+                max="100"
+                step="1"
+                :value="targetPercentage"
+                :style="{
+                  '--range-progress': rangeProgress(targetPercentage, 50, 100),
+                }"
+                @input="
+                  onTargetPercentageChange(
+                    Number(($event.target as HTMLInputElement).value),
+                  )
+                "
+              />
+            </label>
+            <p class="training-volume-total">
+              Score cible <strong>{{ targetScoreValue }}</strong> /
+              {{ targetMaxScore }} pts
+            </p>
+          </div>
+          <div class="start-action">
+            <button
+              class="btn btn-primary btn-icon start-btn"
+              @click="startTargetScore"
+            >
+              Démarrer
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </template>
       </div>
     </section>
 
@@ -745,6 +799,9 @@ function pillScoreClass(value: number | null) {
           min="0"
           max="100"
           :value="volume.progressPct.value"
+          :style="{
+            '--range-progress': rangeProgress(volume.progressPct.value, 0, 100),
+          }"
           disabled
         />
       </div>

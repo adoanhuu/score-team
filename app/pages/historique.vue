@@ -128,7 +128,7 @@ async function onRestoreFromServer() {
 <template>
   <main class="app">
     <div class="card">
-      <div class="modal-head">
+      <div class="setup-head">
         <h2 class="modal-title-with-icon">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path
@@ -140,7 +140,7 @@ async function onRestoreFromServer() {
         </h2>
         <NuxtLink
           to="/"
-          class="btn btn-light btn-icon"
+          class="btn btn-light btn-icon home-btn"
           aria-label="Retour à l'accueil"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -183,11 +183,17 @@ async function onRestoreFromServer() {
 
       <div class="modal-actions" style="margin: 8px 0 12px">
         <button
-          class="btn btn-light"
+          class="btn btn-light start-btn"
           :disabled="restoring"
           @click="onRestoreFromServer"
         >
           {{ restoring ? "Synchronisation…" : "Synchroniser avec le serveur" }}
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z"
+              fill="currentColor"
+            />
+          </svg>
         </button>
       </div>
 

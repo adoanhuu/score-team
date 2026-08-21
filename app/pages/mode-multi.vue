@@ -25,6 +25,12 @@ const { showFlash } = useFlash();
 const FFTA_RULESETS: Ruleset[] = ["nature", "campagne", "3d"];
 const FFTL_RULESETS: Ruleset[] = ["3d2", "3dh", "ar", "field"];
 
+function rangeProgress(value: number, min: number, max: number) {
+  const span = max - min;
+  const pct = span > 0 ? ((value - min) / span) * 100 : 0;
+  return `${Math.min(100, Math.max(0, pct))}%`;
+}
+
 type MultiMode = "duel" | "peloton" | "contest";
 
 const mode = ref<MultiMode>("peloton");
@@ -456,6 +462,9 @@ function onSubmitExtraArrow(score: number) {
             min="-50"
             max="50"
             step="1"
+            :style="{
+              '--range-progress': rangeProgress(duelHandicap, -50, 50),
+            }"
           />
           <strong class="duel-handicap-value">{{
             duel.handicapLabel.value
@@ -474,7 +483,8 @@ function onSubmitExtraArrow(score: number) {
             v-model="pelotonNames[i - 1]"
             type="text"
             maxlength="10"
-            placeholder="Nom (optionnel)"
+            :required="i < 2"
+            :placeholder="'Nom ' + i + (i > 2 ? ' (optionnel)' : '')"
             autocomplete="off"
           />
         </label>
@@ -486,21 +496,34 @@ function onSubmitExtraArrow(score: number) {
       <div class="actions">
         <button
           v-if="mode === 'duel'"
-          class="btn btn-primary"
+          class="btn btn-primary btn-icon start-btn"
           @click="startDuel"
         >
           Démarrer le duel
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+          </svg>
         </button>
         <button
           v-else-if="mode === 'contest'"
-          class="btn btn-primary"
+          class="btn btn-primary btn-icon start-btn"
           :disabled="contestConnecting"
           @click="startContest"
         >
           {{ contestConnecting ? "Connexion..." : "Rejoindre le concours" }}
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+          </svg>
         </button>
-        <button v-else class="btn btn-primary" @click="startPeloton">
+        <button
+          v-else
+          class="btn btn-primary btn-icon start-btn"
+          @click="startPeloton"
+        >
           Démarrer le peloton
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+          </svg>
         </button>
       </div>
     </section>

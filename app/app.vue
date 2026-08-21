@@ -14,6 +14,25 @@ watch(
   },
   { immediate: true },
 );
+
+// Clicking the dimmed overlay behind a page-popin (the padding area of the
+// fixed `.app` container, outside its card content) closes it and returns
+// to the home screen, same behavior as clicking the login popin's overlay.
+function onDocumentClick(event: MouseEvent) {
+  if (isHomeRoute.value) return;
+  const target = event.target as HTMLElement | null;
+  if (target?.classList.contains("app")) {
+    navigateTo("/");
+  }
+}
+
+onMounted(() => {
+  document.addEventListener("click", onDocumentClick);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", onDocumentClick);
+});
 </script>
 
 <template>

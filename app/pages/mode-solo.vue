@@ -126,6 +126,12 @@ const tiringMax = computed(() =>
   getSoloBeepsMaxTiringSecondsByRuleset(form.value.ruleset),
 );
 
+function rangeProgress(value: number, min: number, max: number) {
+  const span = max - min;
+  const pct = span > 0 ? ((value - min) / span) * 100 : 0;
+  return `${Math.min(100, Math.max(0, pct))}%`;
+}
+
 const soloBeepsPreparation = computed({
   get: () => config.value.soloBeeps?.preparationSeconds ?? 5,
   set: (value: number) => {
@@ -306,7 +312,7 @@ onBeforeUnmount(() => timer.stop());
         </div>
       </div>
 
-      <div class="grid-two">
+      <div class="grid-two solo-setup-grid">
         <label>
           <span class="label-inline"
             >Parcours
@@ -417,6 +423,9 @@ onBeforeUnmount(() => timer.stop());
                 min="1"
                 max="120"
                 step="1"
+                :style="{
+                  '--range-progress': rangeProgress(form.successZone, 1, 120),
+                }"
               />
               <strong>{{ form.successZone }}</strong>
             </div>
@@ -531,6 +540,13 @@ onBeforeUnmount(() => timer.stop());
                   min="0"
                   :max="SOLO_BEEPS_PREPARATION_MAX_SECONDS"
                   step="1"
+                  :style="{
+                    '--range-progress': rangeProgress(
+                      soloBeepsPreparation,
+                      0,
+                      SOLO_BEEPS_PREPARATION_MAX_SECONDS,
+                    ),
+                  }"
                 />
                 <strong>{{ soloBeepsPreparation }}s</strong>
               </div>
@@ -547,6 +563,13 @@ onBeforeUnmount(() => timer.stop());
                   min="5"
                   :max="tiringMax"
                   step="1"
+                  :style="{
+                    '--range-progress': rangeProgress(
+                      soloBeepsTiring,
+                      5,
+                      tiringMax,
+                    ),
+                  }"
                 />
                 <strong>{{ soloBeepsTiring }}s</strong>
               </div>
