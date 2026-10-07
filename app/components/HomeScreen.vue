@@ -325,13 +325,13 @@ function onContestTileClick() {
           :disabled="loginLoading"
           aria-label="Se connecter"
         >
+          <span>{{ loginLoading ? "Connexion…" : "Se connecter" }}</span>
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path
               d="M17 9h-1V6.5a4 4 0 1 0-8 0V9H7a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-8a2 2 0 0 0-2-2ZM10 9V6.5a2 2 0 1 1 4 0V9h-4Zm2 9a1.8 1.8 0 0 1-.9-3.35V14a.9.9 0 0 1 1.8 0v.65A1.8 1.8 0 0 1 12 18Z"
               fill="currentColor"
             />
           </svg>
-          <span>{{ loginLoading ? "Connexion…" : "Se connecter" }}</span>
         </button>
       </form>
     </div>

@@ -274,10 +274,15 @@ async function onRestoreFromServer() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="volley in entry.volleys || []" :key="volley.index">
+                  <!-- Position-based numbering: entries saved during the migration
+                       carry 0-based `index`, legacy/current ones 1-based. -->
+                  <tr
+                    v-for="(volley, volleyPosition) in entry.volleys || []"
+                    :key="volleyPosition"
+                  >
                     <td>
                       <span class="volley-pill is-gray">{{
-                        volley.index
+                        volleyPosition + 1
                       }}</span>
                     </td>
                     <td>

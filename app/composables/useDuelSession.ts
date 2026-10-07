@@ -18,7 +18,7 @@ import {
     pickDuelBotScore,
 } from "~/utils/multi-engine";
 
-const LAST_SCORE_PREVIEW_MS = 700;
+const LAST_SCORE_PREVIEW_MS = 300;
 const BOT_FIRST_SHOT_DELAY_MS = 260;
 const BOT_NEXT_SHOT_MIN_MS = 180;
 const BOT_NEXT_SHOT_JITTER_MS = 260;
@@ -77,11 +77,15 @@ function buildInitialState(): DuelState {
     };
 }
 
+// Timer ids are module-level (not per useDuelSession() call) so every caller
+// shares them: guards against two pending bot shots (app.js keeps a single
+// global duelBotShotTimeoutId for the same reason).
+let botTimeoutId: number | null = null;
+let previewTimeoutId: number | null = null;
+
 export function useDuelSession() {
     const state = useState<DuelState>("duel-session-state", buildInitialState);
-
-    let botTimeoutId: number | null = null;
-    let previewTimeoutId: number | null = null;
+    const { showFlash } = useFlash();
 
     function clearBotTimer() {
         if (botTimeoutId !== null) {
@@ -159,17 +163,18 @@ export function useDuelSession() {
         state.value = buildInitialState();
     }
 
-    function restart() {
-        const setup: DuelSetup = {
-            ruleset: state.value.ruleset,
-            targetCount: state.value.targetCount,
-            handicap: state.value.handicap,
+    /**
+     * Mirrors app.js's restartDuelSession(): rebuilds the duel from the
+     * current setup form (ruleset / target count / handicap / bot) while
+     * keeping the previous players' names.
+     */
+    function restart(formSetup: Omit<DuelSetup, "nameP1" | "nameP2">) {
+        configure({
+            ...formSetup,
             nameP1: state.value.nameP1,
-            nameP2: state.value.botMode ? "" : state.value.nameP2,
-            botMode: state.value.botMode,
-            botLevel: state.value.botLevel,
-        };
-        configure(setup);
+            nameP2: state.value.nameP2,
+        });
+        showFlash("Nouveau duel démarré.");
     }
 
     function advanceAfterVolley() {
@@ -185,6 +190,7 @@ export function useDuelSession() {
             if (duel.currentTargetIndex >= duel.targetCount) {
                 duel.completed = true;
                 duel.currentTargetIndex = duel.targetCount;
+                showFlash("Saisie duel terminée.");
             }
         }
         runBotTurnIfNeeded();
@@ -210,8 +216,9 @@ export function useDuelSession() {
             return;
         }
 
+        // Paquito's next arrow is scheduled by runBotTurnIfNeeded()'s own shoot loop
+        // (calling it from here too would leave two pending bot timers).
         duel.currentArrowIndex += 1;
-        if (isBotTurn.value) runBotTurnIfNeeded();
     }
 
     function stepBack() {
@@ -226,12 +233,23 @@ export function useDuelSession() {
 
         clearBotTimer();
 
+        // Last arrow of a volley still in its preview: cancel the pending
+        // advance and clear that arrow (the cursor still points at it).
+        if (duel.previewLocked) {
+            clearPreviewTimer();
+            duel.previewLocked = false;
+            clearScoreAt(duel.currentTargetIndex, duel.activePlayer, duel.currentArrowIndex);
+            runBotTurnIfNeeded();
+            return;
+        }
+
         if (duel.completed) {
             duel.completed = false;
             duel.currentTargetIndex = duel.targetCount - 1;
             duel.activePlayer = 2;
             duel.currentArrowIndex = duel.arrowsPerTarget - 1;
             clearScoreAt(duel.currentTargetIndex, 2, duel.currentArrowIndex);
+            runBotTurnIfNeeded();
             return;
         }
 
@@ -256,6 +274,24 @@ export function useDuelSession() {
         duel.activePlayer = player;
         duel.currentArrowIndex = arrowIndex;
         clearScoreAt(targetIndex, player, arrowIndex);
+        // app.js's renderDuelView() re-runs runDuelBotTurnIfNeeded() after a step back.
+        runBotTurnIfNeeded();
+    }
+
+    /**
+     * Resumes a duel whose timers were stopped (page unmounted while the
+     * useState session survived): finishes an interrupted last-arrow
+     * preview, then lets Paquito shoot if it is his turn.
+     */
+    function resume() {
+        if (typeof window === "undefined") return;
+        const duel = state.value;
+        if (duel.phase !== "scoring") return;
+        if (duel.previewLocked && previewTimeoutId === null) {
+            advanceAfterVolley();
+            return;
+        }
+        runBotTurnIfNeeded();
     }
 
     function runBotTurnIfNeeded() {
@@ -276,7 +312,7 @@ export function useDuelSession() {
             registerScore(botScore);
 
             const after = state.value;
-            if (after.botMode && !after.completed && !after.previewLocked && after.activePlayer === 2) {
+            if (botTimeoutId === null && after.botMode && !after.completed && !after.previewLocked && after.activePlayer === 2) {
                 botTimeoutId = window.setTimeout(shoot, BOT_NEXT_SHOT_MIN_MS + Math.floor(Math.random() * BOT_NEXT_SHOT_JITTER_MS));
             }
         };
@@ -298,6 +334,8 @@ export function useDuelSession() {
         restart,
         registerScore,
         stepBack,
+        resume,
+        clearBotTimer,
         stopAllTimers,
         getDuelTotal,
         getDuelBotMissChance,

@@ -8,27 +8,30 @@ import {
 import {
   getWeaponsForRuleset,
   formatWeaponLabel,
+  presets,
   scoreToValue,
 } from "~/utils/scoring-engine";
 import type { ShieldCategory } from "~/utils/training-quiz";
 import {
-  TRAINING_HOLD_DEFAULTS,
   clampTrainingHoldSeries,
   clampTrainingHoldRepetitions,
   clampTrainingHoldSeconds,
   clampTrainingRestSeconds,
+  getTrainingRingColorByPhase,
+  type TrainingHoldSettings,
 } from "~/composables/useTrainingHold";
 import {
-  TRAINING_VOLUME_DEFAULTS,
   clampTrainingVolumeSeries,
   clampTrainingVolumeVolleysPerSeries,
   clampTrainingVolumeArrowsPerVolley,
+  type TrainingVolumeSettings,
 } from "~/composables/useTrainingVolume";
 import {
   TRAINING_TARGET_SCORE_DEFAULTS,
-  getTrainingTargetMaxScore,
+  getTrainingTargetScoreBounds,
   clampTrainingTargetScore,
   clampTrainingTargetPercentage,
+  getStoredTrainingTargetScore,
 } from "~/composables/useTrainingTargetScore";
 
 const hold = useTrainingHold();
@@ -54,10 +57,33 @@ onMounted(async () => {
   loading.value = false;
 });
 
+// Leaving the page stops every exercise like closing the legacy modals
+// (closeTrainingHoldModal()/closeTrainingVolumeModal()/
+// closeTrainingQuizShieldsModal()/closeTrainingTargetScoreSessionModal()):
+// hold interval + speech, quiz timeout, and all sessions reset.
+onBeforeUnmount(() => {
+  hold.close();
+  volume.close();
+  quiz.close();
+  targetScore.close();
+});
+
 function rangeProgress(value: number, min: number, max: number) {
   const span = max - min;
   const pct = span > 0 ? ((value - min) / span) * 100 : 0;
   return `${Math.min(100, Math.max(0, pct))}%`;
+}
+
+// Saved settings are clamped on read, like loadConfig() in app.js does for
+// trainingHold/trainingVolume/trainingTargetScore (Number.parseInt + clamp,
+// default when not an integer).
+function parseSavedInt(value: unknown) {
+  return Number.parseInt(String(value ?? ""), 10);
+}
+
+// 3-digit counter (hundreds/tens/units), zero-padded and capped to 999.
+function toCounterDigits(value: number) {
+  return String(Math.max(0, Math.min(999, value))).padStart(3, "0");
 }
 
 const running = computed(() => {
@@ -73,80 +99,67 @@ const running = computed(() => {
 });
 
 // ---------------- Temps de tenue ----------------
+const holdSettings = computed<TrainingHoldSettings>(() => {
+  const saved = config.value.trainingHold;
+  return {
+    series: clampTrainingHoldSeries(parseSavedInt(saved?.series)),
+    repetitions: clampTrainingHoldRepetitions(
+      parseSavedInt(saved?.repetitions),
+    ),
+    holdSeconds: clampTrainingHoldSeconds(parseSavedInt(saved?.holdSeconds)),
+    restSeconds: clampTrainingRestSeconds(parseSavedInt(saved?.restSeconds)),
+  };
+});
+
+async function updateHoldSettings(patch: Partial<TrainingHoldSettings>) {
+  config.value = {
+    ...config.value,
+    trainingHold: { ...holdSettings.value, ...patch },
+  };
+  await saveConfig();
+}
+
 const holdSeries = computed({
-  get: () => config.value.trainingHold?.series ?? TRAINING_HOLD_DEFAULTS.series,
-  set: async (value: number) => {
-    const safe = clampTrainingHoldSeries(value);
-    config.value = {
-      ...config.value,
-      trainingHold: {
-        ...(config.value.trainingHold ?? TRAINING_HOLD_DEFAULTS),
-        series: safe,
-      },
-    };
-    await saveConfig();
-  },
+  get: () => holdSettings.value.series,
+  set: (value: number) =>
+    updateHoldSettings({ series: clampTrainingHoldSeries(value) }),
 });
 const holdRepetitions = computed({
-  get: () =>
-    config.value.trainingHold?.repetitions ??
-    TRAINING_HOLD_DEFAULTS.repetitions,
-  set: async (value: number) => {
-    const safe = clampTrainingHoldRepetitions(value);
-    config.value = {
-      ...config.value,
-      trainingHold: {
-        ...(config.value.trainingHold ?? TRAINING_HOLD_DEFAULTS),
-        repetitions: safe,
-      },
-    };
-    await saveConfig();
-  },
+  get: () => holdSettings.value.repetitions,
+  set: (value: number) =>
+    updateHoldSettings({ repetitions: clampTrainingHoldRepetitions(value) }),
 });
 const holdSeconds = computed({
-  get: () =>
-    config.value.trainingHold?.holdSeconds ??
-    TRAINING_HOLD_DEFAULTS.holdSeconds,
-  set: async (value: number) => {
-    const safe = clampTrainingHoldSeconds(value);
-    config.value = {
-      ...config.value,
-      trainingHold: {
-        ...(config.value.trainingHold ?? TRAINING_HOLD_DEFAULTS),
-        holdSeconds: safe,
-      },
-    };
-    await saveConfig();
-  },
+  get: () => holdSettings.value.holdSeconds,
+  set: (value: number) =>
+    updateHoldSettings({ holdSeconds: clampTrainingHoldSeconds(value) }),
 });
 const restSeconds = computed({
-  get: () =>
-    config.value.trainingHold?.restSeconds ??
-    TRAINING_HOLD_DEFAULTS.restSeconds,
-  set: async (value: number) => {
-    const safe = clampTrainingRestSeconds(value);
-    config.value = {
-      ...config.value,
-      trainingHold: {
-        ...(config.value.trainingHold ?? TRAINING_HOLD_DEFAULTS),
-        restSeconds: safe,
-      },
-    };
-    await saveConfig();
-  },
+  get: () => holdSettings.value.restSeconds,
+  set: (value: number) =>
+    updateHoldSettings({ restSeconds: clampTrainingRestSeconds(value) }),
 });
 
 function startHold() {
-  hold.start({
-    series: holdSeries.value,
-    repetitions: holdRepetitions.value,
-    holdSeconds: holdSeconds.value,
-    restSeconds: restSeconds.value,
-  });
+  hold.start(holdSettings.value);
+}
+// Mirrors the #training-cycle-toggle-btn click handler (pause / resume /
+// restart a fresh cycle once finished).
+function toggleHold() {
+  hold.toggle(holdSettings.value);
 }
 function closeHold() {
   hold.close();
 }
+// Pause button shown only while the cycle ticks (updateTrainingCycleToggleButton()).
+const holdShowStart = computed(
+  () => !hold.state.value.running || hold.state.value.paused,
+);
+// Mirrors syncTrainingMetaBlocksColor().
+const holdMetaStyle = computed(() => ({
+  backgroundColor: getTrainingRingColorByPhase(hold.state.value.phase),
+  color: "#fff",
+}));
 watch(
   () => hold.state.value.finished,
   (finished) => {
@@ -155,66 +168,57 @@ watch(
 );
 
 // ---------------- Volume de flèches ----------------
+const volumeSettings = computed<TrainingVolumeSettings>(() => {
+  const saved = config.value.trainingVolume;
+  return {
+    series: clampTrainingVolumeSeries(parseSavedInt(saved?.series)),
+    volleysPerSeries: clampTrainingVolumeVolleysPerSeries(
+      parseSavedInt(saved?.volleysPerSeries),
+    ),
+    arrowsPerVolley: clampTrainingVolumeArrowsPerVolley(
+      parseSavedInt(saved?.arrowsPerVolley),
+    ),
+  };
+});
+
+async function updateVolumeSettings(patch: Partial<TrainingVolumeSettings>) {
+  config.value = {
+    ...config.value,
+    trainingVolume: { ...volumeSettings.value, ...patch },
+  };
+  await saveConfig();
+}
+
 const volumeSeries = computed({
-  get: () =>
-    config.value.trainingVolume?.series ?? TRAINING_VOLUME_DEFAULTS.series,
-  set: async (value: number) => {
-    const safe = clampTrainingVolumeSeries(value);
-    config.value = {
-      ...config.value,
-      trainingVolume: {
-        ...(config.value.trainingVolume ?? TRAINING_VOLUME_DEFAULTS),
-        series: safe,
-      },
-    };
-    await saveConfig();
-  },
+  get: () => volumeSettings.value.series,
+  set: (value: number) =>
+    updateVolumeSettings({ series: clampTrainingVolumeSeries(value) }),
 });
 const volumeVolleysPerSeries = computed({
-  get: () =>
-    config.value.trainingVolume?.volleysPerSeries ??
-    TRAINING_VOLUME_DEFAULTS.volleysPerSeries,
-  set: async (value: number) => {
-    const safe = clampTrainingVolumeVolleysPerSeries(value);
-    config.value = {
-      ...config.value,
-      trainingVolume: {
-        ...(config.value.trainingVolume ?? TRAINING_VOLUME_DEFAULTS),
-        volleysPerSeries: safe,
-      },
-    };
-    await saveConfig();
-  },
+  get: () => volumeSettings.value.volleysPerSeries,
+  set: (value: number) =>
+    updateVolumeSettings({
+      volleysPerSeries: clampTrainingVolumeVolleysPerSeries(value),
+    }),
 });
 const volumeArrowsPerVolley = computed({
-  get: () =>
-    config.value.trainingVolume?.arrowsPerVolley ??
-    TRAINING_VOLUME_DEFAULTS.arrowsPerVolley,
-  set: async (value: number) => {
-    const safe = clampTrainingVolumeArrowsPerVolley(value);
-    config.value = {
-      ...config.value,
-      trainingVolume: {
-        ...(config.value.trainingVolume ?? TRAINING_VOLUME_DEFAULTS),
-        arrowsPerVolley: safe,
-      },
-    };
-    await saveConfig();
-  },
+  get: () => volumeSettings.value.arrowsPerVolley,
+  set: (value: number) =>
+    updateVolumeSettings({
+      arrowsPerVolley: clampTrainingVolumeArrowsPerVolley(value),
+    }),
 });
-const volumeTotalArrows = computed(
-  () =>
+// Setup total counter, mirrors updateTrainingVolumeDisplay().
+const volumeTotalDigits = computed(() =>
+  toCounterDigits(
     volumeSeries.value *
-    volumeVolleysPerSeries.value *
-    volumeArrowsPerVolley.value,
+      volumeVolleysPerSeries.value *
+      volumeArrowsPerVolley.value,
+  ),
 );
 
 function startVolume() {
-  volume.start({
-    series: volumeSeries.value,
-    volleysPerSeries: volumeVolleysPerSeries.value,
-    arrowsPerVolley: volumeArrowsPerVolley.value,
-  });
+  volume.start(volumeSettings.value);
 }
 function closeVolume() {
   volume.close();
@@ -227,14 +231,13 @@ const volumeArrowsLabel = computed(() => {
   const n = volume.state.value.arrowsPerVolley;
   return `Tirer ${n} ${n > 1 ? "flèches" : "flèche"}`;
 });
+// Session counter, mirrors renderTrainingVolumeSession().
 const volumeCounterDigits = computed(() =>
-  String(Math.max(0, Math.min(999, volume.state.value.arrowsFired))).padStart(
-    3,
-    "0",
-  ),
+  toCounterDigits(volume.state.value.arrowsFired),
 );
 
 // ---------------- Quiz blasons ----------------
+const QUIZ_CATEGORIES: ShieldCategory[] = ["PA", "PG", "MG", "GG"];
 const shieldPa = ref(true);
 const shieldPg = ref(true);
 const shieldMg = ref(true);
@@ -256,12 +259,16 @@ function startQuiz() {
 function closeQuiz() {
   quiz.close();
 }
+// Mirrors restartQuizShields().
 function restartQuiz() {
-  quiz.restart();
+  if (!quiz.restart())
+    showFlash("Aucun blason disponible pour redemarrer le quiz.");
 }
 function answerQuiz(category: ShieldCategory) {
   quiz.answer(category);
 }
+// Mirrors the button state classes toggled in loadNextQuizShieldsQuestion()/
+// handleQuizShieldsAnswer().
 function quizButtonClass(category: ShieldCategory) {
   const s = quiz.state.value;
   if (!s.answered) return "quiz-option-default";
@@ -269,58 +276,97 @@ function quizButtonClass(category: ShieldCategory) {
   if (category === s.lastAnswerCategory) return "incorrect";
   return "quiz-option-muted";
 }
+// The legacy "Cible" value is not updated past the last question.
+const quizQuestionLabel = computed(() => {
+  const s = quiz.state.value;
+  return `${Math.min(s.currentQuestion, s.totalQuestions)}/${s.totalQuestions}`;
+});
 
 // ---------------- Score cible ----------------
-const targetRuleset = ref<Ruleset>(
-  (config.value.trainingTargetScore?.ruleset as Ruleset) ??
-    TRAINING_TARGET_SCORE_DEFAULTS.ruleset,
+// Derived from config (not snapshotted into refs) so the saved course/score
+// show up once the async loadConfig() resolves.
+const enabledRulesets = computed(() => config.value.enabledRulesets ?? []);
+const enabledFftaRulesets = computed(() =>
+  FFTA_RULESETS.filter((r) => enabledRulesets.value.includes(r)),
 );
-const targetWeapon = ref(getWeaponsForRuleset(targetRuleset.value)[0] ?? "");
-const targetPercentage = ref(
-  config.value.trainingTargetScore?.percentage ??
-    TRAINING_TARGET_SCORE_DEFAULTS.percentage,
+const enabledFftlRulesets = computed(() =>
+  FFTL_RULESETS.filter((r) => enabledRulesets.value.includes(r)),
 );
 
+// Mirrors getTrainingTargetRuleset() + updateRulesetSelectOptions(): a
+// saved course that is now disabled falls back to the first enabled one.
+const targetRuleset = computed<Ruleset>({
+  get: () => {
+    const saved = config.value.trainingTargetScore?.ruleset as Ruleset;
+    const isKnown = (r: string): r is Ruleset =>
+      Object.prototype.hasOwnProperty.call(presets, r);
+    if (saved && isKnown(saved) && enabledRulesets.value.includes(saved))
+      return saved;
+    const firstEnabled = [...FFTA_RULESETS, ...FFTL_RULESETS].find((r) =>
+      enabledRulesets.value.includes(r),
+    );
+    if (firstEnabled) return firstEnabled;
+    return saved && isKnown(saved)
+      ? saved
+      : TRAINING_TARGET_SCORE_DEFAULTS.ruleset;
+  },
+  set: (ruleset: Ruleset) => {
+    // updateTrainingTargetScoreDisplay({ useStoredValue: true }) on change.
+    void saveTargetScoreSettings(
+      ruleset,
+      getStoredTrainingTargetScore(ruleset, config.value.trainingTargetScore),
+    );
+  },
+});
+
+const targetBounds = computed(() =>
+  getTrainingTargetScoreBounds(targetRuleset.value),
+);
+const targetScoreValue = computed({
+  get: () =>
+    getStoredTrainingTargetScore(
+      targetRuleset.value,
+      config.value.trainingTargetScore,
+    ),
+  set: (value: number) => {
+    void saveTargetScoreSettings(targetRuleset.value, value);
+  },
+});
+const targetScoreDigits = computed(() =>
+  toCounterDigits(targetScoreValue.value),
+);
+
+// Mirrors the appConfig writes at the end of updateTrainingTargetScoreDisplay():
+// ruleset, percentage (fallback for rulesets without a saved score) and the
+// per-ruleset target score.
+async function saveTargetScoreSettings(ruleset: Ruleset, score: number) {
+  const safeScore = clampTrainingTargetScore(score, ruleset);
+  const { maxScore } = getTrainingTargetScoreBounds(ruleset);
+  const saved = config.value.trainingTargetScore;
+  config.value = {
+    ...config.value,
+    trainingTargetScore: {
+      ...saved,
+      ruleset,
+      percentage: clampTrainingTargetPercentage((safeScore / maxScore) * 100),
+      targetScoresByRuleset: {
+        ...(saved?.targetScoresByRuleset ?? {}),
+        [ruleset]: safeScore,
+      },
+    },
+  };
+  await saveConfig();
+}
+
+const targetWeapon = ref(getWeaponsForRuleset(targetRuleset.value)[0] ?? "");
 watch(targetRuleset, (newRuleset) => {
   const weapons = getWeaponsForRuleset(newRuleset);
   if (!weapons.includes(targetWeapon.value))
     targetWeapon.value = weapons[0] ?? "";
 });
 
-const targetMaxScore = computed(() =>
-  getTrainingTargetMaxScore(targetRuleset.value),
-);
-const targetScoreValue = computed(() =>
-  clampTrainingTargetScore(
-    Math.round(targetMaxScore.value * (targetPercentage.value / 100)),
-    targetRuleset.value,
-  ),
-);
-
-async function onTargetPercentageChange(value: number) {
-  targetPercentage.value = clampTrainingTargetPercentage(value);
-  config.value = {
-    ...config.value,
-    trainingTargetScore: {
-      ...(config.value.trainingTargetScore ?? {}),
-      ruleset: targetRuleset.value,
-      percentage: targetPercentage.value,
-    },
-  };
-  await saveConfig();
-}
-async function onTargetRulesetChange() {
-  config.value = {
-    ...config.value,
-    trainingTargetScore: {
-      ...(config.value.trainingTargetScore ?? {}),
-      ruleset: targetRuleset.value,
-      percentage: targetPercentage.value,
-    },
-  };
-  await saveConfig();
-}
-
+// Mirrors getTrainingTargetSuccessZone(): saved zone for
+// "ruleset:individual:weapon", clamped (non-integer -> 1) by the composable.
 function startTargetScore() {
   const zoneKey = `${targetRuleset.value}:individual:${targetWeapon.value}`;
   const savedZone = Number.parseInt(
@@ -351,10 +397,15 @@ function isZero(score: number) {
 function isFieldX(score: number) {
   return score === FIELD_X;
 }
+// Mirrors renderCurrentShootPills().
 function pillScoreClass(value: number | null) {
-  if (value === null || value === undefined) return "";
-  if (value === 0) return "is-zero";
-  return "";
+  if (value === null || value === undefined) return "is-empty";
+  if (value === 0) return "is-miss";
+  if (value === FIELD_X) return "is-x";
+  return "is-hit";
+}
+function targetRowTotal(arrows: (number | null)[]) {
+  return arrows.reduce<number>((s, v) => s + scoreToValue(v), 0);
 }
 </script>
 
@@ -376,7 +427,7 @@ function pillScoreClass(value: number | null) {
           <NuxtLink
             to="/"
             class="btn btn-light btn-icon home-btn"
-            aria-label="Fermer"
+            aria-label="Fermer entraînement"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path
@@ -389,9 +440,9 @@ function pillScoreClass(value: number | null) {
       </div>
 
       <div class="grid-two solo-setup-grid">
-        <label>
+        <label for="training-option-select">
           <span class="label-inline">Exercice</span>
-          <select v-model="selectedExercise">
+          <select id="training-option-select" v-model="selectedExercise">
             <option value="hold-time">Temps de tenue</option>
             <option value="volume-arrows">Volume de flèches</option>
             <option value="quiz-shields">Quiz blasons</option>
@@ -400,13 +451,12 @@ function pillScoreClass(value: number | null) {
         </label>
 
         <!-- Temps de tenue form -->
-        <template v-if="selectedExercise === 'hold-time'">
-          <div class="setup-options-row training-setup-row">
-            <label>
-              <span class="label-inline"
-                >Séries <strong>{{ holdSeries }}</strong></span
-              >
+        <div v-if="selectedExercise === 'hold-time'" id="training-hold-time-form">
+          <label for="training-series-input">
+            <span class="label-inline">Nombre de séries</span>
+            <div class="slider-row">
               <input
+                id="training-series-input"
                 type="range"
                 min="3"
                 max="6"
@@ -417,13 +467,14 @@ function pillScoreClass(value: number | null) {
                   holdSeries = Number(($event.target as HTMLInputElement).value)
                 "
               />
-            </label>
-            <label>
-              <span class="label-inline"
-                >Répétitions par série
-                <strong>{{ holdRepetitions }}</strong></span
-              >
+              <strong>{{ holdSeries }}</strong>
+            </div>
+          </label>
+          <label for="training-repetitions-input">
+            <span class="label-inline">Nombre de répétitions</span>
+            <div class="slider-row">
               <input
+                id="training-repetitions-input"
                 type="range"
                 min="3"
                 max="6"
@@ -438,12 +489,14 @@ function pillScoreClass(value: number | null) {
                   )
                 "
               />
-            </label>
-            <label>
-              <span class="label-inline"
-                >Temps de tenue <strong>{{ holdSeconds }}s</strong></span
-              >
+              <strong>{{ holdRepetitions }}</strong>
+            </div>
+          </label>
+          <label for="training-hold-seconds-input">
+            <span class="label-inline">Temps de tenue en secondes</span>
+            <div class="slider-row">
               <input
+                id="training-hold-seconds-input"
                 type="range"
                 min="2"
                 max="12"
@@ -458,12 +511,14 @@ function pillScoreClass(value: number | null) {
                   )
                 "
               />
-            </label>
-            <label>
-              <span class="label-inline"
-                >Temps de repos <strong>{{ restSeconds }}s</strong></span
-              >
+              <strong>{{ holdSeconds }}s</strong>
+            </div>
+          </label>
+          <label for="training-rest-seconds-input">
+            <span class="label-inline">Temps de repos en secondes</span>
+            <div class="slider-row">
               <input
+                id="training-rest-seconds-input"
                 type="range"
                 min="5"
                 max="30"
@@ -478,11 +533,14 @@ function pillScoreClass(value: number | null) {
                   )
                 "
               />
-            </label>
-          </div>
+              <strong>{{ restSeconds }}s</strong>
+            </div>
+          </label>
           <div class="start-action">
             <button
+              id="training-start-btn"
               class="btn btn-primary btn-icon start-btn"
+              aria-label="Démarrer entraînement temps de tenue"
               @click="startHold"
             >
               Démarrer
@@ -491,16 +549,18 @@ function pillScoreClass(value: number | null) {
               </svg>
             </button>
           </div>
-        </template>
+        </div>
 
         <!-- Volume de flèches form -->
-        <template v-else-if="selectedExercise === 'volume-arrows'">
-          <div class="setup-options-row">
-            <label>
-              <span class="label-inline"
-                >Séries <strong>{{ volumeSeries }}</strong></span
-              >
+        <div
+          v-else-if="selectedExercise === 'volume-arrows'"
+          id="training-volume-form"
+        >
+          <label for="training-volume-series-input">
+            <span class="label-inline">Nombre de séries</span>
+            <div class="slider-row">
               <input
+                id="training-volume-series-input"
                 type="range"
                 min="1"
                 max="10"
@@ -515,13 +575,14 @@ function pillScoreClass(value: number | null) {
                   )
                 "
               />
-            </label>
-            <label>
-              <span class="label-inline"
-                >Volées par série
-                <strong>{{ volumeVolleysPerSeries }}</strong></span
-              >
+              <strong>{{ volumeSeries }}</strong>
+            </div>
+          </label>
+          <label for="training-volume-volleys-input">
+            <span class="label-inline">Nombre de volées par série</span>
+            <div class="slider-row">
               <input
+                id="training-volume-volleys-input"
                 type="range"
                 min="1"
                 max="6"
@@ -540,13 +601,14 @@ function pillScoreClass(value: number | null) {
                   )
                 "
               />
-            </label>
-            <label>
-              <span class="label-inline"
-                >Flèches par volée
-                <strong>{{ volumeArrowsPerVolley }}</strong></span
-              >
+              <strong>{{ volumeVolleysPerSeries }}</strong>
+            </div>
+          </label>
+          <label for="training-volume-arrows-input">
+            <span class="label-inline">Nombre de flèches par volée</span>
+            <div class="slider-row">
               <input
+                id="training-volume-arrows-input"
                 type="range"
                 min="1"
                 max="12"
@@ -565,14 +627,27 @@ function pillScoreClass(value: number | null) {
                   )
                 "
               />
-            </label>
-            <p class="training-volume-total">
-              Total <strong>{{ volumeTotalArrows }}</strong> flèches
-            </p>
+              <strong>{{ volumeArrowsPerVolley }}</strong>
+            </div>
+          </label>
+          <div class="training-volume-total" aria-live="polite">
+            <div
+              class="training-volume-counter"
+              aria-label="Compteur total de flèches à tirer"
+            >
+              <span
+                v-for="(digit, i) in volumeTotalDigits"
+                :key="i"
+                class="training-volume-digit"
+                >{{ digit }}</span
+              >
+            </div>
           </div>
           <div class="start-action">
             <button
+              id="training-volume-start-btn"
               class="btn btn-primary btn-icon start-btn"
+              aria-label="Démarrer entraînement volume de flèches"
               @click="startVolume"
             >
               Démarrer
@@ -581,34 +656,81 @@ function pillScoreClass(value: number | null) {
               </svg>
             </button>
           </div>
-        </template>
+        </div>
 
         <!-- Quiz blasons form -->
-        <template v-else-if="selectedExercise === 'quiz-shields'">
-          <div class="setup-options-row">
-            <fieldset class="mode-fieldset">
-              <legend class="label-inline">Catégories</legend>
-              <label class="switch-option"
-                ><input v-model="shieldPa" type="checkbox" />
-                <span>Petit animal (PA)</span></label
-              >
-              <label class="switch-option"
-                ><input v-model="shieldPg" type="checkbox" />
-                <span>Petit gibier (PG)</span></label
-              >
-              <label class="switch-option"
-                ><input v-model="shieldMg" type="checkbox" />
-                <span>Moyen gibier (MG)</span></label
-              >
-              <label class="switch-option"
-                ><input v-model="shieldGg" type="checkbox" />
-                <span>Grand gibier (GG)</span></label
-              >
-            </fieldset>
+        <div
+          v-else-if="selectedExercise === 'quiz-shields'"
+          id="training-quiz-shields-form"
+        >
+          <div class="quiz-shields-sponsor">
+            <a
+              href="https://www.obosticker.com/#archerie"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Sponsor OBO Sticker"
+            >
+              <img
+                src="/images/obo-sticker.png"
+                alt="OBO Sticker"
+                class="sponsor-logo"
+              />
+            </a>
           </div>
+
+          <fieldset class="shields-checkboxes">
+            <legend>Catégories de blasons</legend>
+            <div class="checkbox-item">
+              <input
+                id="shield-pa-checkbox"
+                v-model="shieldPa"
+                type="checkbox"
+                value="PA"
+              />
+              <label for="shield-pa-checkbox">
+                <span class="checkbox-label-text">Petit Animal (PA)</span>
+              </label>
+            </div>
+            <div class="checkbox-item">
+              <input
+                id="shield-pg-checkbox"
+                v-model="shieldPg"
+                type="checkbox"
+                value="PG"
+              />
+              <label for="shield-pg-checkbox">
+                <span class="checkbox-label-text">Petit Gibier (PG)</span>
+              </label>
+            </div>
+            <div class="checkbox-item">
+              <input
+                id="shield-mg-checkbox"
+                v-model="shieldMg"
+                type="checkbox"
+                value="MG"
+              />
+              <label for="shield-mg-checkbox">
+                <span class="checkbox-label-text">Moyen Gibier (MG)</span>
+              </label>
+            </div>
+            <div class="checkbox-item">
+              <input
+                id="shield-gg-checkbox"
+                v-model="shieldGg"
+                type="checkbox"
+                value="GG"
+              />
+              <label for="shield-gg-checkbox">
+                <span class="checkbox-label-text">Grand Gibier (GG)</span>
+              </label>
+            </div>
+          </fieldset>
+
           <div class="start-action">
             <button
+              id="training-quiz-shields-start-btn"
               class="btn btn-primary btn-icon start-btn"
+              aria-label="Démarrer quiz blasons"
               @click="startQuiz"
             >
               Démarrer
@@ -617,29 +739,37 @@ function pillScoreClass(value: number | null) {
               </svg>
             </button>
           </div>
-        </template>
+        </div>
 
         <!-- Score cible form -->
-        <template v-else>
-          <div class="setup-options-row">
-            <label>
-              <span class="label-inline">Parcours</span>
-              <select v-model="targetRuleset" @change="onTargetRulesetChange">
-                <optgroup label="FFTA">
-                  <option v-for="r in FFTA_RULESETS" :key="r" :value="r">
+        <div v-else id="training-target-score-form">
+          <div class="training-target-score-content">
+            <label for="training-target-ruleset-select">
+              <span class="label-inline">Type de parcours</span>
+              <select id="training-target-ruleset-select" v-model="targetRuleset">
+                <optgroup v-if="enabledFftaRulesets.length > 0" label="FFTA">
+                  <option
+                    v-for="r in enabledFftaRulesets"
+                    :key="r"
+                    :value="r"
+                  >
                     {{ formatRulesetLabel(r) }}
                   </option>
                 </optgroup>
-                <optgroup label="FFTL">
-                  <option v-for="r in FFTL_RULESETS" :key="r" :value="r">
+                <optgroup v-if="enabledFftlRulesets.length > 0" label="FFTL">
+                  <option
+                    v-for="r in enabledFftlRulesets"
+                    :key="r"
+                    :value="r"
+                  >
                     {{ formatRulesetLabel(r) }}
                   </option>
                 </optgroup>
               </select>
             </label>
-            <label>
+            <label for="training-target-weapon-select">
               <span class="label-inline">Arme</span>
-              <select v-model="targetWeapon">
+              <select id="training-target-weapon-select" v-model="targetWeapon">
                 <option
                   v-for="w in getWeaponsForRuleset(targetRuleset)"
                   :key="w"
@@ -649,53 +779,85 @@ function pillScoreClass(value: number | null) {
                 </option>
               </select>
             </label>
-            <label>
-              <span class="label-inline"
-                >Objectif <strong>{{ targetPercentage }}%</strong></span
+
+            <div class="training-target-score-control">
+              <label for="training-target-score-input" class="label-inline"
+                >Score cible</label
               >
-              <input
-                type="range"
-                min="50"
-                max="100"
-                step="1"
-                :value="targetPercentage"
-                :style="{
-                  '--range-progress': rangeProgress(targetPercentage, 50, 100),
-                }"
-                @input="
-                  onTargetPercentageChange(
-                    Number(($event.target as HTMLInputElement).value),
-                  )
-                "
-              />
-            </label>
-            <p class="training-volume-total">
-              Score cible <strong>{{ targetScoreValue }}</strong> /
-              {{ targetMaxScore }} pts
-            </p>
+              <div
+                class="training-volume-total training-target-score-total"
+                aria-live="polite"
+              >
+                <div
+                  class="training-volume-counter"
+                  aria-label="Compteur du score cible"
+                >
+                  <span
+                    v-for="(digit, i) in targetScoreDigits"
+                    :key="i"
+                    class="training-volume-digit"
+                    >{{ digit }}</span
+                  >
+                </div>
+              </div>
+              <div class="slider-row">
+                <input
+                  id="training-target-score-input"
+                  type="range"
+                  :min="targetBounds.minScore"
+                  :max="targetBounds.maxScore"
+                  step="1"
+                  :value="targetScoreValue"
+                  :style="{
+                    '--range-progress': rangeProgress(
+                      targetScoreValue,
+                      targetBounds.minScore,
+                      targetBounds.maxScore,
+                    ),
+                    '--range-fill-color': '#2d6a4f',
+                  }"
+                  @input="
+                    targetScoreValue = Number(
+                      ($event.target as HTMLInputElement).value,
+                    )
+                  "
+                />
+              </div>
+            </div>
+
+            <div class="start-action">
+              <button
+                id="training-target-score-start-btn"
+                class="btn btn-primary btn-icon start-btn"
+                aria-label="Démarrer entraînement score cible"
+                @click="startTargetScore"
+              >
+                Démarrer
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+                </svg>
+              </button>
+            </div>
           </div>
-          <div class="start-action">
-            <button
-              class="btn btn-primary btn-icon start-btn"
-              @click="startTargetScore"
-            >
-              Démarrer
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
-              </svg>
-            </button>
-          </div>
-        </template>
+        </div>
       </div>
     </section>
 
     <!-- ===================== TEMPS DE TENUE (running) ===================== -->
     <section v-else-if="running === 'hold-time'" class="card">
       <div class="setup-head">
-        <h2 class="modal-title-with-icon">Temps de tenue</h2>
+        <h2 class="modal-title-with-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 14a6 6 0 1 1 6-6 6 6 0 0 1-6 6Zm1-10h-2v4.4l3.2 1.9 1-1.7-2.2-1.3V10Z"
+              fill="currentColor"
+            />
+          </svg>
+          <span>Temps de tenue</span>
+        </h2>
         <button
           class="btn btn-light btn-icon home-btn"
-          aria-label="Fermer"
+          aria-label="Fermer temps de tenue"
           @click="closeHold"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -706,31 +868,20 @@ function pillScoreClass(value: number | null) {
           </svg>
         </button>
       </div>
-      <div class="training-meta-row">
-        <div class="training-meta-block">
+      <!-- Remaining counts, mirrors renderTrainingCycle(). -->
+      <div class="training-hold-meta-row">
+        <strong class="training-hold-series-stack" :style="holdMetaStyle">
           <span class="training-meta-label">Série</span>
-          <span class="training-meta-value"
-            >{{
-              hold.state.value.finished
-                ? 0
-                : hold.state.value.initialSeriesCount -
-                  hold.state.value.seriesRemaining +
-                  1
-            }}/{{ hold.state.value.initialSeriesCount }}</span
-          >
-        </div>
-        <div class="training-meta-block">
+          <span class="training-meta-value">{{
+            hold.state.value.seriesRemaining
+          }}</span>
+        </strong>
+        <strong class="training-hold-series-stack" :style="holdMetaStyle">
           <span class="training-meta-label">Répétition</span>
-          <span class="training-meta-value"
-            >{{
-              hold.state.value.finished
-                ? 0
-                : hold.state.value.repetitionsPerSeries -
-                  hold.state.value.repetitionsRemaining +
-                  1
-            }}/{{ hold.state.value.repetitionsPerSeries }}</span
-          >
-        </div>
+          <span class="training-meta-value">{{
+            hold.state.value.repetitionsRemaining
+          }}</span>
+        </strong>
       </div>
       <div class="training-hold-ring-wrap">
         <div
@@ -738,12 +889,15 @@ function pillScoreClass(value: number | null) {
           :class="{
             'is-rest': hold.state.value.phase === 'rest',
             'is-series-break': hold.state.value.phase === 'series-break',
+            'is-hold': hold.state.value.phase === 'hold',
           }"
           :style="{ '--ring-progress': hold.ringProgressPct.value }"
+          role="img"
+          :aria-label="hold.ringAriaLabel.value"
         >
           <strong>
             <span class="training-time-value">{{
-              hold.state.value.finished ? 0 : hold.state.value.secondsRemaining
+              hold.state.value.secondsRemaining
             }}</span
             ><span class="training-time-unit">s</span>
           </strong>
@@ -752,15 +906,43 @@ function pillScoreClass(value: number | null) {
           }}</span>
         </div>
       </div>
+      <div class="start-action">
+        <button
+          id="training-cycle-toggle-btn"
+          class="btn btn-primary btn-icon start-btn"
+          :aria-label="
+            holdShowStart ? 'Démarrer le timer' : 'Mettre en pause le timer'
+          "
+          @click="toggleHold"
+        >
+          <span>{{ holdShowStart ? "Démarrer" : "Pause" }}</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              v-if="holdShowStart"
+              d="M8 5v14l11-7L8 5Z"
+              fill="currentColor"
+            />
+            <path v-else d="M7 5h3v14H7V5Zm7 0h3v14h-3V5Z" fill="currentColor" />
+          </svg>
+        </button>
+      </div>
     </section>
 
     <!-- ===================== VOLUME DE FLÈCHES (running) ===================== -->
     <section v-else-if="running === 'volume-arrows'" class="card">
       <div class="setup-head">
-        <h2 class="modal-title-with-icon">Volume de flèches</h2>
+        <h2 class="modal-title-with-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M4 4h16v4H4V4Zm0 6h16v4H4v-4Zm0 6h16v4H4v-4Z"
+              fill="currentColor"
+            />
+          </svg>
+          <span>Volume de flèches</span>
+        </h2>
         <button
           class="btn btn-light btn-icon home-btn"
-          aria-label="Fermer"
+          aria-label="Fermer volume de flèches"
           @click="closeVolume"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -772,60 +954,88 @@ function pillScoreClass(value: number | null) {
         </button>
       </div>
       <div class="training-volume-meta-row">
-        <div class="training-volume-meta-block">
+        <strong class="training-volume-meta-block">
           <span class="training-meta-label">Série</span>
           <span class="training-meta-value"
             >{{ volume.state.value.currentSeries }}/{{
               volume.state.value.seriesTotal
             }}</span
           >
-        </div>
-        <div class="training-volume-meta-block">
+        </strong>
+        <strong class="training-volume-meta-block">
           <span class="training-meta-label">Volée</span>
           <span class="training-meta-value"
             >{{ volume.state.value.currentVolley }}/{{
               volume.state.value.volleysPerSeries
             }}</span
           >
-        </div>
+        </strong>
       </div>
       <div class="training-volume-progress-wrap">
         <div class="training-volume-progress-head">
-          <span>Progression</span>
-          <span>{{ volume.progressPct.value }}%</span>
+          <span>Progression des flèches</span>
+          <strong>{{ volume.progressPct.value }}%</strong>
         </div>
         <input
+          id="training-volume-progress-input"
           type="range"
           min="0"
           max="100"
+          step="1"
           :value="volume.progressPct.value"
           :style="{
             '--range-progress': rangeProgress(volume.progressPct.value, 0, 100),
+            '--range-fill-color': '#1f6feb',
           }"
           disabled
         />
       </div>
-      <div class="training-volume-counter-wrap">
-        <span>{{ volumeCounterDigits[0] }}</span
-        ><span>{{ volumeCounterDigits[1] }}</span
-        ><span>{{ volumeCounterDigits[2] }}</span>
+      <div class="start-action">
+        <button
+          id="training-volume-next-btn"
+          class="btn btn-primary btn-icon start-btn"
+          :aria-label="
+            volume.completed.value ? 'Séance terminée' : volumeArrowsLabel
+          "
+          :disabled="volume.completed.value"
+          @click="registerVolumeVolley"
+        >
+          <span>{{ volumeArrowsLabel }}</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+          </svg>
+        </button>
       </div>
-      <button
-        class="btn btn-primary btn-icon start-btn"
-        :disabled="volume.completed.value"
-        @click="registerVolumeVolley"
-      >
-        {{ volumeArrowsLabel }}
-      </button>
+      <div class="training-volume-counter-wrap" aria-live="polite">
+        <div
+          class="training-volume-counter"
+          aria-label="Compteur analogique de flèches"
+        >
+          <span
+            v-for="(digit, i) in volumeCounterDigits"
+            :key="i"
+            class="training-volume-digit"
+            >{{ digit }}</span
+          >
+        </div>
+      </div>
     </section>
 
     <!-- ===================== QUIZ BLASONS (running) ===================== -->
     <section v-else-if="running === 'quiz-shields'" class="card">
       <div class="setup-head">
-        <h2 class="modal-title-with-icon">Quiz blasons</h2>
+        <h2 class="modal-title-with-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M12 3C6.48 3 2 6.58 2 11c0 2.24 1.17 4.26 3.06 5.69-.18 1.17-.69 2.33-1.5 3.31 1.92-.23 3.77-.93 5.31-2.02.99.27 2.04.41 3.13.41 5.52 0 10-3.58 10-8S17.52 3 12 3Z"
+              fill="currentColor"
+            />
+          </svg>
+          <span>Quiz blasons</span>
+        </h2>
         <button
           class="btn btn-light btn-icon home-btn"
-          aria-label="Fermer"
+          aria-label="Fermer quiz blasons"
           @click="closeQuiz"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -837,81 +1047,92 @@ function pillScoreClass(value: number | null) {
         </button>
       </div>
 
-      <template v-if="!quiz.state.value.showResults">
-        <div class="training-meta-row">
-          <div class="training-meta-block">
-            <span class="training-meta-label">Question</span>
-            <span class="training-meta-value"
-              >{{ quiz.state.value.currentQuestion }}/{{
-                quiz.state.value.totalQuestions
-              }}</span
-            >
-          </div>
-          <div class="training-meta-block">
+      <div class="quiz-shields-content">
+        <div class="quiz-shields-meta-row">
+          <strong class="quiz-shields-meta-block">
             <span class="training-meta-label">Score</span>
             <span class="training-meta-value">{{
               quiz.state.value.score
             }}</span>
-          </div>
+          </strong>
+          <strong class="quiz-shields-meta-block">
+            <span class="training-meta-label">Cible</span>
+            <span class="training-meta-value">{{ quizQuestionLabel }}</span>
+          </strong>
         </div>
-        <div
-          v-if="quiz.state.value.currentShield"
-          class="quiz-shields-image-container"
-        >
-          <img
-            class="quiz-shields-image"
-            :src="`/images/blasons/${quiz.state.value.currentShield.category}/${quiz.state.value.currentShield.image}`"
-            :alt="`Blason à identifier - ${quiz.state.value.currentShield.category}`"
-          />
-        </div>
-        <div class="quiz-shields-options grid-two">
-          <button
-            v-for="category in ['PA', 'PG', 'MG', 'GG'] as const"
-            :key="category"
-            class="btn quiz-option-btn"
-            :class="quizButtonClass(category)"
-            :disabled="quiz.state.value.answered"
-            @click="answerQuiz(category)"
-          >
-            {{ category }}
-          </button>
-        </div>
-      </template>
 
-      <template v-else>
-        <div class="results-content">
-          <p class="results-title">Résultats du quiz</p>
+        <template v-if="!quiz.state.value.showResults">
           <div
-            class="quiz-shields-result-ring"
-            :style="{ '--ring-progress': quiz.resultPercentage.value }"
+            v-if="quiz.state.value.currentShield"
+            class="quiz-shields-image-container"
           >
-            <span class="quiz-shields-result-percentage"
-              >{{ quiz.resultPercentage.value }}%</span
-            >
+            <img
+              class="quiz-shields-image"
+              :src="`/images/blasons/${quiz.state.value.currentShield.category}/${quiz.state.value.currentShield.image}`"
+              :alt="`Blason à identifier - ${quiz.state.value.currentShield.category}`"
+            />
           </div>
-          <p>
-            {{ quiz.state.value.score }} /
-            {{ quiz.state.value.totalQuestions }} bonnes réponses
-          </p>
-          <button
-            class="btn btn-primary btn-icon start-btn"
-            @click="restartQuiz"
-          >
-            Rejouer
-          </button>
+          <div class="quiz-shields-buttons">
+            <button
+              v-for="category in QUIZ_CATEGORIES"
+              :key="category"
+              class="btn btn-primary quiz-shields-option-btn"
+              :class="quizButtonClass(category)"
+              :data-category="category"
+              :disabled="quiz.state.value.answered"
+              @click="answerQuiz(category)"
+            >
+              <span class="btn-text">{{ category }}</span>
+            </button>
+          </div>
+        </template>
+
+        <div v-else class="quiz-shields-results" aria-live="polite">
+          <div class="results-content">
+            <h2 class="results-title">Quiz terminé !</h2>
+            <div class="results-stats">
+              <div
+                class="quiz-shields-result-ring"
+                :style="{ '--ring-progress': quiz.resultPercentage.value }"
+              >
+                <span class="quiz-shields-result-percentage"
+                  >{{ quiz.resultPercentage.value }}%</span
+                >
+              </div>
+            </div>
+            <div class="results-actions">
+              <button
+                id="quiz-shields-restart-btn"
+                class="btn btn-primary btn-icon start-btn"
+                aria-label="Recommencer le quiz"
+                @click="restartQuiz"
+              >
+                Recommencer
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
-      </template>
+      </div>
     </section>
 
     <!-- ===================== SCORE CIBLE (running) ===================== -->
     <section v-else-if="running === 'target-score'" class="card">
       <div class="setup-head">
         <h2 class="modal-title-with-icon">
-          Score cible — {{ targetScore.percentage.value }}%
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-8-8V2Zm0 4a6 6 0 1 0 6 6h-2a4 4 0 1 1-4-4V6Zm7.3-3.7L16 5.6V9h3.4l3.3-3.3-2.4-.4-.4-2.4Z"
+              fill="currentColor"
+            />
+          </svg>
+          <span>Score cible</span>
         </h2>
         <button
           class="btn btn-light btn-icon home-btn"
-          aria-label="Fermer"
+          aria-label="Fermer score cible"
           @click="closeTargetScore"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -922,23 +1143,68 @@ function pillScoreClass(value: number | null) {
           </svg>
         </button>
       </div>
-      <div class="training-meta-row">
-        <div class="training-meta-block">
-          <span class="training-meta-label">Total</span>
-          <span class="training-meta-value"
+      <!-- Mirrors renderTrainingTargetScoreSession(). -->
+      <div class="quick-stats training-target-score-session-stats">
+        <article>
+          <span>Score</span>
+          <strong
             >{{ targetScore.total.value
-            }}<span class="stats-unit">pts</span></span
+            }}<span class="stats-unit">pts</span></strong
           >
+        </article>
+        <article>
+          <span>Progression</span>
+          <strong>{{ targetScore.percentage.value }}%</strong>
+        </article>
+        <article>
+          <span>Cible</span>
+          <strong>{{ targetScore.state.value.currentTargetIndex + 1 }}</strong>
+        </article>
+      </div>
+
+      <h3 class="training-target-score-history-title">Historique des scores</h3>
+      <div class="training-target-score-history">
+        <div
+          v-if="targetScore.orderedHistory.value.length === 0"
+          class="duel-volley-empty"
+        >
+          Aucun score saisi
         </div>
-        <div class="training-meta-block">
-          <span class="training-meta-label">Cible</span>
-          <span class="training-meta-value">{{
-            targetScore.state.value.currentTargetIndex + 1
-          }}</span>
+        <div v-else class="table-wrap duel-history-table-wrap">
+          <table class="history-table duel-history-table">
+            <thead>
+              <tr>
+                <th>Cible</th>
+                <th>Flèches</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="row in targetScore.orderedHistory.value"
+                :key="row.index"
+              >
+                <td>
+                  <span class="volley-pill is-gray">{{ row.index + 1 }}</span>
+                </td>
+                <td>{{ row.arrows.map((v) => formatScore(v)).join(" / ") }}</td>
+                <td
+                  class="history-total"
+                  :class="{
+                    success:
+                      targetRowTotal(row.arrows) >=
+                      targetScore.state.value.successZone,
+                  }"
+                >
+                  {{ targetRowTotal(row.arrows) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div class="score-entry-sticky">
+      <div class="score-entry-sticky training-target-score-entry-panel">
         <div class="current-shoot-display">
           <span
             v-for="(value, i) in targetScore.currentArrows.value"
@@ -954,7 +1220,11 @@ function pillScoreClass(value: number | null) {
               v-for="score in targetScore.selectablePoints.value"
               :key="score"
               class="point-btn"
-              :class="{ zero: isZero(score), 'x-score': isFieldX(score) }"
+              :class="{
+                zero: isZero(score),
+                'x-score': isFieldX(score),
+                'lock-disabled': targetScore.state.value.completed,
+              }"
               :disabled="targetScore.state.value.completed"
               @click="registerTargetScore(score)"
             >
@@ -963,57 +1233,17 @@ function pillScoreClass(value: number | null) {
           </div>
           <button
             class="btn btn-light btn-icon back-btn"
-            aria-label="Effacer la dernière flèche"
+            aria-label="Effacer la dernière flèche score cible"
             @click="stepBackTargetScore"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path
-                d="M11 5v4H4.83l3.58-3.59L7 4l-6 6 6 6 1.41-1.41L4.83 11H13a4 4 0 0 1 4 4v4h2v-4a6 6 0 0 0-6-6h-2V5h-2Z"
+                d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l10.6-10.6c.79-.78 2.05-.78 2.83 0M4.22 15.58l3.54 3.53c.78.79 2.04.79 2.83 0l3.53-3.53-6.36-6.36-3.54 3.54c-.78.78-.78 2.05 0 2.82Z"
                 fill="currentColor"
               />
             </svg>
           </button>
         </div>
-      </div>
-
-      <h3 class="history-title">Historique</h3>
-      <div
-        v-if="targetScore.orderedHistory.value.length === 0"
-        class="duel-volley-empty"
-      >
-        Aucun score saisi
-      </div>
-      <div v-else class="table-wrap duel-history-table-wrap">
-        <table class="history-table duel-history-table">
-          <thead>
-            <tr>
-              <th>Cible</th>
-              <th>Flèches</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="row in targetScore.orderedHistory.value"
-              :key="row.index"
-            >
-              <td>
-                <span class="volley-pill is-gray">{{ row.index + 1 }}</span>
-              </td>
-              <td>{{ row.arrows.map((v) => formatScore(v)).join(" / ") }}</td>
-              <td
-                class="history-total"
-                :class="{
-                  success:
-                    row.arrows.reduce((s, v) => s + scoreToValue(v), 0) >=
-                    targetScore.state.value.successZone,
-                }"
-              >
-                {{ row.arrows.reduce((s, v) => s + scoreToValue(v), 0) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </section>
   </main>

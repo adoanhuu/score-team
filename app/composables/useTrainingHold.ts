@@ -28,10 +28,12 @@ export const TRAINING_HOLD_DEFAULTS: TrainingHoldSettings = {
     restSeconds: 5,
 };
 
-type HoldPhase = "rest" | "hold" | "series-break";
+export type HoldPhase = "rest" | "hold" | "series-break";
 
 interface TrainingHoldState {
     running: boolean;
+    // Mirrors trainingCycleState.isPaused (pauseTrainingCycle()/resumeTrainingCycle()).
+    paused: boolean;
     initialSeriesCount: number;
     seriesRemaining: number;
     repetitionsPerSeries: number;
@@ -60,6 +62,7 @@ export function clampTrainingRestSeconds(value: number) {
 function buildInitialState(): TrainingHoldState {
     return {
         running: false,
+        paused: false,
         initialSeriesCount: TRAINING_HOLD_DEFAULTS.series,
         seriesRemaining: TRAINING_HOLD_DEFAULTS.series,
         repetitionsPerSeries: TRAINING_HOLD_DEFAULTS.repetitions,
@@ -73,16 +76,34 @@ function buildInitialState(): TrainingHoldState {
     };
 }
 
+// Interval id kept at module scope (like app.js's trainingCycleIntervalId)
+// rather than per composable instance, so a fresh useTrainingHold() call
+// (e.g. after leaving and re-entering /entrainement) can still clear a timer
+// started by a previous instance, and a restart never stacks two intervals.
+let trainingCycleIntervalId: number | null = null;
+
+function clearTrainingCycleInterval() {
+    if (trainingCycleIntervalId !== null) {
+        window.clearInterval(trainingCycleIntervalId);
+        trainingCycleIntervalId = null;
+    }
+}
+
+function cancelTrainingSpeech() {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+    }
+}
+
+// Phase colors, mirrors getTrainingRingColorByPhase().
+export function getTrainingRingColorByPhase(phase: HoldPhase) {
+    if (phase === "rest") return "#2d6a4f";
+    if (phase === "series-break") return "#1558c0";
+    return "#c62828";
+}
+
 export function useTrainingHold() {
     const state = useState<TrainingHoldState>("training-hold-state", buildInitialState);
-    let intervalId: number | null = null;
-
-    function stopTimer() {
-        if (intervalId !== null) {
-            window.clearInterval(intervalId);
-            intervalId = null;
-        }
-    }
 
     const phaseLabel = computed(() => {
         if (state.value.finished) return "Terminé";
@@ -91,7 +112,15 @@ export function useTrainingHold() {
         return "Tenue";
     });
 
+    // Mirrors the ring aria-label set in renderTrainingCycle().
+    const ringAriaLabel = computed(() => {
+        if (state.value.phase === "rest") return "Décompte du temps de repos";
+        if (state.value.phase === "series-break") return "Décompte de la pause entre les séries";
+        return "Décompte du temps de tenue";
+    });
+
     const ringProgressPct = computed(() => {
+        if (state.value.finished) return 0;
         const cycleTotal = Math.max(1, state.value.restSeconds + state.value.holdSeconds);
         const total = state.value.phase === "series-break" ? Math.max(1, state.value.seriesBreakSeconds) : cycleTotal;
         const remaining =
@@ -101,8 +130,9 @@ export function useTrainingHold() {
         return Math.min(100, Math.max(0, (remaining / total) * 100));
     });
 
+    // Mirrors tickTrainingCycle() (training-hold mode only).
     function tick() {
-        if (!state.value.running) return;
+        if (!state.value.running || state.value.paused) return;
 
         if (state.value.secondsRemaining > 0) {
             state.value.secondsRemaining -= 1;
@@ -141,14 +171,23 @@ export function useTrainingHold() {
             return;
         }
 
+        // Unlike legacy (which calls stopTrainingCycle() -> speechSynthesis.cancel()
+        // right after queuing it, cutting the announcement off), only the
+        // interval is cleared here so "fin exercice" is actually heard.
+        state.value.seriesRemaining = 0;
+        state.value.repetitionsRemaining = 0;
+        state.value.secondsRemaining = 0;
         state.value.finished = true;
         state.value.running = false;
+        state.value.paused = false;
         speakTrainingExerciseEnd();
-        stopTimer();
+        clearTrainingCycleInterval();
     }
 
+    // Mirrors startTrainingCycle().
     function start(settings: TrainingHoldSettings) {
-        stopTimer();
+        clearTrainingCycleInterval();
+        cancelTrainingSpeech();
         const safeSeries = clampTrainingHoldSeries(settings.series);
         const safeRepetitions = clampTrainingHoldRepetitions(settings.repetitions);
         const safeHold = clampTrainingHoldSeconds(settings.holdSeconds);
@@ -156,6 +195,7 @@ export function useTrainingHold() {
 
         state.value = {
             running: true,
+            paused: false,
             initialSeriesCount: safeSeries,
             seriesRemaining: safeSeries,
             repetitionsPerSeries: safeRepetitions,
@@ -169,13 +209,43 @@ export function useTrainingHold() {
         };
 
         speakTrainingExerciseStart();
-        intervalId = window.setInterval(tick, 1000);
+        trainingCycleIntervalId = window.setInterval(tick, 1000);
     }
 
+    // Mirrors pauseTrainingCycle().
+    function pause() {
+        clearTrainingCycleInterval();
+        if (state.value.running) state.value.paused = true;
+    }
+
+    // Mirrors resumeTrainingCycle(): keeps the remaining seconds.
+    function resume() {
+        if (!state.value.running || trainingCycleIntervalId !== null) return;
+        state.value.paused = false;
+        trainingCycleIntervalId = window.setInterval(tick, 1000);
+    }
+
+    // Mirrors the #training-cycle-toggle-btn click handler: a finished (or
+    // never started) cycle restarts from scratch with the current settings,
+    // a ticking one pauses, a paused one resumes.
+    function toggle(settings: TrainingHoldSettings) {
+        if (!state.value.running) {
+            start(settings);
+            return;
+        }
+        if (state.value.paused) {
+            resume();
+            return;
+        }
+        pause();
+    }
+
+    // Mirrors closeTrainingHoldModal() -> stopTrainingCycle().
     function close() {
-        stopTimer();
+        clearTrainingCycleInterval();
+        cancelTrainingSpeech();
         state.value = buildInitialState();
     }
 
-    return { state, phaseLabel, ringProgressPct, start, close };
+    return { state, phaseLabel, ringAriaLabel, ringProgressPct, start, pause, resume, toggle, close };
 }

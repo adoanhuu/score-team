@@ -61,6 +61,9 @@ export default defineNuxtConfig({
         devOptions: {
             enabled: true,
             type: "module",
+            // In dev, Vite serves assets on the fly so .nuxt/dev-sw-dist has
+            // nothing to precache: silence Workbox's empty-glob warnings.
+            suppressWarnings: true,
         },
     },
 

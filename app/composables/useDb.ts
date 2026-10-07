@@ -57,6 +57,8 @@ export interface ConfigRecord {
     trainingTargetScore?: {
         ruleset: string;
         percentage: number;
+        // Last chosen target score per ruleset (appConfig.trainingTargetScore.targetScoresByRuleset).
+        targetScoresByRuleset?: Record<string, number>;
     };
     [key: string]: unknown;
 }

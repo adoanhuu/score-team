@@ -122,7 +122,8 @@ export function pickDuelBotScore(
 
     const spread = Math.max(0, pool.length - 1);
     const exponent = 1 + level * 0.12;
-    const index = Math.min(spread, Math.floor(roll2 ** exponent * (spread + 1)));
+    // Fresh draw for the index (app.js uses a new Math.random() here, not roll2).
+    const index = Math.min(spread, Math.floor(Math.random() ** exponent * (spread + 1)));
     return pool[index] ?? pool[0]!;
 }
 
@@ -330,6 +331,11 @@ export function getPelotonVolleyMaxScore(ruleset: Ruleset, arrowsPerTarget: numb
         maxScore += maxForThisArrow;
     }
     return maxScore;
+}
+
+/** Mirrors app.js's getPelotonVolleyTotal(): volley total with X counted as 5 (scoreToValue). */
+export function getPelotonVolleyTotal(arrows: MultiScore[] | null | undefined): number {
+    return getDuelTotal([Array.isArray(arrows) ? arrows : []]);
 }
 
 /** Mirrors app.js's checkPelotonVolleyReachedMax(). */

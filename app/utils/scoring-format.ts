@@ -34,6 +34,21 @@ export function formatRulesetLabel(value: unknown): string {
     return (value as string) || "-";
 }
 
+/** Ruleset <option> label with its score scale, as in app.js's solo/multi/stats selects. */
+const RULESET_OPTION_LABELS: Record<string, string> = {
+    nature: "Nature (20 / 15 / 10)",
+    campagne: "Campagne (6 / 5 / 4 / 3 / 2 / 1)",
+    "3d": "3D (11 / 10 / 8 / 5)",
+    "3d2": "3D Two Shoots (10 / 8 / 5)",
+    "3dh": "3D Hunting (20 / 16 / 10)",
+    ar: "Animal round (3 flèches)",
+    field: "Field / Hunter (X / 5 / 4 / 3)",
+};
+
+export function formatRulesetOptionLabel(value: string): string {
+    return RULESET_OPTION_LABELS[value] ?? formatRulesetLabel(value);
+}
+
 export function scoreLabel(value: unknown): string {
     if (value === null || value === undefined) return "-";
     if (value === 0) return "M";

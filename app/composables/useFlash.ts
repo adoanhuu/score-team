@@ -3,7 +3,7 @@ export function useFlash() {
     const message = useState<string>("flash-message", () => "");
     const timer = useState<ReturnType<typeof setTimeout> | undefined>("flash-timer", () => undefined);
 
-    function showFlash(text: string, durationMs = 3200) {
+    function showFlash(text: string, durationMs = 2600) {
         message.value = text;
         if (timer.value) clearTimeout(timer.value);
         timer.value = setTimeout(() => {

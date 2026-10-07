@@ -2,9 +2,8 @@
 // trainingQuizShieldsSessionState + loadNextQuizShieldsQuestion()/
 // handleQuizShieldsAnswer()/showQuizShieldsResults(). Ephemeral: no result
 // or category selection is persisted.
-import { buildQuizShieldsPool, type QuizShieldQuestion, type ShieldCategory } from "~/utils/training-quiz";
-
-export const QUIZ_SHIELDS_NEXT_DELAY_MS = 2000;
+import { useState } from "nuxt/app";
+import { QUIZ_SHIELDS_NEXT_DELAY_MS, buildQuizShieldsPool, type QuizShieldQuestion, type ShieldCategory } from "~/utils/training-quiz";
 
 interface TrainingQuizState {
     running: boolean;
@@ -34,16 +33,20 @@ function buildInitialState(): TrainingQuizState {
     };
 }
 
+// Timeout id kept at module scope (like app.js's
+// quizShieldsNextQuestionTimeoutId) so any useTrainingQuiz() instance can
+// clear a pending "next question" timer, e.g. when leaving /entrainement.
+let quizShieldsNextQuestionTimeoutId: number | null = null;
+
+function clearNextQuestionTimeout() {
+    if (quizShieldsNextQuestionTimeoutId !== null) {
+        window.clearTimeout(quizShieldsNextQuestionTimeoutId);
+        quizShieldsNextQuestionTimeoutId = null;
+    }
+}
+
 export function useTrainingQuiz() {
     const state = useState<TrainingQuizState>("training-quiz-state", buildInitialState);
-    let nextQuestionTimeoutId: number | null = null;
-
-    function clearNextQuestionTimeout() {
-        if (nextQuestionTimeoutId !== null) {
-            window.clearTimeout(nextQuestionTimeoutId);
-            nextQuestionTimeoutId = null;
-        }
-    }
 
     const resultPercentage = computed(() =>
         state.value.totalQuestions > 0 ? Math.round((state.value.score / state.value.totalQuestions) * 100) : 0,
@@ -90,16 +93,18 @@ export function useTrainingQuiz() {
         if (selectedCategory === state.value.currentShield.category) {
             state.value.score += 1;
         }
-        nextQuestionTimeoutId = window.setTimeout(() => {
-            nextQuestionTimeoutId = null;
+        quizShieldsNextQuestionTimeoutId = window.setTimeout(() => {
+            quizShieldsNextQuestionTimeoutId = null;
             if (!state.value.running || !state.value.answered) return;
             loadNextQuestion();
         }, QUIZ_SHIELDS_NEXT_DELAY_MS);
     }
 
-    function restart() {
-        if (!state.value.running) return;
-        start(state.value.selectedCategories);
+    // Mirrors restartQuizShields(): returns false (session left untouched)
+    // when no shield is available, so the caller can flash the legacy message.
+    function restart(): boolean {
+        if (!state.value.running) return false;
+        return start(state.value.selectedCategories);
     }
 
     function close() {

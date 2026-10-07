@@ -37,14 +37,30 @@ body {
   padding: 16px 14px 50px;
 }
 
+/* Popins: always centered horizontally; centered vertically while they
+   fit in the viewport, otherwise pinned to the top (container padding: at
+   least 60px above) and scrolled. Auto block margins on the popin itself collapse to
+   0 on overflow, unlike `place-items: center` which pushes the top out of
+   reach; putting them on the popin (not on first/last child) keeps this
+   working when a page also renders an out-of-flow fixed modal. */
 body.home-underlay-active .app {
   position: fixed;
   inset: 0;
   z-index: 250;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 14px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+body.home-underlay-active .app > * {
+  flex-shrink: 0;
+}
+
+body.home-underlay-active .app > .card,
+.modal > .modal-card {
+  margin-block: auto;
 }
 
 body.home-underlay-active::before {
@@ -106,7 +122,7 @@ body.home-underlay-active::before {
   border-radius: 16px;
   padding: 14px;
   margin-top: 14px;
-  min-width: 400px;
+  min-width: 0;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
@@ -237,6 +253,12 @@ label {
   align-items: start;
 }
 
+@media (max-width: 420px) {
+  .session-datetime-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .mode-fieldset {
   border: none;
   padding: 0;
@@ -341,22 +363,22 @@ label {
 
 .timer-mode-switch {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-width: 260px;
+  min-width: min(260px, 100%);
 }
 
 .mode-switch {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-width: 260px;
+  min-width: min(260px, 100%);
 }
 
 .session-type-switch {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  min-width: 260px;
+  min-width: min(260px, 100%);
 }
 
 .general-stats-session-type-switch {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-width: 320px;
+  min-width: min(320px, 100%);
 }
 
 .switch-option {
@@ -614,8 +636,9 @@ input[type="range"]::-webkit-slider-runnable-track {
   background: linear-gradient(
     to right,
     var(--range-fill-color, var(--accent)) 0 var(--range-progress, 0%),
-    var(--line) var(--range-progress, 0%) 100%
+    var(--range-track-color, #ffffff) var(--range-progress, 0%) 100%
   );
+  border: 1px solid var(--range-track-border, #b7bcc3);
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -633,7 +656,8 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="range"]::-moz-range-track {
   height: 8px;
   border-radius: 999px;
-  background: var(--line);
+  background: var(--range-track-color, #ffffff);
+  border: 1px solid var(--range-track-border, #b7bcc3);
 }
 
 input[type="range"]::-moz-range-progress {
@@ -884,6 +908,12 @@ input[type="range"]:focus-visible {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
+}
+
+/* Destructive actions (Supprimer, Restaurer…) stay red, not CTA blue. */
+.btn-danger:not(.btn-icon) {
+  background: var(--danger);
+  border-color: var(--danger);
 }
 
 .scoring-head {
@@ -1238,10 +1268,36 @@ input[type="range"]:focus-visible {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
 }
 
+/* Sized to the viewport above the fixed entry panel: pinned to the top
+   instead of vertically centered like other popins. */
+body.home-underlay-active .app > #scoring-card {
+  margin-top: 0;
+}
+
+/* When the scoring card is taller than the space above the fixed entry
+   panel, the container scrolls far enough to reveal it above the panel. */
+body.home-underlay-active .app:has(> #scoring-card) {
+  padding-bottom: calc(var(--solo-score-entry-height) + 8px);
+}
+
+/* The card is sized to the space above the fixed entry panel: its blocks
+   keep their height and the volley history takes what is left and scrolls
+   inside (instead of being clipped by overflow hidden). */
 #scoring-card {
   height: var(--solo-scoring-card-height);
-  padding-bottom: var(--bottom-dock-space);
   overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#scoring-card > * {
+  flex-shrink: 0;
+}
+
+#scoring-card > #live-volley-history-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
 }
 
 .point-btn {
@@ -1453,7 +1509,7 @@ input[type="range"]:focus-visible {
 }
 
 .volley-pill.is-red {
-  background: #9b2226;
+  background: #dc2626;
   color: #fff;
 }
 
@@ -1767,14 +1823,20 @@ input[type="range"]:focus-visible {
   position: fixed;
   inset: 0;
   z-index: 300;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  place-items: center;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal > :not(.modal-overlay) {
+  flex-shrink: 0;
 }
 
 .modal-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(1.5px);
@@ -1784,10 +1846,7 @@ input[type="range"]:focus-visible {
 .modal-card {
   position: relative;
   width: min(600px, 100%);
-  min-width: 400px;
-  max-height: min(85vh, 860px);
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  min-width: 0;
   background: #fff;
   border: 2px solid #123974;
   border-radius: 14px;
@@ -2538,6 +2597,31 @@ input[type="range"]:focus-visible {
   font-size: 1.4rem;
   font-weight: 800;
   color: var(--dark-blue);
+  /* Narrow phones: scale down, then ellipsis rather than overflow/mid-word breaks. */
+  font-size: min(1.4rem, 5vw);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mode Multi scoring popins: long titles ("Mode duel - Animal round") wrap
+   instead of pushing the close button out; summary cards never overflow. */
+#duel-modal-title,
+#peloton-modal-title {
+  min-width: 0;
+  white-space: normal;
+}
+
+#duel-modal .duel-summary-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 360px) {
+  .peloton-history-slide-head {
+    flex-wrap: wrap;
+    gap: 0 6px;
+  }
 }
 
 #duel-total-p1,
@@ -3774,6 +3858,10 @@ input[type="range"]:focus-visible {
   background: var(--bg);
   font-family: "Nunito", "Trebuchet MS", sans-serif;
   transition: opacity 0.2s ease;
+  /* Tiles keep a minimum height: when they no longer fit, scroll instead
+     of squashing them. */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 body.home-underlay-active .home-screen {
@@ -3877,17 +3965,44 @@ body.home-underlay-active .home-screen {
   width: min(400px, 100%);
 }
 
+/* Legacy #peloton-extra-arrow-modal inline styles */
+.peloton-extra-arrow-message {
+  margin: 1rem 0;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+.peloton-extra-arrow-archer-name {
+  font-weight: bold;
+  color: #2d6a4f;
+}
+
+.peloton-extra-arrow-points-pad {
+  margin: 1rem 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+/* Legacy "Mode duel <bot icon> - Ruleset" title icon inline styles */
+.duel-bot-icon.duel-bot-title-icon {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  border-radius: 3px;
+}
+
 .home-nav {
-  flex: 1;
+  flex: 1 0 auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: repeat(3, 1fr);
-  grid-auto-rows: 1fr;
+  grid-template-rows: repeat(3, minmax(160px, 1fr));
+  grid-auto-rows: minmax(160px, 1fr);
   gap: 10px;
   padding: 10px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   min-height: 0;
-  margin: 0 auto;
+  margin: 0 auto 60px;
   width: 100%;
 }
 
@@ -3979,7 +4094,7 @@ body.home-underlay-active .home-screen {
 .home-tile-label {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
   margin-top: auto;
   margin-bottom: 0;
   padding: 10px;
@@ -3997,10 +4112,10 @@ body.home-underlay-active .home-screen {
 }
 
 .home-tile-label-icon {
+  order: 2;
   width: 1.05em;
   height: 1.05em;
   flex-shrink: 0;
-  margin-top: -3px;
 }
 
 #home-training-btn  {
@@ -4051,7 +4166,6 @@ body.home-underlay-active .home-screen {
 #home-training-tile-btn .home-tile-label-icon {
   width: 24px;
   height: 24px;
-  margin-top: -1px;
 }
 #home-config-btn {
   background-image: url('images/config.png');
@@ -4487,7 +4601,7 @@ body.home-underlay-active .home-screen {
   justify-content: center;
   padding: 10px;
   position: relative;
-  background: conic-gradient(#2d6a4f calc(var(--ring-progress) * 380deg / 100), #d62828 0);
+  background: conic-gradient(#2d6a4f calc(var(--ring-progress) * 360deg / 100), #d62828 0);
 }
 
 .quiz-shields-result-ring::before {

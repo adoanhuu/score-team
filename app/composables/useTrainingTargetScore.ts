@@ -49,6 +49,22 @@ export function clampTrainingTargetScore(value: number, ruleset: Ruleset): numbe
     return Math.min(maxScore, Math.max(minScore, Math.round(maxScore * (TRAINING_TARGET_SCORE_DEFAULTS.percentage / 100))));
 }
 
+// Mirrors getStoredTrainingTargetScore(): the per-ruleset saved score wins,
+// otherwise the stored percentage of the ruleset's max score.
+export function getStoredTrainingTargetScore(
+    ruleset: Ruleset,
+    stored: { percentage?: unknown; targetScoresByRuleset?: Record<string, unknown> } | undefined,
+): number {
+    const storedScore = Number.parseInt(String(stored?.targetScoresByRuleset?.[ruleset] ?? ""), 10);
+    if (Number.isInteger(storedScore)) return clampTrainingTargetScore(storedScore, ruleset);
+    const { maxScore } = getTrainingTargetScoreBounds(ruleset);
+    const parsedPercentage = Number.parseInt(String(stored?.percentage ?? ""), 10);
+    const percentage = clampTrainingTargetPercentage(
+        Number.isInteger(parsedPercentage) ? parsedPercentage : TRAINING_TARGET_SCORE_DEFAULTS.percentage,
+    );
+    return clampTrainingTargetScore(maxScore * (percentage / 100), ruleset);
+}
+
 interface TrainingTargetScoreState {
     running: boolean;
     ruleset: Ruleset;

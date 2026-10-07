@@ -67,15 +67,18 @@ const segmentCount = computed(() =>
 const segmentAverages = computed(() =>
   getSegmentAverages(totals.value, segmentCount.value),
 );
-const maxVolley = computed(() => {
-  const single = getMaxShootTotalForConfig(
+// Mirrors getMaxVolleyFromPayload(): the payload's own scoring mode (Nature team = 105).
+const maxVolley = computed(() =>
+  getMaxShootTotalForConfig(
     ruleset.value,
-    "individual",
+    scoringMode.value,
     arrowsPerVolley.value,
-    allowedPoints.value,
-  );
-  return single;
-});
+    Array.isArray(props.payload.allowedPoints) &&
+      (props.payload.allowedPoints as number[]).length
+      ? (props.payload.allowedPoints as number[])
+      : [0],
+  ),
+);
 
 function ratioFor(value: number): number {
   if (maxVolley.value <= 0) return 0;
@@ -107,6 +110,21 @@ const missCount = computed(() =>
 const doubleMissCount = computed(
   () => volleys.value.filter((v) => isDoubleZeroVolley(v.arrows ?? [])).length,
 );
+
+// "Pleins" / "Double pailles" highlights against the configured thresholds
+// (appConfig.fullTarget_<mode> / missLimit_<mode>, mode = individual | team).
+const { config } = useConfig();
+const modeSuffix = computed(() =>
+  scoringMode.value === "individual" ? "individual" : "team",
+);
+const fullHighlighted = computed(() => {
+  const cfgFull = Number(config.value[`fullTarget_${modeSuffix.value}`]);
+  return cfgFull > 0 && fullCount.value >= cfgFull;
+});
+const doubleMissHighlighted = computed(() => {
+  const cfgMiss = Number(config.value[`missLimit_${modeSuffix.value}`]);
+  return cfgMiss > 0 && doubleMissCount.value >= cfgMiss;
+});
 
 // Evolution chart (SVG polyline)
 const evolutionPoints = computed(() => {
@@ -144,6 +162,26 @@ const evolutionAxisLabels = computed(() => {
     .sort((a, b) => a - b);
 });
 
+/** Mirrors getDistributionBarColor(). */
+function getDistributionBarColor(
+  count: number,
+  totalArrows: number,
+  isMiss: boolean,
+): string {
+  if (totalArrows <= 0) return "#d1d5db";
+  const pct = (count / totalArrows) * 100;
+  if (isMiss) {
+    if (pct >= 40) return "#9b2226";
+    if (pct >= 30) return "#d68c45";
+    if (pct >= 20) return "#eab308";
+    return "#2d6a4f";
+  }
+  if (pct >= 40) return "#2d6a4f";
+  if (pct >= 30) return "#d68c45";
+  if (pct >= 20) return "#eab308";
+  return "#9b2226";
+}
+
 // Per-arrow distribution (Répartition tab)
 function distributionRows(scores: number[]) {
   const counts = new Map<number, number>();
@@ -154,7 +192,13 @@ function distributionRows(scores: number[]) {
   return ordered.map((score) => {
     const count = counts.get(score) ?? 0;
     const pct = totalArrows > 0 ? (count / totalArrows) * 100 : 0;
-    return { score, label: scoreLabel(score), count, pct };
+    return {
+      score,
+      label: scoreLabel(score),
+      count,
+      pct,
+      color: getDistributionBarColor(count, totalArrows, score === 0),
+    };
   });
 }
 
@@ -267,9 +311,25 @@ watch(
   },
 );
 
+const { showFlash } = useFlash();
+const saveFeedbackVisible = ref(false);
+let saveFeedbackTimeout: ReturnType<typeof setTimeout> | null = null;
+
+/** Mirrors the stats-comments-save-btn handler: trim, save, flash + inline "Enregistré ✓" for 1600 ms. */
 function saveComments() {
-  emit("save-comments", commentsText.value);
+  const progressionAxis = commentsText.value.trim();
+  commentsText.value = progressionAxis;
+  emit("save-comments", progressionAxis);
+  showFlash("Axe de progression enregistré.");
+  saveFeedbackVisible.value = true;
+  if (saveFeedbackTimeout) clearTimeout(saveFeedbackTimeout);
+  saveFeedbackTimeout = setTimeout(() => {
+    saveFeedbackVisible.value = false;
+  }, 1600);
 }
+onBeforeUnmount(() => {
+  if (saveFeedbackTimeout) clearTimeout(saveFeedbackTimeout);
+});
 </script>
 
 <template>
@@ -280,7 +340,8 @@ function saveComments() {
     aria-modal="true"
     aria-labelledby="stats-modal-title"
   >
-    <div class="modal-overlay" @click="emit('close')"></div>
+    <!-- Overlay clicks do not close the stats modal (app.js stops their propagation). -->
+    <div class="modal-overlay"></div>
     <div class="modal-card stats-modal-card">
       <div class="modal-head">
         <div class="stats-head-title">
@@ -428,13 +489,13 @@ function saveComments() {
         </div>
 
         <div class="stats-grid-3 stats-extra-row">
-          <article>
+          <article :class="{ 'stats-highlight-green': fullHighlighted }">
             <span>Pleins</span><strong>{{ fullCount }}</strong>
           </article>
           <article>
             <span>Pailles</span><strong>{{ missCount }}</strong>
           </article>
-          <article>
+          <article :class="{ 'stats-highlight-red': doubleMissHighlighted }">
             <span>Double pailles</span><strong>{{ doubleMissCount }}</strong>
           </article>
         </div>
@@ -472,7 +533,7 @@ function saveComments() {
                           class="stats-dist-fill"
                           :style="{
                             width: row.pct.toFixed(2) + '%',
-                            background: row.count > 0 ? '#2d6a4f' : '#d1d5db',
+                            background: row.color,
                           }"
                         ></div>
                       </div>
@@ -550,7 +611,13 @@ function saveComments() {
               maxlength="100"
               rows="6"
             ></textarea>
-            <small class="char-count-progression"
+            <small
+              class="char-count-progression"
+              :class="{
+                'is-warning':
+                  commentsText.length >= 80 && commentsText.length < 90,
+                'is-danger': commentsText.length >= 90,
+              }"
               ><span>{{ commentsText.length }}</span
               >/100</small
             >
@@ -559,6 +626,13 @@ function saveComments() {
                 Valider
               </button>
             </div>
+            <small
+              v-show="saveFeedbackVisible"
+              id="stats-comments-save-feedback"
+              class="save-feedback"
+              aria-live="polite"
+              >Enregistré ✓</small
+            >
           </article>
         </div>
       </div>

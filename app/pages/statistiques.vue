@@ -6,7 +6,7 @@
 // dedicated API call, filters just narrow the in-memory array.
 import type { HistoryEntryRecord } from "~/composables/useDb";
 import {
-  formatRulesetLabel,
+  formatRulesetOptionLabel,
   formatHistoryEntryDate,
   getHistorySortDate,
   normalizeSoloSessionType,
@@ -35,9 +35,15 @@ const sessionTypeFilter = ref<"all" | "training" | "contest">("all");
 const graphEnabled = ref(false);
 
 onMounted(async () => {
-  allEntries.value = await list();
+  // Same guard as app.js's loadHistoryEntries(): only real archived entries.
+  allEntries.value = (await list()).filter((entry) => !!entry.generatedAt);
   loading.value = false;
 });
+
+// app.js only opens the screen when at least one completed session exists.
+const hasCompletedEntries = computed(() =>
+  allEntries.value.some((entry) => entry.completed !== false),
+);
 
 const weaponOptions = computed(() => {
   if (rulesetFilter.value === "all") return [];
@@ -76,7 +82,17 @@ const filteredEntries = computed(() => {
 
 const stats = computed(() => {
   const entries = filteredEntries.value;
-  if (entries.length === 0) return null;
+  // No match: app.js keeps the tiles visible, reset to zero.
+  if (entries.length === 0) {
+    return {
+      sessions: 0,
+      avgSession: 0,
+      avgArrow: 0,
+      successRate: 0,
+      bestSession: null as HistoryEntryRecord | null,
+      bestVolley: 0,
+    };
+  }
 
   const sessions = entries.length;
   const totalPoints = entries.reduce(
@@ -126,7 +142,7 @@ const stats = computed(() => {
     const bestTotal = Number(best?.total) || 0;
     const entryTotal = Number(entry.total) || 0;
     return entryTotal > bestTotal ? entry : best;
-  }, entries[0]);
+  }, entries[0] as HistoryEntryRecord | null);
 
   return {
     sessions,
@@ -243,7 +259,7 @@ function formatEntryDateShort(entry: HistoryEntryRecord): string {
         </div>
       </div>
 
-      <div v-if="!loading && allEntries.length === 0" class="duel-volley-empty">
+      <div v-if="!loading && !hasCompletedEntries" class="duel-volley-empty">
         Aucune statistique disponible. Enregistrez au moins une session dans
         l'historique.
       </div>
@@ -256,12 +272,12 @@ function formatEntryDateShort(entry: HistoryEntryRecord): string {
               <option value="all">Tous les parcours</option>
               <optgroup label="FFTA">
                 <option v-for="r in FFTA_RULESETS" :key="r" :value="r">
-                  {{ formatRulesetLabel(r) }}
+                  {{ formatRulesetOptionLabel(r) }}
                 </option>
               </optgroup>
               <optgroup label="FFTL">
                 <option v-for="r in FFTL_RULESETS" :key="r" :value="r">
-                  {{ formatRulesetLabel(r) }}
+                  {{ formatRulesetOptionLabel(r) }}
                 </option>
               </optgroup>
             </select>
@@ -310,11 +326,7 @@ function formatEntryDateShort(entry: HistoryEntryRecord): string {
           </div>
         </div>
 
-        <div v-if="!stats" class="duel-volley-empty">
-          Aucune session ne correspond à ces filtres.
-        </div>
-
-        <template v-else>
+        <template v-if="stats">
           <div
             v-if="showEvolutionGraph"
             class="stats-grid-3 stats-evolution-row general-stats-evolution-row"
@@ -346,14 +358,15 @@ function formatEntryDateShort(entry: HistoryEntryRecord): string {
                 </svg>
                 <div
                   id="general-stats-evolution-axis"
+                  class="stats-evolution-axis"
                   :style="{
                     width: `${evolution.chartWidth}px`,
                     gridTemplateColumns: evolution.gridTemplateColumns,
                   }"
                 >
                   <small
-                    v-for="entry in orderedEntries"
-                    :key="String(entry.archivedAt || entry.generatedAt)"
+                    v-for="(entry, index) in orderedEntries"
+                    :key="index"
                     >{{ formatEntryDateShort(entry) }}</small
                   >
                 </div>
@@ -400,7 +413,9 @@ function formatEntryDateShort(entry: HistoryEntryRecord): string {
                 }}<span class="stats-unit">pts</span></strong
               >
               <small class="general-stats-meta">{{
-                formatHistoryEntryDate(stats.bestSession)
+                stats.bestSession
+                  ? formatHistoryEntryDate(stats.bestSession)
+                  : "-"
               }}</small>
             </article>
             <article>
