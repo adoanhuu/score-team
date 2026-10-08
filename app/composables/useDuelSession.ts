@@ -128,7 +128,7 @@ export function useDuelSession() {
 
     const isLocked = computed(() => state.value.previewLocked || state.value.completed || isBotTurn.value);
 
-    const handicapLabel = computed(() => formatDuelHandicapLabel(state.value.handicap));
+    const handicapLabel = computed(() => formatDuelHandicapLabel(state.value.handicap, state.value.nameP1, state.value.nameP2));
 
     function configure(setup: DuelSetup) {
         stopAllTimers();

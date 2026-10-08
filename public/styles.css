@@ -1290,8 +1290,10 @@ body.home-underlay-active .app:has(> #scoring-card) {
   flex-direction: column;
 }
 
+/* No grow either: .quick-stats carries `flex: 1` (meant for
+   .quick-stats-container), which would stretch the stats tiles here. */
 #scoring-card > * {
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 
 #scoring-card > #live-volley-history-wrap {

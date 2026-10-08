@@ -890,9 +890,11 @@ function syncSoloScoringCardHeight() {
     available,
     Math.ceil(fixedContentHeight + HISTORY_MIN_HEIGHT),
   );
+  // Space the fixed panel takes at the bottom of the viewport (its height
+  // plus its bottom offset): the popin container reserves it when scrolling.
   document.documentElement.style.setProperty(
     "--solo-score-entry-height",
-    `${panelHeight}px`,
+    `${panelHeight > 0 ? Math.ceil(viewportHeight - panelRect.top) : 0}px`,
   );
   document.documentElement.style.setProperty(
     "--solo-scoring-card-height",

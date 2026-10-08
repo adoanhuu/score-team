@@ -165,12 +165,15 @@ export function getDuelDisplayTotals(
     };
 }
 
-/** Mirrors app.js's formatDuelHandicapLabel(). */
-export function formatDuelHandicapLabel(handicap: number): string {
+/**
+ * Mirrors app.js's formatDuelHandicapLabel(), naming the advantaged archer by
+ * first name when given (falls back to "J1" / "J2").
+ */
+export function formatDuelHandicapLabel(handicap: number, nameP1 = "", nameP2 = ""): string {
     const safeHandicap = Number.isInteger(handicap) ? Math.min(50, Math.max(-50, handicap)) : 0;
     if (safeHandicap === 0) return "0%";
-    if (safeHandicap < 0) return `J1 +${Math.abs(safeHandicap)}%`;
-    return `J2 +${safeHandicap}%`;
+    if (safeHandicap < 0) return `${nameP1.trim() || "J1"} +${Math.abs(safeHandicap)}%`;
+    return `${nameP2.trim() || "J2"} +${safeHandicap}%`;
 }
 
 /** Mirrors app.js's isPaquitoSelectedAsDuelOpponent() (given a player-2 name). */

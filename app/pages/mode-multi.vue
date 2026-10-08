@@ -125,7 +125,11 @@ function setScoreDockRef(el: Element | ComponentPublicInstance | null) {
     return;
   }
   dockResizeObserver = new ResizeObserver(() => {
-    dockSpacerHeight.value = Math.ceil(el.getBoundingClientRect().height) + 8;
+    // Space taken from the dock's top edge to the bottom of the viewport
+    // (dock height + its bottom offset).
+    dockSpacerHeight.value = Math.ceil(
+      window.innerHeight - el.getBoundingClientRect().top,
+    );
   });
   dockResizeObserver.observe(el);
 }
@@ -232,7 +236,18 @@ const handicapVisible = computed(
   () => form.value.mode === "duel" && !isPaquito.value,
 );
 const handicapLabel = computed(() =>
-  formatDuelHandicapLabel(isPaquito.value ? 0 : form.value.duelHandicap),
+  formatDuelHandicapLabel(
+    isPaquito.value ? 0 : form.value.duelHandicap,
+    form.value.duelNameP1,
+    form.value.duelNameP2,
+  ),
+);
+// Hint row under the handicap slider: typed first names, else "Archer N".
+const handicapHintP1 = computed(
+  () => form.value.duelNameP1.trim() || "Archer 1",
+);
+const handicapHintP2 = computed(
+  () => form.value.duelNameP2.trim() || "Archer 2",
 );
 
 function handicapForcedToZero() {
@@ -746,7 +761,7 @@ watch(
             v-model="form.duelNameP1"
             type="text"
             maxlength="10"
-            placeholder="Nom archer 1"
+            placeholder="Prénom A"
             autocomplete="off"
             required
           />
@@ -758,7 +773,7 @@ watch(
             v-model="form.duelNameP2"
             type="text"
             maxlength="10"
-            placeholder="Nom archer 2"
+            placeholder="Prénom B"
             autocomplete="off"
             required
           />
@@ -835,9 +850,9 @@ watch(
           />
         </div>
         <div id="duel-handicap-hint" class="duel-handicap-hint" aria-hidden="true">
-          <span>Archer 1</span>
+          <span>{{ handicapHintP1 }}</span>
           <span>Neutre</span>
-          <span>Archer 2</span>
+          <span>{{ handicapHintP2 }}</span>
         </div>
       </label>
 
@@ -849,7 +864,7 @@ watch(
             v-model="form.pelotonNames[i - 1]"
             type="text"
             maxlength="10"
-            :placeholder="'Archer ' + i"
+            :placeholder="'Prénom ' + String.fromCharCode(64 + i)"
             autocomplete="off"
           />
         </label>
